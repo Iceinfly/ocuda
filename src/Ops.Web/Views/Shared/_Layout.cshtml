@@ -144,6 +144,13 @@
                                 <span class="fa-solid fa-hands-helping fa-fw"></span>
                                 Volunteer Submissions
                             </a>
+                            <a class="dropdown-item"
+                               asp-controller="@Ocuda.Ops.Controllers.Areas.BooksByMail.HomeController.Name"
+                               asp-area="@(nameof(Ocuda.Ops.Controllers.Areas.BooksByMail))"
+                               asp-action="@(nameof(Ocuda.Ops.Controllers.Areas.BooksByMail.HomeController.All))">
+                                <span class="fa-solid fa-hands-helping fa-fw"></span>
+                                Books By Mail
+                            </a>
                         </div>
                     </li>
                 </ul>
