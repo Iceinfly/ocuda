@@ -187,7 +187,7 @@ namespace Ocuda.Ops.Controllers.Areas.SiteManagement
             if (viewModel.Group.IsLocationRegion && string.IsNullOrEmpty(viewModel.Group.SubscriptionUrl))
             {
                 ModelState.AddModelError("Group.SubscriptionUrl", "A 'Subscription URL' is required for a location region.");
-                ShowAlertDanger($"A 'Subscription URL' is required for a location region.");
+                ShowAlertDanger("A 'Subscription URL' is required for a location region.");
                 viewModel.Group.IsNewGroup = false;
                 viewModel.Action = nameof(GroupsController.EditGroup);
                 return View("GroupDetails", viewModel);
