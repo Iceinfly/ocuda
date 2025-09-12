@@ -238,6 +238,12 @@ namespace Ocuda.Ops.Controllers.Areas.Incident
                 return RedirectToAction(nameof(Details), new { id = incidentId });
             }
 
+            if (incidentId == relatedIncidentId)
+            {
+                ShowAlertDanger("An incident can not be related to.");
+                return RedirectToAction(nameof(Details), new { id = incidentId });
+            }
+
             await _incidentService.AddRelationshipAsync(incidentId, relatedIncidentId);
             return RedirectToAction(nameof(Details), new { id = incidentId });
         }
