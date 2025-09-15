@@ -240,11 +240,22 @@ namespace Ocuda.Ops.Controllers.Areas.Incident
 
             if (incidentId == relatedIncidentId)
             {
-                ShowAlertDanger("An incident can not be related to.");
+                ShowAlertDanger("An incident can not be related to itself.");
                 return RedirectToAction(nameof(Details), new { id = incidentId });
             }
 
-            await _incidentService.AddRelationshipAsync(incidentId, relatedIncidentId);
+            try
+            {
+                await _incidentService.AddRelationshipAsync(incidentId, relatedIncidentId);
+                ShowAlertSuccess($"Related incident {relatedIncidentId} added.");
+            }
+            catch (OcudaException oex)
+            {
+                ShowAlertDanger(oex.Message);
+                _logger.LogWarning(oex,
+                    "Failed to relate incident {IncidentId} to {RelatedIncidentId}.",
+                    incidentId, relatedIncidentId);
+            }
             return RedirectToAction(nameof(Details), new { id = incidentId });
         }
 
