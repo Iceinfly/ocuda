@@ -10,8 +10,9 @@ namespace Ocuda.Promenade.Models.Entities
         [Required]
         public int Id { get; set; }
 
-        [DisplayName("Location")]
+        [DisplayName(Ocuda.i18n.Keys.Promenade.ProductInventoryLocation)]
         public int? LocationId { get; set; }
+
         public Location Location { get; set; }
 
         [Required]

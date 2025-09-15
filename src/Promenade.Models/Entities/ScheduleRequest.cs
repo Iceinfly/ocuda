@@ -12,7 +12,7 @@ namespace Ocuda.Promenade.Models.Entities
         public DateTime CreatedAt { get; set; }
 
         [MaxLength(255)]
-        [Display(Name = "Email")]
+        [Display(Name = Ocuda.i18n.Keys.Promenade.PromptEmail)]
         public string Email { get; set; }
 
         public DateTime? FollowupSentAt { get; set; }
@@ -29,28 +29,28 @@ namespace Ocuda.Promenade.Models.Entities
 
         [Required(ErrorMessage = ErrorMessage.FieldRequired)]
         [MaxLength(255)]
-        [Display(Name = "Language")]
+        [Display(Name = Ocuda.i18n.Keys.Promenade.PromptLanguage)]
         public string Language { get; set; }
 
         [Required(ErrorMessage = ErrorMessage.FieldRequired)]
         [MaxLength(255)]
-        [Display(Name = "Name")]
+        [Display(Name = Ocuda.i18n.Keys.Promenade.PromptName)]
         public string Name { get; set; }
 
         [MaxLength(255)]
-        [Display(Name = "How can we help?")]
+        [Display(Name = Ocuda.i18n.Keys.Promenade.ScheduleHowCanWeHelp)]
         public string Notes { get; set; }
 
         public DateTime? NotificationSentAt { get; set; }
 
         [Required(ErrorMessage = ErrorMessage.FieldRequired)]
-        [Display(Name = "Requested time")]
+        [Display(Name = Ocuda.i18n.Keys.Promenade.PromptRequestedTime)]
         public DateTime RequestedTime { get; set; }
 
         public ScheduleRequestSubject ScheduleRequestSubject { get; set; }
 
         [Required(ErrorMessage = ErrorMessage.FieldRequired)]
-        [Display(Name = "Subject")]
+        [Display(Name = Ocuda.i18n.Keys.Promenade.PromptSubject)]
         public int ScheduleRequestSubjectId { get; set; }
 
         public ScheduleRequestTelephone ScheduleRequestTelephone { get; set; }

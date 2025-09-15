@@ -87,7 +87,7 @@ namespace Ocuda.Promenade.Models.Entities
         [Required]
         public string Title { get; set; }
 
-        [DisplayName("Last Update")]
+        [DisplayName(Ocuda.i18n.Keys.Promenade.ProductInventoryLastUpdate)]
         public DateTime UpdatedAt { get; set; }
     }
 }

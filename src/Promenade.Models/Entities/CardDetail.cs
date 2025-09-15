@@ -38,7 +38,7 @@ namespace Ocuda.Promenade.Models.Entities
 
         [Key]
         [Required]
-        [DisplayName("Language")]
+        [DisplayName(Ocuda.i18n.Keys.Promenade.PromptLanguage)]
         public int LanguageId { get; set; }
 
         [MaxLength(255)]
