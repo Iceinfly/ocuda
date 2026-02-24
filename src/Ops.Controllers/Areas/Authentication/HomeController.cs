@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
@@ -78,11 +79,32 @@ namespace Ocuda.Ops.Controllers.Areas.Authentication
         [HttpGet("")]
         public async Task<IActionResult> Index(string returnUrl)
         {
-            var userName = HttpContext.User?.Identity?.Name;
+            var adminEmail = await _siteSettingService
+                .GetSettingStringAsync(Models.Keys.SiteSetting.Email.AdminAddress);
 
-            if (userName != null)
+            string mailLink = null;
+            if (!string.IsNullOrEmpty(adminEmail))
             {
-                return RedirectToAction(nameof(Logout));
+                mailLink = $"mailto:{adminEmail}?subject="
+                    + Uri.EscapeDataString("Difficulty accessing the intranet")
+                    + "&body="
+                    + Uri.EscapeDataString("I am experiencing difficulty authenticating to the intranet: ");
+            }
+
+            var viewModel = new LoginViewModel
+            {
+                AdminEmail = mailLink,
+                ReturnUrl = returnUrl
+            };
+
+            if (User?.Identity?.IsAuthenticated == true)
+            {
+                _logger.LogWarning("Authenticated user {Username} tried to access login screen with return link set to {ReturnUrl}",
+                    User?.Identity?.Name,
+                    returnUrl);
+
+                viewModel.AuthenticatedUser = User?.Identity?.Name;
+                return View("Info", viewModel);
             }
 
             // if there's a default provider configured we'll automatically try that
@@ -102,24 +124,6 @@ namespace Ocuda.Ops.Controllers.Areas.Authentication
                 }
             }
 
-            var adminEmail = await _siteSettingService
-                .GetSettingStringAsync(Models.Keys.SiteSetting.Email.AdminAddress);
-
-            string mailLink = null;
-            if (!string.IsNullOrEmpty(adminEmail))
-            {
-                mailLink = $"mailto:{adminEmail}?subject="
-                    + Uri.EscapeDataString("Difficulty accessing the intranet")
-                    + "&body="
-                    + Uri.EscapeDataString("I am experiencing difficulty authenticating to the intranet: ");
-            }
-
-            var viewModel = new LoginViewModel
-            {
-                AdminEmail = mailLink,
-                ReturnUrl = returnUrl
-            };
-
             foreach (var activeProvider in activeProviders)
             {
                 viewModel.ProviderLinks.Add(activeProvider.Name,
@@ -135,7 +139,7 @@ namespace Ocuda.Ops.Controllers.Areas.Authentication
             _logger.LogInformation("Logging out user {Username}",
                 HttpContext.User?.Identity?.Name ?? "unauthenticated user");
 
-            await Request.HttpContext.SignOutAsync();
+            await HttpContext.SignOutAsync();
             return Ok();
         }
 
@@ -183,7 +187,8 @@ namespace Ocuda.Ops.Controllers.Areas.Authentication
             _logger.LogInformation("Logging out user {Username}",
                 HttpContext.User?.Identity?.Name ?? "unauthenticated user");
 
-            await Request.HttpContext.SignOutAsync();
+            await HttpContext.SignOutAsync();
+            HttpContext.Session.Clear();
             return RedirectToAction(nameof(Index));
         }
 
@@ -450,10 +455,16 @@ namespace Ocuda.Ops.Controllers.Areas.Authentication
                 ClaimTypes.Name,
                 ClaimType.ADGroup);
 
-            await Request.HttpContext.SignInAsync(new ClaimsPrincipal(identity));
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(identity),
+                new AuthenticationProperties
+                {
+                    IsPersistent = true
+                });
 
             // TODO set a reasonable initial nickname
-            Request.HttpContext.Items[ItemKey.Nickname] = user.Nickname ?? username;
+            HttpContext.Items[ItemKey.Nickname] = user.Nickname ?? username;
         }
     }
 }
