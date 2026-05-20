@@ -20,6 +20,11 @@ namespace Ocuda.Ops.Models.Definitions.Models
         public string Description { get; set; }
 
         /// <summary>
+        /// True if data exists for the report, set in the controller
+        /// </summary>
+        public bool HasResults { get; set; }
+
+        /// <summary>
         /// Id of the report, used as the slug for accessing it via the Web
         /// </summary>
         public string Id { get; set; }

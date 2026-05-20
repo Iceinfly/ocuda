@@ -1,0 +1,55 @@
+﻿@model Ocuda.Ops.Controllers.Areas.Reporting.ViewModel.ImportViewModel
+
+<form asp-action="@nameof(HomeController.Import)"
+      enctype="multipart/form-data"
+      id="importReportForm"
+      method="post">
+    <input id="importReportId" asp-for="ReportId" type="hidden" />
+    <div aria-hidden="true"
+         aria-labelledby="reportingImportModalLabel"
+         class="modal fade"
+         data-bs-backdrop="static"
+         data-bs-keyboard="false"
+         id="reportingImportModal"
+         tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="reportingImportModalLabel">Import data</h1>
+                    <button aria-label="Close"
+                            class="modal-close-button btn-close"
+                            data-bs-dismiss="modal"
+                            type="button"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2 period-selection d-none"
+                         id="period-selection-@Ocuda.Ops.Models.Definitions.Models.ReportDefinitionPeriod.Monthly">
+                        <label asp-for="DataDate"></label>
+                        <input asp-for="DataDate" class="form-control" type="date" />
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="DataFile"></label>
+                        <input asp-for="DataFile"
+                               class="form-control"
+                               id="importReportFileTypes"
+                               type="file">
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-sm btn-outline-secondary modal-close-button"
+                            data-bs-dismiss="modal"
+                            type="button">
+                        Close
+                    </button>
+                    <button button-spinner
+                            class="btn btn-sm btn-outline-primary"
+                            id="submitImport"
+                            type="submit">
+                        Upload Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>

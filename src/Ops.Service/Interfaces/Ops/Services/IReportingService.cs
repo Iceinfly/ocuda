@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Ocuda.Ops.Models.Definitions.Models;
@@ -12,11 +13,17 @@ namespace Ocuda.Ops.Service.Interfaces.Ops.Services
     {
         CollectionWithCount<ReportDefinition> GetList(BaseFilter filter);
 
+        Task<IEnumerable<ReportingImportDetails>> GetNotesAsync(string reportType, int year, int month);
+
+        Task<ReportingImportHeader> GetResultsAsync(string reportType, int year, int month);
+
+        Task<CollectionWithCount<DateTime>> GetResultsAsync(BaseFilter<string> filter);
+
+        Task<bool> HasResultsAsync(string reportType);
+
         Task<int> ProcessImportAsync(string reportId,
             DateTime dataDate,
             string filename,
             Stream import);
-
-        Task<ReportingImportHeader> GetResultsAsync(string reportType, int year, int month);
     }
 }

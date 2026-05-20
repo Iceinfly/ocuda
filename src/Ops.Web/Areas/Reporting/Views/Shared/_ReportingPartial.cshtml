@@ -9,10 +9,20 @@
         }
     </h1>
     <div class="pt-2 d-print-none">
-        @if (!Model.IsIndex)
+        @foreach (var navKey in Model.Navigations.Keys)
         {
             <a class="btn btn-outline-dark ms-2"
-               asp-area=""
+               href="@Model.Navigations[navKey]">@navKey</a>
+        }
+        @if (!string.IsNullOrEmpty(Model.BackLink))
+        {
+            <a class="btn btn-outline-dark ms-2"
+               href="@Model.BackLink">Back</a>
+        }
+        else
+        {
+            <a class="btn btn-outline-dark ms-2"
+               asp-area="@(Model.IsIndex ? "" : Ocuda.Ops.Controllers.Areas.Reporting.HomeController.Area)"
                asp-controller="@Ocuda.Ops.Controllers.HomeController.Name"
                asp-action="@nameof(Ocuda.Ops.Controllers.HomeController.Index)">Back</a>
         }

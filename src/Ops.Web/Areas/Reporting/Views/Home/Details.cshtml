@@ -1,0 +1,36 @@
+﻿@model Ocuda.Ops.Controllers.Areas.Reporting.ViewModel.DetailsViewModel
+
+<partial name="_ReportingPartial" model="Model" />
+
+<div class="row">
+    @if (!(Model.Dates?.Count() > 0))
+    {
+        <div class="col-12 col-md-6 offset-md-3">
+            <div class="alert alert-info">No results are available for this report.</div>
+        </div>
+    }
+    else
+    {
+        @foreach (var year in Model.Dates.OrderByDescending(_ => _).Select(_ => _.Year).Distinct())
+        {
+            <div class="col-12 col-md-4">
+                <div class="card">
+                    <div class="card-header h5">@year</div>
+                    <div class="card-body">
+                        @foreach (var dateRange in Model.Dates.OrderBy(_ => _))
+                        {
+                            <div>
+                                <a asp-action="@nameof(HomeController.Results)"
+                                   asp-route-month="@dateRange.Month"
+                                   asp-route-reportId="@Model.Report.Id"
+                                   asp-route-year="@dateRange.Year">@dateRange.ToString("MMMM")</a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<nav paginate="@Model"></nav>

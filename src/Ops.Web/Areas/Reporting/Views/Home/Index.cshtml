@@ -15,9 +15,16 @@
         {
             <div class="col-12 col-md-4">
                 <div class="card">
-                    <div class="card-header">
-                        <a asp-action="@nameof(HomeController.Results)"
-                           asp-route-reportId="@report.Id">@report.Name</a>
+                    <div class="card-header h5">
+                        @if (report.HasResults)
+                        {
+                            <a asp-action="@nameof(HomeController.Details)"
+                               asp-route-reportId="@report.Id">@report.Name</a>
+                        }
+                        else
+                        {
+                            @report.Name
+                        }
                     </div>
                     <div class="card-body">
                         <p class="card-text">@report.Description</p>
@@ -25,14 +32,49 @@
                     @if (report.Importable)
                     {
                         <div class="card-footer d-flex justify-content-end">
-                            <a asp-action="@nameof(HomeController.Import)"
-                               asp-route-reportId="@report.Id"
-                               class="btn btn-sm btn-info">Import Data</a>
+                            <a class="btn btn-sm btn-outline-primary"
+                               data-bs-target="#reportingImportModal"
+                               data-bs-toggle="modal"
+                               data-report-accept="@string.Join(',', report.ImportFileTypes)"
+                               data-report-period="@report.Period"
+                               data-report-id="@report.Id">Import Data</a>
                         </div>
                     }
                 </div>
             </div>
         }
     }
-
 </div>
+
+<nav paginate="@Model"></nav>
+
+@if (Model.Reports.Any(_ => _.Importable))
+{
+    <partial name="_ReportingImportPartial" model="Model.ImportViewModel" />
+
+    @section Scripts {
+        <script>
+            const importModal = document.getElementById('reportingImportModal');
+            importModal.addEventListener('show.bs.modal', event => {
+                document.querySelectorAll('.period-selection').forEach(function(element) {
+                    element.classList.add('d-none');
+                });
+                document
+                    .getElementById('importReportId')
+                    .value = event.relatedTarget.dataset.reportId;
+                document
+                    .getElementById('importReportFileTypes')
+                    .setAttribute('accept', event.relatedTarget.dataset.reportAccept);
+                document
+                    .getElementById(`period-selection-${event.relatedTarget.dataset.reportPeriod}`)
+                    .classList
+                    .remove('d-none');
+            });
+            document.getElementById('importReportForm').addEventListener('submit', (event) => {
+                event.target.querySelectorAll('.modal-close-button').forEach(function(element) {
+                    element.classList.add('disabled');
+                });
+            });
+        </script>
+    }
+}

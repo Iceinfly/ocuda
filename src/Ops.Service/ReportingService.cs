@@ -53,11 +53,36 @@ namespace Ocuda.Ops.Service
             };
         }
 
+        public async Task<IEnumerable<ReportingImportDetails>> GetNotesAsync(string reportType,
+            int year,
+            int month)
+        {
+            var header = await reportingImportHeaderRepository
+                .GetReportAsync(reportType, year, month)
+                ?? throw new OcudaException($"Report header for {reportType} {month}/{year} not found.");
+
+            return await reportingImportDetailsRepository.GetNotesAsync(header.Id);
+        }
+
+        public async Task<CollectionWithCount<DateTime>> GetResultsAsync(BaseFilter<string> filter)
+        {
+            return new CollectionWithCount<DateTime>
+            {
+                Count = await reportingImportHeaderRepository.GetDateCountAsync(filter),
+                Data = await reportingImportHeaderRepository.GetDatesAsync(filter)
+            };
+        }
+
         public async Task<ReportingImportHeader> GetResultsAsync(string reportType,
-                    int year,
-                    int month)
+            int year,
+            int month)
         {
             return await reportingImportHeaderRepository.GetReportAsync(reportType, year, month);
+        }
+
+        public async Task<bool> HasResultsAsync(string reportType)
+        {
+            return await reportingImportHeaderRepository.Any(reportType);
         }
 
         /// <summary>
@@ -68,7 +93,7 @@ namespace Ocuda.Ops.Service
         /// <param name="dataDate">Date range which covers the data to be imported</param>
         /// <param name="filename">Name of the import file, just for logging purposes</param>
         /// <param name="import">CSV data to import provided as a <see cref="Stream"/></param>
-        /// <returns>The <see cref="ReportingInputHeader"/> id for the imported data</returns>
+        /// <returns>The <see cref="ReportingImportHeader"/> id for the imported data</returns>
         /// <exception cref="OcudaException">Throws if there are not instructions to import the
         /// specified <see cref="ReportDefinition"/> id</exception>
         public async Task<int> ProcessImportAsync(string reportId,
@@ -391,7 +416,7 @@ namespace Ocuda.Ops.Service
         /// reports.
         /// </summary>
         /// <param name="result">The result of reading, parsing, and aggregating data.</param>
-        /// <returns>The integer id of the <see cref="ReportingInputHeader"/></returns>
+        /// <returns>The integer id of the <see cref="ReportingImportHeader"/></returns>
         private async Task<DataWithNotes<int>> SaveDataAsync(LocationCirculationResult result)
         {
             var saveResult = new DataWithNotes<int>();

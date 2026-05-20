@@ -57,9 +57,9 @@ namespace Ocuda.Ops.Data
         public DbSet<Post> Posts { get; set; }
         public DbSet<RenewCardResponse> RenewCardResponses { get; set; }
         public DbSet<RenewCardResult> RenewCardResults { get; set; }
-        public DbSet<ReportingImportDatum> ReportingInputData { get; set; }
-        public DbSet<ReportingImportDetails> ReportingInputDetails { get; set; }
-        public DbSet<ReportingImportHeader> ReportingInputHeaders { get; set; }
+        public DbSet<ReportingImportDatum> ReportingImportData { get; set; }
+        public DbSet<ReportingImportDetails> ReportingImportDetails { get; set; }
+        public DbSet<ReportingImportHeader> ReportingImportHeaders { get; set; }
         public DbSet<ReportingLocation> ReportingLocations { get; set; }
         public DbSet<ReportingLocationSet> ReportingLocationSets { get; set; }
         public DbSet<RosterDetail> RosterDetails { get; set; }
