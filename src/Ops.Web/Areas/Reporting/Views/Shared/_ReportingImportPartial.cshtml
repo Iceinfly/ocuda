@@ -27,6 +27,7 @@
                         <label asp-for="DataDate"></label>
                         <input asp-for="DataDate" class="form-control" type="date" />
                     </div>
+                    <div class="mb-2 alert px-2 py-1 d-none" id="dateValidation"></div>
                     <div class="mb-2">
                         <label asp-for="DataFile"></label>
                         <input asp-for="DataFile"
@@ -34,7 +35,6 @@
                                id="importReportFileTypes"
                                type="file">
                     </div>
-
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-sm btn-outline-secondary modal-close-button"
@@ -43,7 +43,7 @@
                         Close
                     </button>
                     <button button-spinner
-                            class="btn btn-sm btn-outline-primary"
+                            class="btn btn-sm btn-outline-success"
                             id="submitImport"
                             type="submit">
                         Upload Data

@@ -12,8 +12,12 @@ namespace Ocuda.Ops.Service.Interfaces.Ops.Repositories
 
         public Task<int> GetDateCountAsync(BaseFilter<string> filter);
 
-        public Task<ICollection<DateTime>> GetDatesAsync(BaseFilter<string> filter);
+        public Task<IDictionary<DateTime, int?>> GetDatesAsync(BaseFilter<string> filter);
 
         public Task<ReportingImportHeader> GetReportAsync(string reportType, int year, int month);
+
+        public Task<bool> HasReportAsync(string reportType, int year, int month);
+
+        public Task UpdateTotalAsync(int reportingHeaderId, int total);
     }
 }

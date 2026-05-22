@@ -22,6 +22,8 @@ namespace Ocuda.Ops.Models.Entities
         [Required]
         public string ReportType { get; set; }
 
+        public int? Total { get; set; }
+
         [Required]
         public int Year { get; set; }
     }

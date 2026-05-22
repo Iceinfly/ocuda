@@ -8,10 +8,10 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting.ViewModel
     {
         public DetailsViewModel()
         {
-            Dates = [];
+            MonthsTotals = new Dictionary<DateTime, int?>();
         }
 
-        public ICollection<DateTime> Dates { get; }
+        public IDictionary<DateTime, int?> MonthsTotals { get; }
         public ReportDefinition Report { get; set; }
     }
 }

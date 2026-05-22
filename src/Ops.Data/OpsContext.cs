@@ -51,6 +51,7 @@ namespace Ocuda.Ops.Data
         public DbSet<PermissionGroupPodcastItem> PermissionGroupPodcastItems { get; set; }
         public DbSet<PermissionGroupProductManager> PermissionGroupProductManager { get; set; }
         public DbSet<PermissionGroupReplaceFiles> PermissionGroupReplaceFiles { get; set; }
+        public DbSet<PermissionGroupReporting> PermissionGroupReportings { get; set; }
         public DbSet<PermissionGroup> PermissionGroups { get; set; }
         public DbSet<PermissionGroupSectionManager> PermissionGroupSectionManager { get; set; }
         public DbSet<PostCategory> PostCategories { get; set; }
@@ -116,6 +117,8 @@ namespace Ocuda.Ops.Data
                 .HasKey(_ => new { _.PermissionGroupId, _.FileLibraryId });
             modelBuilder.Entity<PermissionGroupProductManager>()
                .HasKey(_ => new { _.PermissionGroupId, _.ProductId });
+            modelBuilder.Entity<PermissionGroupReporting>()
+                .HasKey(_ => new { _.PermissionGroupId, _.ReportId });
             modelBuilder.Entity<PermissionGroupSectionManager>()
                 .HasKey(_ => new { _.PermissionGroupId, _.SectionId });
             modelBuilder.Entity<PostCategory>()

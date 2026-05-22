@@ -9,6 +9,7 @@ using Ocuda.Ops.Data.ServiceFacade;
 using Ocuda.Ops.Models.Entities;
 using Ocuda.Ops.Service.Filters;
 using Ocuda.Ops.Service.Interfaces.Ops.Repositories;
+using Ocuda.Utility.Exceptions;
 
 namespace Ocuda.Ops.Data.Ops
 {
@@ -31,21 +32,18 @@ namespace Ocuda.Ops.Data.Ops
                 .Where(_ => _.ReportType == filter.Data)
                 .OrderBy(_ => _.Year)
                 .ThenBy(_ => _.Month)
-                .GroupBy(_ => new { _.Year, _.Month })
                 .CountAsync();
         }
 
-        public async Task<ICollection<DateTime>> GetDatesAsync(BaseFilter<string> filter)
+        public async Task<IDictionary<DateTime, int?>> GetDatesAsync(BaseFilter<string> filter)
         {
             return await DbSet
                 .AsNoTracking()
                 .Where(_ => _.ReportType == filter.Data)
-                .OrderBy(_ => _.Year)
+                .OrderByDescending(_ => _.Year)
                 .ThenBy(_ => _.Month)
-                .GroupBy(_ => new { _.Year, _.Month })
                 .ApplyPagination(filter)
-                .Select(_ => new DateTime(_.Key.Year, _.Key.Month, 1))
-                .ToListAsync();
+                .ToDictionaryAsync(k => new DateTime(k.Year, k.Month, 1), v => v.Total);
         }
 
         public async Task<ReportingImportHeader> GetReportAsync(string reportType,
@@ -60,6 +58,24 @@ namespace Ocuda.Ops.Data.Ops
                 .SingleOrDefaultAsync(_ => _.ReportType == reportType
                     && _.Year == year
                     && _.Month == month);
+        }
+
+        public async Task<bool> HasReportAsync(string reportType, int year, int month)
+        {
+            return await DbSet
+                .AsNoTracking()
+                .AnyAsync(_ => _.ReportType == reportType && _.Year == year && _.Month == month);
+        }
+
+        public async Task UpdateTotalAsync(int reportingHeaderId, int total)
+        {
+            var header = await FindAsync(reportingHeaderId)
+                ?? throw new OcudaException($"Unable to update total for header id {reportingHeaderId}");
+
+            header.Total = total;
+
+            DbSet.Update(header);
+            await _context.SaveChangesAsync();
         }
     }
 }

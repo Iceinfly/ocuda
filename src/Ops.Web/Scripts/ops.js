@@ -1,4 +1,6 @@
-﻿function ResetSpinners(target) {
+﻿const ocudaOpsLoadingHtml = "<div class=\"d-flex justify-content-center align-items-center\"><span class=\"fa-solid fa-spinner fa-pulse fa-2x fa-fw\"></div>";
+
+function ResetSpinners(target) {
     if (target != null) {
         if (target instanceof jQuery) {
             target.removeClass("disabled");

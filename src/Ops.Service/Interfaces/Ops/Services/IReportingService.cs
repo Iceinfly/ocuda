@@ -13,11 +13,15 @@ namespace Ocuda.Ops.Service.Interfaces.Ops.Services
     {
         CollectionWithCount<ReportDefinition> GetList(BaseFilter filter);
 
-        Task<IEnumerable<ReportingImportDetails>> GetNotesAsync(string reportType, int year, int month);
+        Task<IEnumerable<ReportingImportDetails>> GetNotesAsync(string reportType,
+            int year,
+            int month);
 
         Task<ReportingImportHeader> GetResultsAsync(string reportType, int year, int month);
 
-        Task<CollectionWithCount<DateTime>> GetResultsAsync(BaseFilter<string> filter);
+        Task<DataWithCount<IDictionary<DateTime, int?>>> GetResultsAsync(BaseFilter<string> filter);
+
+        Task<bool> HasResultsAsync(string reportType, int year, int month);
 
         Task<bool> HasResultsAsync(string reportType);
 

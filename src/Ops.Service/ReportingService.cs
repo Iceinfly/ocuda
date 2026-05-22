@@ -64,9 +64,10 @@ namespace Ocuda.Ops.Service
             return await reportingImportDetailsRepository.GetNotesAsync(header.Id);
         }
 
-        public async Task<CollectionWithCount<DateTime>> GetResultsAsync(BaseFilter<string> filter)
+        public async Task<DataWithCount<IDictionary<DateTime, int?>>>
+            GetResultsAsync(BaseFilter<string> filter)
         {
-            return new CollectionWithCount<DateTime>
+            return new DataWithCount<IDictionary<DateTime, int?>>
             {
                 Count = await reportingImportHeaderRepository.GetDateCountAsync(filter),
                 Data = await reportingImportHeaderRepository.GetDatesAsync(filter)
@@ -78,6 +79,11 @@ namespace Ocuda.Ops.Service
             int month)
         {
             return await reportingImportHeaderRepository.GetReportAsync(reportType, year, month);
+        }
+
+        public async Task<bool> HasResultsAsync(string reportType, int year, int month)
+        {
+            return await reportingImportHeaderRepository.HasReportAsync(reportType, year, month);
         }
 
         public async Task<bool> HasResultsAsync(string reportType)
@@ -106,6 +112,11 @@ namespace Ocuda.Ops.Service
             var reports = ReportDefinitions.Definitions;
             var selectedReport = reports.SingleOrDefault(_ => _.Id == reportId)
                 ?? throw new OcudaException($"Unable to import data for report id: {reportId}");
+
+            if (await HasResultsAsync(selectedReport.Id, dataDate.Year, dataDate.Month))
+            {
+                throw new OcudaException($"Report {selectedReport.Name} already has data for {dataDate.Month}/{dataDate.Year}");
+            }
 
             var notes = new List<string>();
 
@@ -444,6 +455,22 @@ namespace Ocuda.Ops.Service
 
             await reportingImportDatumRepository.AddRangeAsync(data);
             await reportingImportDatumRepository.SaveAsync();
+
+            try
+            {
+                var total = data?.Sum(_ => _.ReportValue);
+                if (total.HasValue)
+                {
+                    await reportingImportHeaderRepository.UpdateTotalAsync(header.Id, total.Value);
+                }
+            }
+            catch (OcudaException oex)
+            {
+                _logger.LogWarning(oex,
+                    "Unable to update total in header record: {ErrorMessage}",
+                    oex.Message);
+                saveResult.Notes.Add($"Unable to update total in report header record: {oex.Message}");
+            }
 
             saveResult.Data = header.Id;
             saveResult.Notes.Add($"Imported {data.Count} records from file {result.Filename} for {result.Timestamp.Month}/{result.Timestamp.Year} to database");

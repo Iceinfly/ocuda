@@ -10,8 +10,8 @@ namespace Ocuda.Ops.Models.Definitions
     {
         public static readonly ReportDefinition[] Definitions =
         [
-            // TODO REPORT fix the description of this report
             new() {
+                CanBeImported = true,
                 Delimiter = "\t",
                 Description = "Overall circulations by patron library cards",
                 Id = ReportDefinitionId.HooplaCheckouts,

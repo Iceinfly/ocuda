@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Ocuda.Utility.Helpers;
 
 namespace Ocuda.Ops.Models.Definitions.Models
 {
@@ -8,6 +9,11 @@ namespace Ocuda.Ops.Models.Definitions.Models
         {
             Delimiter = ",";
         }
+
+        /// <summary>
+        /// True if data for this report comes from user-based imports
+        /// </summary>
+        public bool CanBeImported { get; set; }
 
         /// <summary>
         /// The column delimiter for the report, defaults to a comma for a CSV report
@@ -25,21 +31,40 @@ namespace Ocuda.Ops.Models.Definitions.Models
         public bool HasResults { get; set; }
 
         /// <summary>
-        /// Id of the report, used as the slug for accessing it via the Web
+        /// Id of the report, used as the slug for accessing it via the Web - this is also used
+        /// internally for configuring permissions so it should never change once defined.
         /// </summary>
         public string Id { get; set; }
-
-        /// <summary>
-        /// Set to true if data can be imported for this report or not, set in the controller by
-        /// reviewing permissions
-        /// </summary>
-        public bool Importable { get; set; }
 
         /// <summary>
         /// Acceptable file types for imports, MIME types or extensions that are passed to the
         /// HTML input tag
         /// </summary>
         public IEnumerable<string> ImportFileTypes { get; set; }
+
+        /// <summary>
+        /// An internal id computed as a hash of the report's <see cref="Id"/> property used for
+        /// assigning permissions. Should be unique per report at all times.
+        /// </summary>
+        public int InternalId
+        {
+            get
+            {
+                return IdHelper.ComputeId(Id);
+            }
+        }
+
+        /// <summary>
+        /// Set to true if data can be imported for this report or not, set in the controller by
+        /// reviewing permissions
+        /// </summary>
+        public bool IsImportable { get; set; }
+
+        /// <summary>
+        /// Set to true if data can be viewed by the curren tuser, set in the controller by
+        /// reviewing permissions
+        /// </summary>
+        public bool IsViewable { get; set; }
 
         /// <summary>
         /// Name of the report as displayed to users

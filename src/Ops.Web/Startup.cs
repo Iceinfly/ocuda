@@ -448,6 +448,8 @@ namespace Ocuda.Ops.Web
                 , Data.Ops.PermissionGroupReplaceFilesRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IPermissionGroupProductManagerRepository,
                 Data.Ops.PermissionGroupProductManagerRepository>();
+            services.AddScoped<Service.Interfaces.Ops.Repositories.IPermissionGroupReportingRepository,
+                Data.Ops.PermissionGroupReportingRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IPermissionGroupRepository,
                 Data.Ops.PermissionGroupRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IPermissionGroupSectionManagerRepository,

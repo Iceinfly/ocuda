@@ -1,9 +1,11 @@
 ﻿@model Ocuda.Ops.Controllers.Areas.Reporting.ViewModel.DetailsViewModel
 
-<partial name="_ReportingPartial" model="Model" />
+@section header {
+    <partial name="_ReportingPartial" model="Model" />
+}
 
 <div class="row">
-    @if (!(Model.Dates?.Count() > 0))
+    @if (!(Model.MonthsTotals?.Count() > 0))
     {
         <div class="col-12 col-md-6 offset-md-3">
             <div class="alert alert-info">No results are available for this report.</div>
@@ -11,21 +13,40 @@
     }
     else
     {
-        @foreach (var year in Model.Dates.OrderByDescending(_ => _).Select(_ => _.Year).Distinct())
+        @foreach (var year in Model.MonthsTotals.Keys.OrderByDescending(_ => _).Select(_ => _.Year).Distinct())
         {
             <div class="col-12 col-md-4">
                 <div class="card">
                     <div class="card-header h5">@year</div>
-                    <div class="card-body">
-                        @foreach (var dateRange in Model.Dates.OrderBy(_ => _))
-                        {
-                            <div>
-                                <a asp-action="@nameof(HomeController.Results)"
-                                   asp-route-month="@dateRange.Month"
-                                   asp-route-reportId="@Model.Report.Id"
-                                   asp-route-year="@dateRange.Year">@dateRange.ToString("MMMM")</a>
-                            </div>
-                        }
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th class="px-2">Month</th>
+                                    @if (Model.MonthsTotals.Any(_ => _.Value.HasValue))
+                                    {
+                                        <th class="px-2">Total</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var dateRange in Model.MonthsTotals.OrderBy(_ => _.Key))
+                                {
+                                    <tr>
+                                        <td class="px-2">
+                                            <a asp-action="@nameof(HomeController.Results)"
+                                               asp-route-month="@dateRange.Key.Month"
+                                               asp-route-reportId="@Model.Report.Id"
+                                               asp-route-year="@dateRange.Key.Year">@dateRange.Key.ToString("MMMM")</a>
+                                        </td>
+                                        @if (Model.MonthsTotals.Any(_ => _.Value.HasValue))
+                                        {
+                                            <td class="px-2">@dateRange.Value</td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
