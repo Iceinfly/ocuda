@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Ocuda.Ops.Models.Definitions.Models;
 using Ocuda.Utility.Models;
 
 namespace Ocuda.Ops.Controllers.Areas.Reporting.ViewModel
@@ -14,6 +15,7 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting.ViewModel
         public string Heading { get; set; }
         public bool IsIndex { get; set; }
         public IDictionary<string, string> Navigations { get; }
+        public ReportDefinition Report { get; set; }
         public string SecondaryHeading { get; set; }
     }
 }

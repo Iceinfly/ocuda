@@ -34,18 +34,26 @@
                                 {
                                     <tr>
                                         <td class="px-2">
-                                            <a asp-action="@nameof(HomeController.Results)"
+                                            <a asp-action="@nameof(HomeController.Display)"
                                                asp-route-month="@dateRange.Key.Month"
                                                asp-route-reportId="@Model.Report.Id"
                                                asp-route-year="@dateRange.Key.Year">@dateRange.Key.ToString("MMMM")</a>
                                         </td>
                                         @if (Model.MonthsTotals.Any(_ => _.Value.HasValue))
                                         {
-                                            <td class="px-2">@dateRange.Value</td>
+                                            <td class="px-2">@dateRange.Value.Value.ToString("N0")</td>
                                         }
                                     </tr>
                                 }
                             </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th>Total</th>
+                                    <th>
+                                        @Model.MonthsTotals.Sum(_ => _.Value.Value).ToString("N0")
+                                    </th>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
                 </div>
@@ -55,3 +63,8 @@
 </div>
 
 <nav paginate="@Model"></nav>
+
+@if (Model.Report.IsImportable)
+{
+    <partial name="_ReportingImportPartial" model="Model.ImportViewModel" />
+}

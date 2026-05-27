@@ -53,3 +53,82 @@
         </div>
     </div>
 </form>
+<script>
+    // import code
+    const importModal = document.getElementById('reportingImportModal');
+    const importStatus = document.getElementById('dateValidation');
+    const resultsPath = "@Url.Action(nameof(HomeController.HasResults))";
+    const submitImport = document.getElementById('submitImport');
+    var checkedMonth = 0;
+    var checkedYear = 0;
+
+    importModal.addEventListener('show.bs.modal', event => {
+        document.querySelectorAll('.period-selection').forEach(function(element) {
+            element.classList.add('d-none');
+        });
+        document
+            .getElementById('importReportId')
+            .value = event.relatedTarget.dataset.reportId;
+        document
+            .getElementById('importReportFileTypes')
+            .setAttribute('accept', event.relatedTarget.dataset.reportAccept);
+        document
+            .getElementById(`period-selection-${event.relatedTarget.dataset.reportPeriod}`)
+            .classList
+            .remove('d-none');
+        verifyImportDate(document.getElementById('DataDate'));
+    });
+
+    function showImportStatus(type, text) {
+        if(text.length = 0) {
+            importStatus.classList.add('d-none');
+        }
+        else {
+            importStatus.innerText = text;
+            importStatus.classList.remove('d-none');
+        }
+        importStatus.classList.remove('alert-warning', 'alert-danger', 'alert-info');
+        importStatus.classList.add(type);
+    }
+
+    function verifyImportDate(element) {
+        submitImport.classList.add('disabled');
+        const link = new URL(`${location.origin}${resultsPath}`);
+        const params = new URLSearchParams(link.search);
+        let selectedDate = new Date(element.value);
+        if(checkedYear == selectedDate.getUTCFullYear()
+            && checkedMonth == selectedDate.getUTCMonth() + 1) {
+            return;
+        }
+        if(isNaN(selectedDate.getUTCFullYear()) || isNaN(selectedDate.getUTCMonth())) {
+            showImportStatus('alert-warning', 'Select a valid date');
+            return;
+        }
+        showImportStatus('alert-info', 'Looking up date...');
+        params.append('reportId', document.getElementById('importReportId').value);
+        params.append('year', selectedDate.getUTCFullYear());
+        params.append('month', selectedDate.getUTCMonth() + 1);
+        fetch(new URL(`${link.origin}${link.pathname}?${params}`), { method: 'GET' })
+            .then((response) => response.json())
+            .then((jsonResponse) => {
+                showImportStatus(jsonResponse.success ? 'alert-danger' : 'alert-success',
+                    jsonResponse.message);
+                checkedYear = selectedDate.getUTCFullYear();
+                checkedMonth = selectedDate.getUTCMonth() + 1;
+                if(!jsonResponse.success) {
+                    submitImport.classList.remove('disabled');
+                }
+            })
+            .catch((error) => {
+                showImportStatus('alert-danger', error);
+            });
+    }
+    document.getElementById('DataDate').addEventListener('change', (event) => {
+        verifyImportDate(event.target);
+    });
+    document.getElementById('importReportForm').addEventListener('submit', (event) => {
+        event.target.querySelectorAll('.modal-close-button').forEach(function(element) {
+            element.classList.add('disabled');
+        });
+    });
+</script>

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Ocuda.Models;
 using Ocuda.Ops.Controllers.Abstract;
 using Ocuda.Ops.Controllers.Areas.Reporting.ViewModel;
 using Ocuda.Ops.Controllers.ServiceFacades;
@@ -16,6 +17,7 @@ using Ocuda.Ops.Service.Filters;
 using Ocuda.Ops.Service.Interfaces.Ops.Services;
 using Ocuda.Utility.Exceptions;
 using Ocuda.Utility.Extensions;
+using Ocuda.Utility.Helpers;
 using Ocuda.Utility.Keys;
 using Serilog.Context;
 
@@ -81,6 +83,8 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
             var permissions = await GetPermissionsAsync(report);
             if (!permissions.CanView) { return RedirectToUnauthorized(); }
 
+            report.IsImportable = permissions.CanImport;
+
             var filter = new BaseFilter<string>(currentPage, itemsPerPage)
             {
                 Data = report.Id
@@ -99,6 +103,11 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
 
             viewModel.MonthsTotals.AddRange(collectionWithCount.Data);
 
+            if (report.IsImportable)
+            {
+                viewModel.Navigations.Add("Import Data", "import");
+            }
+
             if (viewModel.PastMaxPage)
             {
                 return RedirectToRoute(new { currentPage = viewModel.LastPage ?? 1 });
@@ -106,6 +115,92 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
 
             SetPageTitle(viewModel.Heading);
             return View(viewModel);
+        }
+
+        [HttpGet("[action]/{reportId}/{year}/{month}")]
+        public async Task<IActionResult> Display(string reportId, int year, int month)
+        {
+            var report = ReportDefinitions.Definitions.SingleOrDefault(_ => _.Id == reportId);
+            if (report == null) { return StatusCode(404); }
+
+            var permissions = await GetPermissionsAsync(report);
+            if (!permissions.CanView) { return RedirectToUnauthorized(); }
+
+            IEnumerable<DisplayReport> results = null;
+            try
+            {
+                results = await reportingService.GetResultsAsync(report.Id, year, month, "N0");
+            }
+            catch (OcudaException oex)
+            {
+                _logger.LogWarning(oex, "Report display failed: {ErrorMessage}", oex.Message);
+            }
+
+            if (results?.Count() > 0)
+            {
+                var viewModel = new DisplayViewModel
+                {
+                    BackLink = Url.Action(nameof(Details), new { reportId }),
+                    Heading = report.Name,
+                    Reports = results,
+                    SecondaryHeading = $"{month}/{year}"
+                };
+
+                if (permissions.CanImport)
+                {
+                    viewModel.Navigations.Add("Import Notes",
+                        Url.Action(nameof(Notes), new { reportId, year, month }));
+                }
+
+                viewModel.Navigations.Add(
+                    "Export",
+                    Url.Action(nameof(Export), new { reportId, year, month }));
+
+                SetPageTitle(viewModel.Heading);
+                return View(viewModel);
+            }
+
+            return StatusCode(404);
+        }
+
+        [HttpGet("[action]/{reportId}/{year}/{month}")]
+        public async Task<IActionResult> Export(string reportId, int year, int month)
+        {
+            var report = ReportDefinitions.Definitions.SingleOrDefault(_ => _.Id == reportId);
+            if (report == null) { return StatusCode(404); }
+
+            var permissions = await GetPermissionsAsync(report);
+            if (!permissions.CanView) { return RedirectToUnauthorized(); }
+
+            IEnumerable<DisplayReport> results = null;
+            try
+            {
+                results = await reportingService.GetResultsAsync(report.Id, year, month);
+            }
+            catch (OcudaException oex)
+            {
+                _logger.LogWarning(oex, "Report display failed: {ErrorMessage}", oex.Message);
+            }
+
+            if (results?.Count() > 0)
+            {
+                results.First().Title = report.Name;
+                var ms = ExcelExportHelper.GenerateWorkbook(results,
+                    new Dictionary<string, object>
+                    {
+                        {"Report name", report.Name },
+                        {"Type", report.ReportType },
+                        {"Period", report.Period },
+                        {"Timeframe", $"{month:D2}/{year:D4}" }
+                    },
+                    ExcelExportHelper.SheetCriteriaDefault);
+                return new FileStreamResult(ms, ExcelExportHelper.ExcelMimeType)
+                {
+                    FileDownloadName = $"{report.Name.Replace(' ', '-')}-{year:D4}-{month:D2}.{ExcelExportHelper.ExcelFileExtension}"
+                };
+            }
+
+            return StatusCode(404);
         }
 
         [HttpGet("[action]")]
@@ -272,8 +367,8 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
                 SecondaryHeading = $"{report.Name} {month}/{year}"
             };
 
-            viewModel.Navigations.Add("Results",
-                Url.Action(nameof(Results), new { reportId, year, month }));
+            viewModel.Navigations.Add("Display",
+                Url.Action(nameof(Display), new { reportId, year, month }));
 
             var userCache = new Dictionary<int, User>();
             foreach (var note in viewModel.Notes)
@@ -358,37 +453,6 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
             }
 
             return RedirectToAction(nameof(Permissions), new { reportId });
-        }
-
-        [HttpGet("[action]/{reportId}/{year}/{month}")]
-        public async Task<IActionResult> Results(string reportId, int year, int month)
-        {
-            var report = ReportDefinitions.Definitions.SingleOrDefault(_ => _.Id == reportId);
-            if (report == null) { return StatusCode(404); }
-
-            var permissions = await GetPermissionsAsync(report);
-            if (!permissions.CanView) { return RedirectToUnauthorized(); }
-
-            var results = await reportingService.GetResultsAsync(report.Id, year, month);
-
-            if (results == null) { return StatusCode(404); }
-
-            var viewModel = new ResultsViewModel
-            {
-                BackLink = Url.Action(nameof(Details), new { reportId }),
-                Heading = report.Name,
-                Results = results,
-                SecondaryHeading = $"{results.Month}/{results.Year}"
-            };
-
-            if (permissions.CanImport)
-            {
-                viewModel.Navigations.Add("Import Notes",
-                    Url.Action(nameof(Notes), new { reportId, year, month }));
-            }
-
-            SetPageTitle(viewModel.Heading);
-            return View(viewModel);
         }
 
         [Authorize(Policy = nameof(ClaimType.SiteManager))]

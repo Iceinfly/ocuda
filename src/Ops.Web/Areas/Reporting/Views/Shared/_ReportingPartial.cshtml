@@ -11,8 +11,23 @@
     <div class="pt-2 d-print-none">
         @foreach (var navKey in Model.Navigations.Keys)
         {
-            <a class="btn btn-outline-dark ms-2"
-               href="@Model.Navigations[navKey]">@navKey</a>
+            if (Model.Navigations[navKey] == "import")
+            {
+                @if (Model.Report != null)
+                {
+                    <a class="btn btn-outline-dark ms-2"
+                       data-bs-target="#reportingImportModal"
+                       data-bs-toggle="modal"
+                       data-report-accept="@string.Join(',', Model.Report.ImportFileTypes)"
+                       data-report-period="@Model.Report.Period"
+                       data-report-id="@Model.Report.Id">Import Data</a>
+                }
+            }
+            else
+            {
+                <a class="btn btn-outline-dark ms-2"
+                   href="@Model.Navigations[navKey]">@navKey</a>
+            }
         }
         @if (!string.IsNullOrEmpty(Model.BackLink))
         {

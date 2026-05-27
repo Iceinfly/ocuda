@@ -12,6 +12,7 @@ using CsvHelper.Configuration;
 using CsvHelper.Configuration.Attributes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Ocuda.Models;
 using Ocuda.Ops.Models;
 using Ocuda.Ops.Models.Abstract;
 using Ocuda.Ops.Models.Definitions;
@@ -74,11 +75,31 @@ namespace Ocuda.Ops.Service
             };
         }
 
-        public async Task<ReportingImportHeader> GetResultsAsync(string reportType,
+        public async Task<IEnumerable<DisplayReport>> GetResultsAsync(string reportType,
             int year,
             int month)
         {
-            return await reportingImportHeaderRepository.GetReportAsync(reportType, year, month);
+            return await GetResultsAsync(reportType, year, month, null);
+        }
+
+        public async Task<IEnumerable<DisplayReport>> GetResultsAsync(string reportType,
+            int year,
+            int month,
+            string numberFormat)
+        {
+            var report = ReportDefinitions.Definitions.SingleOrDefault(_ => _.Id == reportType)
+                ?? throw new OcudaException("Unable to find report type: {reportType}");
+
+            if (report.Id == ReportDefinitionId.HooplaCheckouts)
+            {
+                var reportHeader = await reportingImportHeaderRepository
+                    .GetReportAsync(reportType, year, month)
+                    ?? throw new OcudaException($"No report found for type {report.Id} for {month}/{year}");
+
+                return [AdaptImportHeader(report, reportHeader, numberFormat)];
+            }
+
+            throw new OcudaException("Cannot adapt to display report type: {report.Id}");
         }
 
         public async Task<bool> HasResultsAsync(string reportType, int year, int month)
@@ -151,6 +172,50 @@ namespace Ocuda.Ops.Service
             }
 
             return saveResult.Data;
+        }
+
+        private static DisplayReport AdaptImportHeader(ReportDefinition reportDefinition,
+            ReportingImportHeader reportingImportHeader,
+            string numberFormat)
+        {
+            var displayReport = new DisplayReport(
+                $"{reportDefinition.Name} {reportingImportHeader.Month}/{reportingImportHeader.Year}",
+                reportingImportHeader.CreatedAt)
+            {
+                HeaderRow = ["Location", "Circulations"]
+            };
+
+            var locations = reportingImportHeader
+                .ReportingLocationSet
+                .ReportingLocations
+                .OrderBy(_ => _.Name);
+
+            var dataSet = new List<IEnumerable<object>>();
+
+            foreach (var location in locations)
+            {
+                var dataItem = reportingImportHeader
+                    .ReportingImportData
+                    .SingleOrDefault(_ => _.LocationId == location.LocationId)
+                    ?.ReportValue ?? 0;
+
+                dataSet.Add([location.Name,
+                    !string.IsNullOrEmpty(numberFormat)
+                        ? dataItem.ToString(numberFormat, CultureInfo.CurrentCulture)
+                        : dataItem]);
+            }
+
+            displayReport.Data = dataSet;
+
+            var total = reportingImportHeader.ReportingImportData.Sum(_ => _.ReportValue);
+
+            displayReport.FooterRow = [
+                "Total",
+                !string.IsNullOrEmpty(numberFormat)
+                    ? total.ToString(numberFormat, CultureInfo.CurrentCulture)
+                    : total];
+
+            return displayReport;
         }
 
         /// <summary>

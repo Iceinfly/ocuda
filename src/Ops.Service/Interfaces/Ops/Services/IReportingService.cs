@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using Ocuda.Models;
 using Ocuda.Ops.Models.Definitions.Models;
 using Ocuda.Ops.Models.Entities;
 using Ocuda.Ops.Service.Filters;
@@ -17,7 +18,12 @@ namespace Ocuda.Ops.Service.Interfaces.Ops.Services
             int year,
             int month);
 
-        Task<ReportingImportHeader> GetResultsAsync(string reportType, int year, int month);
+        Task<IEnumerable<DisplayReport>> GetResultsAsync(string reportType, int year, int month);
+
+        Task<IEnumerable<DisplayReport>> GetResultsAsync(string reportType,
+            int year,
+            int month,
+            string numberFormat);
 
         Task<DataWithCount<IDictionary<DateTime, int?>>> GetResultsAsync(BaseFilter<string> filter);
 

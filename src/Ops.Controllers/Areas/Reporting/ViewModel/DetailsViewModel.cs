@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Ocuda.Ops.Models.Definitions.Models;
 
 namespace Ocuda.Ops.Controllers.Areas.Reporting.ViewModel
 {
@@ -8,10 +7,11 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting.ViewModel
     {
         public DetailsViewModel()
         {
+            ImportViewModel = new();
             MonthsTotals = new Dictionary<DateTime, int?>();
         }
 
+        public ImportViewModel ImportViewModel { get; set; }
         public IDictionary<DateTime, int?> MonthsTotals { get; }
-        public ReportDefinition Report { get; set; }
     }
 }
