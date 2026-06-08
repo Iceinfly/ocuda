@@ -1,16 +1,21 @@
-﻿using System.Net.Mime;
+using System.Net.Mime;
 using Ocuda.Ops.Models.Definitions.Models;
 
 namespace Ocuda.Ops.Models.Definitions
 {
     /// <summary>
-    /// Definition of available reports for the software
+    /// Definition of available reports for the software.
     /// </summary>
     public static class ReportDefinitions
     {
+        public const string ReportTypeElectronicResources = "Electronic Resources";
+
+        public const string ReportTypeOnlineCardRenewal = "Online Card Renewal";
+
         public static readonly ReportDefinition[] Definitions =
         [
-            new() {
+            new ()
+            {
                 CanBeImported = true,
                 Delimiter = "\t",
                 Description = "Overall circulations by patron library cards",
@@ -19,10 +24,17 @@ namespace Ocuda.Ops.Models.Definitions
                 Name = "Hoopla Circulations",
                 Period = ReportDefinitionPeriod.Monthly,
                 ReportType = ReportTypeElectronicResources,
-                SkipFirstColumn = ["", "Grand Total"]
-            }
+                SkipFirstColumn = [string.Empty, "Grand Total"],
+            },
+            new ()
+            {
+                CanBeImported = false,
+                Description = "Annual stats about online card renewals",
+                Id = ReportDefinitionId.OnlineCardRenewalStats,
+                Name = "Online card renewal stats",
+                Period = ReportDefinitionPeriod.Yearly,
+                ReportType = ReportTypeOnlineCardRenewal,
+            },
         ];
-
-        private const string ReportTypeElectronicResources = "Electronic Resources";
     }
 }

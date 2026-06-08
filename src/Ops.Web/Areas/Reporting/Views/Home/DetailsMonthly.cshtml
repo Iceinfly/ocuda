@@ -5,7 +5,7 @@
 }
 
 <div class="row">
-    @if (!(Model.MonthsTotals?.Count() > 0))
+    @if (!(Model.TimespanTotals?.Count() > 0))
     {
         <div class="col-12 col-md-6 offset-md-3">
             <div class="alert alert-info">No results are available for this report.</div>
@@ -13,7 +13,7 @@
     }
     else
     {
-        @foreach (var year in Model.MonthsTotals.Keys.OrderByDescending(_ => _).Select(_ => _.Year).Distinct())
+        @foreach (var year in Model.TimespanTotals.Keys.OrderByDescending(_ => _).Select(_ => _.Year).Distinct())
         {
             <div class="col-12 col-md-4">
                 <div class="card">
@@ -23,14 +23,14 @@
                             <thead>
                                 <tr>
                                     <th class="px-2">Month</th>
-                                    @if (Model.MonthsTotals.Any(_ => _.Value.HasValue))
+                                    @if (Model.TimespanTotals.Any(_ => _.Value.HasValue))
                                     {
                                         <th class="px-2">Total</th>
                                     }
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var dateRange in Model.MonthsTotals.OrderBy(_ => _.Key))
+                                @foreach (var dateRange in Model.TimespanTotals.OrderBy(_ => _.Key))
                                 {
                                     <tr>
                                         <td class="px-2">
@@ -39,7 +39,7 @@
                                                asp-route-reportId="@Model.Report.Id"
                                                asp-route-year="@dateRange.Key.Year">@dateRange.Key.ToString("MMMM")</a>
                                         </td>
-                                        @if (Model.MonthsTotals.Any(_ => _.Value.HasValue))
+                                        @if (Model.TimespanTotals.Any(_ => _.Value.HasValue))
                                         {
                                             <td class="px-2">@dateRange.Value.Value.ToString("N0")</td>
                                         }
@@ -50,7 +50,7 @@
                                 <tr>
                                     <th>Total</th>
                                     <th>
-                                        @Model.MonthsTotals.Sum(_ => _.Value.Value).ToString("N0")
+                                        @Model.TimespanTotals.Sum(_ => _.Value.Value).ToString("N0")
                                     </th>
                                 </tr>
                             </tfoot>

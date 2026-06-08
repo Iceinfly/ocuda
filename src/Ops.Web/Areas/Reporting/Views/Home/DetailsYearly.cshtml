@@ -1,0 +1,53 @@
+﻿@model Ocuda.Ops.Controllers.Areas.Reporting.ViewModel.DetailsViewModel
+
+@section header {
+    <partial name="_ReportingPartial" model="Model" />
+}
+
+<div class="row">
+    @if (!(Model.TimespanTotals?.Count() > 0))
+    {
+        <div class="col-12 col-md-6 offset-md-3">
+            <div class="alert alert-info">No results are available for this report.</div>
+        </div>
+    }
+    else
+    {
+        @foreach (var decadeKey in Model.ByDecade.Keys.OrderDescending())
+        {
+            <div class="col-12 col-md-4">
+                <div class="card">
+                    <div class="card-header h5">@decadeKey</div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th class="px-2">Year</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var yearData in Model.ByDecade[decadeKey].Order())
+                                {
+                                    <tr>
+                                        <td class="px-2">
+                                            <a asp-action="@nameof(HomeController.Display)"
+                                               asp-route-reportId="@Model.Report.Id"
+                                               asp-route-year="@yearData.Key.Year">@yearData.Key.Year</a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<nav paginate="@Model"></nav>
+
+@if (Model.Report.IsImportable)
+{
+    <partial name="_ReportingImportPartial" model="Model.ImportViewModel" />
+}

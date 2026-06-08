@@ -32,17 +32,24 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
         : BaseController<HomeController>(context)
     {
         public static string Area
-        { get { return nameof(Reporting); } }
+        {
+            get { return nameof(Reporting); }
+        }
 
         public static string Name
-        { get { return "Home"; } }
+        {
+            get { return "Home"; }
+        }
 
         [Authorize(Policy = nameof(ClaimType.SiteManager))]
         [HttpPost("[action]/{reportId}/{permissionGroupId}")]
         public async Task<IActionResult> AddPermissionGroup(string reportId, int permissionGroupId)
         {
             var report = ReportDefinitions.Definitions.SingleOrDefault(_ => _.Id == reportId);
-            if (report == null) { return StatusCode(404); }
+            if (report == null)
+            {
+                return StatusCode(404);
+            }
 
             try
             {
@@ -62,11 +69,13 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
         [HttpGet("[action]")]
         public IActionResult Definition(string reportId)
         {
-            if (string.IsNullOrEmpty(reportId)) { return StatusCode(404); }
-            var report = ReportDefinitions.Definitions.SingleOrDefault(_ => _.Id == reportId);
-            if (report == null) { return StatusCode(404); }
+            if (string.IsNullOrEmpty(reportId))
+            {
+                return StatusCode(404);
+            }
 
-            return View(report);
+            var report = ReportDefinitions.Definitions.SingleOrDefault(_ => _.Id == reportId);
+            return report == null ? StatusCode(404) : View(report);
         }
 
         [HttpGet("[action]/{reportId}")]
@@ -78,19 +87,25 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
                 .GetSettingIntAsync(Models.Keys.SiteSetting.UserInterface.ItemsPerPage);
 
             var report = ReportDefinitions.Definitions.SingleOrDefault(_ => _.Id == reportId);
-            if (report == null) { return StatusCode(404); }
+            if (report == null)
+            {
+                return StatusCode(404);
+            }
 
             var permissions = await GetPermissionsAsync(report);
-            if (!permissions.CanView) { return RedirectToUnauthorized(); }
+            if (!permissions.CanView)
+            {
+                return RedirectToUnauthorized();
+            }
 
-            report.IsImportable = permissions.CanImport;
+            report.IsImportable = report.CanBeImported && permissions.CanImport;
 
             var filter = new BaseFilter<string>(currentPage, itemsPerPage)
             {
-                Data = report.Id
+                Data = report.Id,
             };
 
-            var collectionWithCount = await reportingService.GetResultsAsync(filter);
+            var collectionWithCount = await reportingService.GetDetailsAsync(filter);
 
             var viewModel = new DetailsViewModel
             {
@@ -98,10 +113,10 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
                 Heading = $"Results for {report.Name}",
                 ItemCount = collectionWithCount.Count,
                 ItemsPerPage = filter.Take.Value,
-                Report = report
+                Report = report,
             };
 
-            viewModel.MonthsTotals.AddRange(collectionWithCount.Data);
+            viewModel.TimespanTotals.AddRange(collectionWithCount.Data);
 
             if (report.IsImportable)
             {
@@ -114,22 +129,99 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
             }
 
             SetPageTitle(viewModel.Heading);
-            return View(viewModel);
+
+            return report.Period switch
+            {
+                ReportDefinitionPeriod.Yearly => View("DetailsYearly", viewModel),
+                ReportDefinitionPeriod.Monthly => View("DetailsMonthly", viewModel),
+                _ => UnprocessableEntity(),
+            };
+        }
+
+        [HttpGet("[action]/{reportId}/{year}")]
+        public async Task<IActionResult> Display(string reportId, int year)
+        {
+            {
+                var report = ReportDefinitions.Definitions.SingleOrDefault(_ => _.Id == reportId);
+                if (report == null)
+                {
+                    return StatusCode(404);
+                }
+
+                var permissions = await GetPermissionsAsync(report);
+                if (!permissions.CanView)
+                {
+                    return RedirectToUnauthorized();
+                }
+
+                IEnumerable<DisplayReport> results = null;
+                try
+                {
+                    results = await reportingService.GetResultsAsync(new ReportCriteria
+                    {
+                        Report = report,
+                        StartDate = new System.DateTime(year, 1, 1),
+                        NumberFormat = "N0",
+                    });
+                }
+                catch (OcudaException oex)
+                {
+                    _logger.LogWarning(oex, "Report display failed: {ErrorMessage}", oex.Message);
+                }
+
+                if (results?.Count() > 0)
+                {
+                    var viewModel = new DisplayViewModel
+                    {
+                        BackLink = Url.Action(nameof(Details), new { reportId }),
+                        Heading = report.Name,
+                        Reports = results,
+                        SecondaryHeading = $"{year}",
+                    };
+
+                    if (report.CanBeImported && permissions.CanImport)
+                    {
+                        viewModel.Navigations.Add(
+                            "Import Notes",
+                            Url.Action(nameof(Notes), new { reportId, year }));
+                    }
+
+                    viewModel.Navigations.Add(
+                        "Export",
+                        Url.Action(nameof(Export), new { reportId, year }));
+
+                    SetPageTitle(viewModel.Heading);
+                    return View(viewModel);
+                }
+
+                return StatusCode(404);
+            }
         }
 
         [HttpGet("[action]/{reportId}/{year}/{month}")]
         public async Task<IActionResult> Display(string reportId, int year, int month)
         {
             var report = ReportDefinitions.Definitions.SingleOrDefault(_ => _.Id == reportId);
-            if (report == null) { return StatusCode(404); }
+            if (report == null)
+            {
+                return StatusCode(404);
+            }
 
             var permissions = await GetPermissionsAsync(report);
-            if (!permissions.CanView) { return RedirectToUnauthorized(); }
+            if (!permissions.CanView)
+            {
+                return RedirectToUnauthorized();
+            }
 
             IEnumerable<DisplayReport> results = null;
             try
             {
-                results = await reportingService.GetResultsAsync(report.Id, year, month, "N0");
+                results = await reportingService.GetResultsAsync(new ReportCriteria
+                {
+                    Report = report,
+                    StartDate = new System.DateTime(year, month, 1),
+                    NumberFormat = "N0",
+                });
             }
             catch (OcudaException oex)
             {
@@ -143,7 +235,7 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
                     BackLink = Url.Action(nameof(Details), new { reportId }),
                     Heading = report.Name,
                     Reports = results,
-                    SecondaryHeading = $"{month}/{year}"
+                    SecondaryHeading = $"{month}/{year}",
                 };
 
                 if (permissions.CanImport)
@@ -163,19 +255,35 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
             return StatusCode(404);
         }
 
+        [HttpGet("[action]/{reportId}/{year}")]
+        public async Task<IActionResult> Export(string reportId, int year)
+        {
+            return await Export(reportId, year, null);
+        }
+
         [HttpGet("[action]/{reportId}/{year}/{month}")]
-        public async Task<IActionResult> Export(string reportId, int year, int month)
+        public async Task<IActionResult> Export(string reportId, int year, int? month)
         {
             var report = ReportDefinitions.Definitions.SingleOrDefault(_ => _.Id == reportId);
-            if (report == null) { return StatusCode(404); }
+            if (report == null)
+            {
+                return StatusCode(404);
+            }
 
             var permissions = await GetPermissionsAsync(report);
-            if (!permissions.CanView) { return RedirectToUnauthorized(); }
+            if (!permissions.CanView)
+            {
+                return RedirectToUnauthorized();
+            }
 
             IEnumerable<DisplayReport> results = null;
             try
             {
-                results = await reportingService.GetResultsAsync(report.Id, year, month);
+                results = await reportingService.GetResultsAsync(new ReportCriteria
+                {
+                    Report = report,
+                    StartDate = new System.DateTime(year, month ?? 1, 1),
+                });
             }
             catch (OcudaException oex)
             {
@@ -185,18 +293,22 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
             if (results?.Count() > 0)
             {
                 results.First().Title = report.Name;
+
                 var ms = ExcelExportHelper.GenerateWorkbook(results,
                     new Dictionary<string, object>
                     {
-                        {"Report name", report.Name },
-                        {"Type", report.ReportType },
-                        {"Period", report.Period },
-                        {"Timeframe", $"{month:D2}/{year:D4}" }
+                        { "Report name", report.Name },
+                        { "Type", report.ReportType },
+                        { "Period", report.Period },
+                        { "Timeframe", month.HasValue ? $"{month:D2}/{year:D4}" : $"{year:D4}" },
                     },
                     ExcelExportHelper.SheetCriteriaDefault);
+
                 return new FileStreamResult(ms, ExcelExportHelper.ExcelMimeType)
                 {
-                    FileDownloadName = $"{report.Name.Replace(' ', '-')}-{year:D4}-{month:D2}.{ExcelExportHelper.ExcelFileExtension}"
+                    FileDownloadName = month.HasValue
+                        ? $"{report.Name.Replace(' ', '-')}-{year:D4}-{month:D2}.{ExcelExportHelper.ExcelFileExtension}"
+                        : $"{report.Name.Replace(' ', '-')}-{year:D4}.{ExcelExportHelper.ExcelFileExtension}",
                 };
             }
 
@@ -208,7 +320,7 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
         {
             var jsonResponse = new JsonResponse
             {
-                ServerResponse = true
+                ServerResponse = true,
             };
 
             var report = ReportDefinitions.Definitions.SingleOrDefault(_ => _.Id == reportId);
@@ -227,8 +339,11 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
                 }
                 else
                 {
-                    jsonResponse.Success = await reportingService
-                        .HasResultsAsync(report.Id, year, month);
+                    jsonResponse.Success = await reportingService.HasResultsAsync(new ReportCriteria
+                    {
+                        Report = report,
+                        StartDate = new System.DateTime(year, month, 1),
+                    });
                     jsonResponse.Message = jsonResponse.Success
                         ? $"Data already present for {month}/{year}."
                         : $"No data for {month}/{year}, good to upload!";
@@ -278,7 +393,7 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
                     {
                         reportId = report.Id,
                         year = viewModel.DataDate.Year,
-                        month = viewModel.DataDate.Month
+                        month = viewModel.DataDate.Month,
                     });
                 }
                 catch (OcudaException oex)
@@ -326,7 +441,7 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
                 var permissions = await GetPermissionsAsync(report);
 
                 report.HasResults = await reportingService.HasResultsAsync(report.Id);
-                report.IsImportable = permissions.CanImport;
+                report.IsImportable = report.CanBeImported && permissions.CanImport;
                 report.IsViewable = permissions.CanView;
             }
 
@@ -338,16 +453,26 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
         public async Task<IActionResult> Notes(string reportId, int year, int month)
         {
             var report = ReportDefinitions.Definitions.SingleOrDefault(_ => _.Id == reportId);
-            if (report == null) { return StatusCode(404); }
+            if (report == null)
+            {
+                return StatusCode(404);
+            }
 
             var permissions = await GetPermissionsAsync(report);
-            if (!permissions.CanImport) { return RedirectToUnauthorized(); }
+            if (!permissions.CanImport)
+            {
+                return RedirectToUnauthorized();
+            }
 
             IEnumerable<ReportingImportDetails> notes = null;
 
             try
             {
-                notes = await reportingService.GetNotesAsync(reportId, year, month);
+                notes = await reportingService.GetNotesAsync(new ReportCriteria
+                {
+                    Report = report,
+                    StartDate = new System.DateTime(year, month, 1),
+                });
             }
             catch (OcudaException oex)
             {
@@ -364,7 +489,7 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
                 BackLink = Url.Action(nameof(Details), new { reportId }),
                 Heading = "Import Notes",
                 Notes = notes,
-                SecondaryHeading = $"{report.Name} {month}/{year}"
+                SecondaryHeading = $"{report.Name} {month}/{year}",
             };
 
             viewModel.Navigations.Add("Display",
@@ -394,13 +519,16 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
         public async Task<IActionResult> Permissions(string reportId)
         {
             var report = ReportDefinitions.Definitions.SingleOrDefault(_ => _.Id == reportId);
-            if (report == null) { return StatusCode(404); }
+            if (report == null)
+            {
+                return StatusCode(404);
+            }
 
             var viewModel = new PermissionsViewModel
             {
                 Heading = "Permissions",
                 Report = report,
-                SecondaryHeading = report.Name
+                SecondaryHeading = report.Name,
             };
 
             var permissionGroups = await permissionGroupService.GetAllAsync();
@@ -438,7 +566,10 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
             int permissionGroupId)
         {
             var report = ReportDefinitions.Definitions.SingleOrDefault(_ => _.Id == reportId);
-            if (report == null) { return StatusCode(404); }
+            if (report == null)
+            {
+                return StatusCode(404);
+            }
 
             try
             {
@@ -461,7 +592,10 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
             int permissionGroupId)
         {
             var report = ReportDefinitions.Definitions.SingleOrDefault(_ => _.Id == reportId);
-            if (report == null) { return StatusCode(404); }
+            if (report == null)
+            {
+                return StatusCode(404);
+            }
 
             var permissions = await permissionGroupService
                 .GetPermissionsAsync<PermissionGroupReporting>(report.InternalId);
@@ -479,8 +613,8 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
         /// Return the current user's permissions in reference to the supplied
         /// <see cref="ReportDefinition"/>.
         /// </summary>
-        /// <param name="report">The report to look up permissions for</param>
-        /// <returns>A populated <see cref="ReportPermission"/> object</returns>
+        /// <param name="report">The report to look up permissions for.</param>
+        /// <returns>A populated <see cref="ReportPermission"/> object.</returns>
         private async Task<ReportPermission> GetPermissionsAsync(ReportDefinition report)
         {
             if (await HasAppPermissionAsync(permissionGroupService,
@@ -489,7 +623,7 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
                 return new ReportPermission
                 {
                     CanImport = true,
-                    CanView = true
+                    CanView = true,
                 };
             }
 
@@ -499,16 +633,17 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
             return new ReportPermission
             {
                 CanImport = perms?.Any(_ => _.CanImport) == true,
-                CanView = perms?.Count > 0
+                CanView = perms?.Count > 0,
             };
         }
 
         /// <summary>
-        /// Contains information about whether the current user can view a report or import data
+        /// Contains information about whether the current user can view a report or import data.
         /// </summary>
         private class ReportPermission
         {
             public bool CanImport { get; set; }
+
             public bool CanView { get; set; }
         }
     }

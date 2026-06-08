@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -34,6 +35,7 @@ namespace Ocuda.Ops.Service
         IHttpContextAccessor httpContextAccessor,
         IDateTimeProvider dateTimeProvider,
         IPolarisHelper polarisHelper,
+        IRenewCardReportingService renewCardReportingService,
         IReportingImportDatumRepository reportingImportDatumRepository,
         IReportingImportDetailsRepository reportingImportDetailsRepository,
         IReportingImportHeaderRepository reportingImportHeaderRepository,
@@ -41,6 +43,112 @@ namespace Ocuda.Ops.Service
         IReportingLocationSetRepository reportingLocationSetRepository)
         : BaseService<ReportingService>(logger, httpContextAccessor), IReportingService
     {
+        private static DisplayReport AdaptImportHeader(ReportCriteria criteria,
+            ReportingImportHeader reportingImportHeader)
+        {
+            var displayReport = new DisplayReport(
+                $"{criteria.Report.Name} {reportingImportHeader.Month}/{reportingImportHeader.Year}",
+                reportingImportHeader.CreatedAt)
+            {
+                HeaderRow = ["Location", "Circulations"],
+            };
+
+            var locations = reportingImportHeader
+                .ReportingLocationSet
+                .ReportingLocations
+                .OrderBy(_ => _.Name);
+
+            var dataSet = new List<IEnumerable<object>>();
+
+            foreach (var location in locations)
+            {
+                var dataItem = reportingImportHeader
+                    .ReportingImportData
+                    .SingleOrDefault(_ => _.LocationId == location.LocationId)
+                    ?.ReportValue ?? 0;
+
+                dataSet.Add([location.Name,
+                    string.IsNullOrEmpty(criteria.NumberFormat)
+                        ? dataItem
+                        : dataItem.ToString(criteria.NumberFormat, CultureInfo.CurrentCulture)]);
+            }
+
+            displayReport.Data = dataSet;
+
+            var total = reportingImportHeader.ReportingImportData.Sum(_ => _.ReportValue);
+
+            displayReport.FooterRow = ["Total",
+                string.IsNullOrEmpty(criteria.NumberFormat)
+                ? total
+                : total.ToString(criteria.NumberFormat, CultureInfo.CurrentCulture)];
+
+            return displayReport;
+        }
+
+        /// <summary>
+        /// Given a set of locations, generate a hash using the location id, name, and abbreviation.
+        /// </summary>
+        /// <param name="locations">The enumerable of ReportingLocation objects.</param>
+        /// <returns>checksum of the specified fields of locations combined.</returns>
+        private static byte[] GetLocationHash(IEnumerable<ReportingLocation> locations)
+        {
+            var items = new StringBuilder();
+            foreach (var location in locations.OrderBy(_ => _.LocationId)
+                .ThenBy(_ => _.Name)
+                .ThenBy(_ => _.Abbreviation))
+            {
+                items.Append(location.LocationId)
+                    .Append(location.Name)
+                    .Append(location.Abbreviation);
+            }
+
+            return SHA256.HashData(Encoding.UTF8.GetBytes(items.ToString()));
+        }
+
+        /// <summary>
+        /// Use the <see cref="ReportDefinition"/> combined with the CSV data from the stream to
+        /// read in reporting data.
+        /// </summary>
+        /// <typeparam name="T">The DTO type to place data in, should match the columns in the CSV
+        /// file or have appropriate attributes.</typeparam>
+        /// <param name="report">The report definition including CSV parse details.</param>
+        /// <param name="import">The CSV file as a stream.</param>
+        /// <returns>An <see cref="IEnumerable"/> of the generic type for this method call.</returns>
+        private static IEnumerable<T> ParseCsv<T>(ReportDefinition report, Stream import)
+        {
+            var csvConfig = new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                Delimiter = report.Delimiter,
+                HasHeaderRecord = true,
+                ShouldSkipRecord = (shouldSkip) => report
+                    .SkipFirstColumn
+                    .Contains(shouldSkip.Row[0].Trim()),
+            };
+
+            using var reader = new StreamReader(import);
+            using var csv = new CsvReader(reader, csvConfig);
+
+            return [.. csv.GetRecords<T>()];
+        }
+
+        public async Task<DataWithCount<IDictionary<DateTime, int?>>>
+            GetDetailsAsync(BaseFilter<string> filter)
+        {
+            ArgumentNullException.ThrowIfNull(filter);
+
+            return filter.Data switch
+            {
+                ReportDefinitionId.HooplaCheckouts => new DataWithCount<IDictionary<DateTime, int?>>
+                {
+                    Count = await reportingImportHeaderRepository.GetDateCountAsync(filter),
+                    Data = await reportingImportHeaderRepository.GetDatesAsync(filter),
+                },
+                ReportDefinitionId.OnlineCardRenewalStats => await renewCardReportingService
+                    .GetStatsAsync(filter),
+                _ => throw new OcudaException("Unable to find report type: {reportType}"),
+            };
+        }
+
         public CollectionWithCount<ReportDefinition> GetList(BaseFilter filter)
         {
             ArgumentNullException.ThrowIfNull(filter);
@@ -50,79 +158,54 @@ namespace Ocuda.Ops.Service
                 Data = [.. ReportDefinitions.Definitions
                     .OrderBy(_ => _.Name)
                     .Skip(filter.Skip.Value)
-                    .Take(filter.Take.Value)]
+                    .Take(filter.Take.Value)],
             };
         }
 
-        public async Task<IEnumerable<ReportingImportDetails>> GetNotesAsync(string reportType,
-            int year,
-            int month)
+        public async Task<IEnumerable<ReportingImportDetails>> GetNotesAsync(ReportCriteria criteria)
         {
-            var header = await reportingImportHeaderRepository
-                .GetReportAsync(reportType, year, month)
-                ?? throw new OcudaException($"Report header for {reportType} {month}/{year} not found.");
+            ArgumentNullException.ThrowIfNull(criteria);
+
+            var header = await reportingImportHeaderRepository.GetReportAsync(criteria)
+                ?? throw new OcudaException($"Report header for {criteria.Report.Id} {criteria.StartDate.Year}/{criteria.StartDate.Month} not found.");
 
             return await reportingImportDetailsRepository.GetNotesAsync(header.Id);
         }
 
-        public async Task<DataWithCount<IDictionary<DateTime, int?>>>
-            GetResultsAsync(BaseFilter<string> filter)
+        public async Task<IEnumerable<DisplayReport>> GetResultsAsync(ReportCriteria criteria)
         {
-            return new DataWithCount<IDictionary<DateTime, int?>>
+            ArgumentNullException.ThrowIfNull(criteria);
+
+            switch (criteria.Report.Id)
             {
-                Count = await reportingImportHeaderRepository.GetDateCountAsync(filter),
-                Data = await reportingImportHeaderRepository.GetDatesAsync(filter)
-            };
-        }
-
-        public async Task<IEnumerable<DisplayReport>> GetResultsAsync(string reportType,
-            int year,
-            int month)
-        {
-            return await GetResultsAsync(reportType, year, month, null);
-        }
-
-        public async Task<IEnumerable<DisplayReport>> GetResultsAsync(string reportType,
-            int year,
-            int month,
-            string numberFormat)
-        {
-            var report = ReportDefinitions.Definitions.SingleOrDefault(_ => _.Id == reportType)
-                ?? throw new OcudaException("Unable to find report type: {reportType}");
-
-            if (report.Id == ReportDefinitionId.HooplaCheckouts)
-            {
-                var reportHeader = await reportingImportHeaderRepository
-                    .GetReportAsync(reportType, year, month)
-                    ?? throw new OcudaException($"No report found for type {report.Id} for {month}/{year}");
-
-                return [AdaptImportHeader(report, reportHeader, numberFormat)];
+                case ReportDefinitionId.OnlineCardRenewalStats:
+                    return await renewCardReportingService.GetReportAsync(criteria);
+                case ReportDefinitionId.HooplaCheckouts:
+                    var data = await reportingImportHeaderRepository.GetReportAsync(criteria)
+                        ?? throw new OcudaException($"No report found for type {criteria.Report.Id} for {criteria.StartDate.Month}/{criteria.StartDate.Year}");
+                    return [AdaptImportHeader(criteria, data)];
+                default:
+                    throw new OcudaException($"Unknown report type: {criteria.Report.Id}");
             }
-
-            throw new OcudaException("Cannot adapt to display report type: {report.Id}");
         }
 
-        public async Task<bool> HasResultsAsync(string reportType, int year, int month)
+        public async Task<bool> HasResultsAsync(ReportCriteria criteria)
         {
-            return await reportingImportHeaderRepository.HasReportAsync(reportType, year, month);
+            return await reportingImportHeaderRepository.HasReportAsync(criteria);
         }
 
         public async Task<bool> HasResultsAsync(string reportType)
         {
-            return await reportingImportHeaderRepository.Any(reportType);
+            return reportType switch
+            {
+                ReportDefinitionId.OnlineCardRenewalStats
+                    => await renewCardReportingService.AnyAsync(),
+                ReportDefinitionId.HooplaCheckouts
+                    => await reportingImportHeaderRepository.AnyAsync(reportType),
+                _ => throw new OcudaException("Unknown report type: {reportType}"),
+            };
         }
 
-        /// <summary>
-        /// Import external data and store it in the database so it can be used for reporting.
-        /// </summary>
-        /// <param name="reportId"><see cref="ReportDefinition"/> id to use for importing data
-        /// </param>
-        /// <param name="dataDate">Date range which covers the data to be imported</param>
-        /// <param name="filename">Name of the import file, just for logging purposes</param>
-        /// <param name="import">CSV data to import provided as a <see cref="Stream"/></param>
-        /// <returns>The <see cref="ReportingImportHeader"/> id for the imported data</returns>
-        /// <exception cref="OcudaException">Throws if there are not instructions to import the
-        /// specified <see cref="ReportDefinition"/> id</exception>
         public async Task<int> ProcessImportAsync(string reportId,
             DateTime dataDate,
             string filename,
@@ -134,7 +217,11 @@ namespace Ocuda.Ops.Service
             var selectedReport = reports.SingleOrDefault(_ => _.Id == reportId)
                 ?? throw new OcudaException($"Unable to import data for report id: {reportId}");
 
-            if (await HasResultsAsync(selectedReport.Id, dataDate.Year, dataDate.Month))
+            if (await HasResultsAsync(new ReportCriteria
+            {
+                Report = selectedReport,
+                StartDate = new DateTime(dataDate.Year, dataDate.Month, 1),
+            }))
             {
                 throw new OcudaException($"Report {selectedReport.Name} already has data for {dataDate.Month}/{dataDate.Year}");
             }
@@ -174,109 +261,19 @@ namespace Ocuda.Ops.Service
             return saveResult.Data;
         }
 
-        private static DisplayReport AdaptImportHeader(ReportDefinition reportDefinition,
-            ReportingImportHeader reportingImportHeader,
-            string numberFormat)
-        {
-            var displayReport = new DisplayReport(
-                $"{reportDefinition.Name} {reportingImportHeader.Month}/{reportingImportHeader.Year}",
-                reportingImportHeader.CreatedAt)
-            {
-                HeaderRow = ["Location", "Circulations"]
-            };
-
-            var locations = reportingImportHeader
-                .ReportingLocationSet
-                .ReportingLocations
-                .OrderBy(_ => _.Name);
-
-            var dataSet = new List<IEnumerable<object>>();
-
-            foreach (var location in locations)
-            {
-                var dataItem = reportingImportHeader
-                    .ReportingImportData
-                    .SingleOrDefault(_ => _.LocationId == location.LocationId)
-                    ?.ReportValue ?? 0;
-
-                dataSet.Add([location.Name,
-                    !string.IsNullOrEmpty(numberFormat)
-                        ? dataItem.ToString(numberFormat, CultureInfo.CurrentCulture)
-                        : dataItem]);
-            }
-
-            displayReport.Data = dataSet;
-
-            var total = reportingImportHeader.ReportingImportData.Sum(_ => _.ReportValue);
-
-            displayReport.FooterRow = [
-                "Total",
-                !string.IsNullOrEmpty(numberFormat)
-                    ? total.ToString(numberFormat, CultureInfo.CurrentCulture)
-                    : total];
-
-            return displayReport;
-        }
-
-        /// <summary>
-        /// Given a set of locations, generate a hash using the location id, name, and abbreviation.
-        /// </summary>
-        /// <param name="locations">The enumerable of ReportingLocation objects</param>
-        /// <returns>checksum of the specified fields of locations combined</returns>
-        private static byte[] GetLocationHash(IEnumerable<ReportingLocation> locations)
-        {
-            var items = new StringBuilder();
-            foreach (var location in locations.OrderBy(_ => _.LocationId)
-                .ThenBy(_ => _.Name)
-                .ThenBy(_ => _.Abbreviation))
-            {
-                items.Append(location.LocationId)
-                    .Append(location.Name)
-                    .Append(location.Abbreviation);
-            }
-
-            return SHA256.HashData(Encoding.UTF8.GetBytes(items.ToString()));
-        }
-
-        /// <summary>
-        /// Use the <see cref="ReportDefinition"/> combined with the CSV data from the stream to
-        /// read in reporting data.
-        /// </summary>
-        /// <typeparam name="T">The DTO type to place data in, should match the columns in the CSV
-        /// file or have appropriate attributes.</typeparam>
-        /// <param name="report">The report definition including CSV parse details</param>
-        /// <param name="import">The CSV file as a stream</param>
-        /// <returns>An <see cref="IEnumerable"/> of the generic type for this method call</returns>
-        private static IEnumerable<T> ParseCsv<T>(ReportDefinition report, Stream import)
-        {
-            var csvConfig = new CsvConfiguration(CultureInfo.InvariantCulture)
-            {
-                Delimiter = report.Delimiter,
-                HasHeaderRecord = true,
-                ShouldSkipRecord = (shouldSkip) => report
-                    .SkipFirstColumn
-                    .Contains(shouldSkip.Row[0].Trim())
-            };
-
-            using var reader = new StreamReader(import);
-            using var csv = new CsvReader(reader, csvConfig);
-
-            return [.. csv.GetRecords<T>()];
-        }
-
         /// <summary>
         /// Map barcode circulations provided as a list of <see cref="BarcodeCirculationBase"/>
         /// to aggregated totals by location.
         /// </summary>
         /// <param name="data">An <see cref="IEnumerable"/> of <see cref="BarcodeCirculationBase"/>
-        /// data to map</param>
-        /// <param name="organizationIds">The list of organization ids to map circulations into
+        /// data to map.</param>
+        /// <param name="organizationIds">The list of organization ids to map circulations into.
         /// </param>
         /// <param name="fallbackOrganizationId">Which organization id to map circulations to
         /// if the barcode cannot be mapped to a location.</param>
         /// <returns>A <see cref="LocationCirculationResult"/> with a dictionary containing
         /// location ids mapped to circulation counts and a list of barcodes which could not be
-        /// mapped</returns>
+        /// mapped.</returns>
         private async Task<LocationCirculationResult> BatchToLocationsAsync(
             IEnumerable<BarcodeCirculationBase> data,
             IEnumerable<int> organizationIds,
@@ -365,7 +362,7 @@ namespace Ocuda.Ops.Service
         /// the database. If they are different then insert an updated LocationSet and return it,
         /// otherwise return the current set.
         /// </summary>
-        /// <returns>The current set of locations</returns>
+        /// <returns>The current set of locations.</returns>
         private async Task<ReportingLocationSet> GetCurrentLocationSetAsync()
         {
             var locations = polarisHelper.GetOrganizations().Select(_ => new ReportingLocation
@@ -373,7 +370,7 @@ namespace Ocuda.Ops.Service
                 Abbreviation = _.Abbreviation?.Trim(),
                 FallbackLocation = _.ParentOrganizationID == null,
                 LocationId = _.OrganizationID,
-                Name = _.Name?.Trim()
+                Name = _.Name?.Trim(),
             }).ToList();
 
             var hash = GetLocationHash(locations);
@@ -393,7 +390,7 @@ namespace Ocuda.Ops.Service
                     CreatedBy = GetCurrentUserId(),
                     CreatedAt = dateTimeProvider.Now,
                     IsCurrent = true,
-                    Sha256Checksum = hash
+                    Sha256Checksum = hash,
                 };
 
                 if (currentSet != null)
@@ -430,15 +427,16 @@ namespace Ocuda.Ops.Service
         /// circulations.
         /// </summary>
         /// <typeparam name="T">A class that extends <see cref="BarcodeCirculationBase"/> with
-        /// attributes that align with the CSV data in the provided stream</typeparam>
+        /// attributes that align with the CSV data in the provided stream.</typeparam>
         /// <param name="reportDefinition">Information about the report to facilitate reading the
-        /// CSV data</param>
-        /// <param name="import">CSV data provided as a <see cref="Stream"/></param>
+        /// CSV data.</param>
+        /// <param name="import">CSV data provided as a <see cref="Stream"/>.</param>
         /// <returns>A populated <see cref="DataWithNotes"/> containing a
         /// <see cref="LocationCirculationResult"/> and notes about the import process.</returns>
         private async Task<DataWithNotes<LocationCirculationResult>> MapDataToLocations<T>(
             ReportDefinition reportDefinition,
-            Stream import) where T : BarcodeCirculationBase
+            Stream import)
+            where T : BarcodeCirculationBase
         {
             var result = new DataWithNotes<LocationCirculationResult>();
 
@@ -460,6 +458,7 @@ namespace Ocuda.Ops.Service
                 timer.ElapsedMilliseconds);
 
             timer.Reset();
+
             // map barcodes in data to locations and aggregate
             result.Data = await BatchToLocationsAsync(data,
                 locationSet.ReportingLocations.Select(_ => _.LocationId),
@@ -492,7 +491,7 @@ namespace Ocuda.Ops.Service
         /// reports.
         /// </summary>
         /// <param name="result">The result of reading, parsing, and aggregating data.</param>
-        /// <returns>The integer id of the <see cref="ReportingImportHeader"/></returns>
+        /// <returns>The integer id of the <see cref="ReportingImportHeader"/>.</returns>
         private async Task<DataWithNotes<int>> SaveDataAsync(LocationCirculationResult result)
         {
             var saveResult = new DataWithNotes<int>();
@@ -505,7 +504,7 @@ namespace Ocuda.Ops.Service
                 Month = result.Timestamp.Month,
                 ReportingLocationSetId = result.ReportingLocationSetId,
                 ReportType = result.ReportType,
-                Year = result.Timestamp.Year
+                Year = result.Timestamp.Year,
             };
 
             await reportingImportHeaderRepository.AddAsync(header);
@@ -515,7 +514,7 @@ namespace Ocuda.Ops.Service
             {
                 LocationId = _.Key,
                 ReportingImportHeaderId = header.Id,
-                ReportValue = _.Value
+                ReportValue = _.Value,
             }).ToList();
 
             await reportingImportDatumRepository.AddRangeAsync(data);
@@ -544,7 +543,7 @@ namespace Ocuda.Ops.Service
         }
 
         /// <summary>
-        /// This class represents the fields out of the CSV file we wish to import
+        /// This class represents the fields out of the CSV file we wish to import.
         /// </summary>
         private class HooplaCardDetail : BarcodeCirculationBase
         {

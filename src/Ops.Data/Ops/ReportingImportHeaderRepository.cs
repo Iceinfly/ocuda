@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Ocuda.Ops.Data.Extensions;
 using Ocuda.Ops.Data.ServiceFacade;
+using Ocuda.Ops.Models;
 using Ocuda.Ops.Models.Entities;
 using Ocuda.Ops.Service.Filters;
 using Ocuda.Ops.Service.Interfaces.Ops.Repositories;
@@ -18,7 +19,7 @@ namespace Ocuda.Ops.Data.Ops
             : OpsRepository<OpsContext, ReportingImportHeader, int>(repositoryFacade, logger),
             IReportingImportHeaderRepository
     {
-        public async Task<bool> Any(string reportType)
+        public async Task<bool> AnyAsync(string reportType)
         {
             return await DbSet
                 .AsNoTracking()
@@ -46,25 +47,25 @@ namespace Ocuda.Ops.Data.Ops
                 .ToDictionaryAsync(k => new DateTime(k.Year, k.Month, 1), v => v.Total);
         }
 
-        public async Task<ReportingImportHeader> GetReportAsync(string reportType,
-            int year,
-            int month)
+        public async Task<ReportingImportHeader> GetReportAsync(ReportCriteria criteria)
         {
             return await DbSet
                 .AsNoTracking()
                 .Include(_ => _.ReportingImportData)
                 .Include(_ => _.ReportingLocationSet.ReportingLocations)
                 .AsSplitQuery()
-                .SingleOrDefaultAsync(_ => _.ReportType == reportType
-                    && _.Year == year
-                    && _.Month == month);
+                .SingleOrDefaultAsync(_ => _.ReportType == criteria.Report.Id
+                    && _.Year == criteria.StartDate.Year
+                    && _.Month == criteria.StartDate.Month);
         }
 
-        public async Task<bool> HasReportAsync(string reportType, int year, int month)
+        public async Task<bool> HasReportAsync(ReportCriteria criteria)
         {
             return await DbSet
                 .AsNoTracking()
-                .AnyAsync(_ => _.ReportType == reportType && _.Year == year && _.Month == month);
+                .AnyAsync(_ => _.ReportType == criteria.Report.Id
+                    && _.Year == criteria.StartDate.Year
+                    && _.Month == criteria.StartDate.Month);
         }
 
         public async Task UpdateTotalAsync(int reportingHeaderId, int total)

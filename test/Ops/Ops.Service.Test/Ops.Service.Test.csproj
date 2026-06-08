@@ -17,8 +17,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\Ops.Models\Ops.Models.csproj" />
-    <ProjectReference Include="..\src\Ops.Service\Ops.Service.csproj" />
+    <ProjectReference Include="..\..\..\src\Ops.Models\Ops.Models.csproj" />
+    <ProjectReference Include="..\..\..\src\Ops.Service\Ops.Service.csproj" />
   </ItemGroup>
 
   <ItemGroup>
