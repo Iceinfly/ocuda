@@ -34,6 +34,7 @@ namespace Ocuda.Ops.Service
     public class ReportingService(ILogger<ReportingService> logger,
         IHttpContextAccessor httpContextAccessor,
         IDateTimeProvider dateTimeProvider,
+        IEmediaReportingService emediaReportingService,
         IPolarisHelper polarisHelper,
         IRenewCardReportingService renewCardReportingService,
         IReportingImportDatumRepository reportingImportDatumRepository,
@@ -138,13 +139,15 @@ namespace Ocuda.Ops.Service
 
             return filter.Data switch
             {
+                ReportDefinitionId.ElectronicResourceAccesses => await emediaReportingService
+                    .GetStatsAsync(filter),
+                ReportDefinitionId.OnlineCardRenewalStats => await renewCardReportingService
+                    .GetStatsAsync(filter),
                 ReportDefinitionId.HooplaCheckouts => new DataWithCount<IDictionary<DateTime, int?>>
                 {
                     Count = await reportingImportHeaderRepository.GetDateCountAsync(filter),
                     Data = await reportingImportHeaderRepository.GetDatesAsync(filter),
                 },
-                ReportDefinitionId.OnlineCardRenewalStats => await renewCardReportingService
-                    .GetStatsAsync(filter),
                 _ => throw new OcudaException("Unable to find report type: {reportType}"),
             };
         }
@@ -178,6 +181,8 @@ namespace Ocuda.Ops.Service
 
             switch (criteria.Report.Id)
             {
+                case ReportDefinitionId.ElectronicResourceAccesses:
+                    return await emediaReportingService.GetReportAsync(criteria);
                 case ReportDefinitionId.OnlineCardRenewalStats:
                     return await renewCardReportingService.GetReportAsync(criteria);
                 case ReportDefinitionId.HooplaCheckouts:
@@ -198,6 +203,8 @@ namespace Ocuda.Ops.Service
         {
             return reportType switch
             {
+                ReportDefinitionId.ElectronicResourceAccesses
+                    => await emediaReportingService.AnyAsync(),
                 ReportDefinitionId.OnlineCardRenewalStats
                     => await renewCardReportingService.AnyAsync(),
                 ReportDefinitionId.HooplaCheckouts

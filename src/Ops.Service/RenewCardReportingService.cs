@@ -34,7 +34,7 @@ namespace Ocuda.Ops.Service
         {
             ArgumentNullException.ThrowIfNull(criteria);
 
-            var data = await renewCardStatsRepository.GetReportAsync(criteria.StartDate.Year);
+            var data = await renewCardStatsRepository.GetReportAsync(criteria.StartDate);
 
             return [
 
@@ -187,7 +187,8 @@ namespace Ocuda.Ops.Service
                 }
 
                 logger.LogInformation(
-                    "Finished all renew card stats reports in {ElapsedMs} ms",
+                    "Finished all {Count} renew card stats reports in {ElapsedMs} ms",
+                    reportsToRun.Count(),
                     timer.ElapsedMilliseconds);
             }
         }

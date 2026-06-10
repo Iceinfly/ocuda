@@ -10,6 +10,7 @@ namespace Ocuda.Ops.Web.JobScheduling
     internal class JobScopedProcessingService(ILogger<JobScopedProcessingService> logger,
         IDigitalDisplayCleanupService digitalDisplayCleanupService,
         IDigitalDisplaySyncService digitalDisplaySyncService,
+        IEmediaReportingService emediaReportingService,
         IRenewCardReportingService renewCardReportingService,
         IScheduleNotificationService scheduleNotificationService,
         IVolunteerNotificationService volunteerNotificationService)
@@ -31,6 +32,7 @@ namespace Ocuda.Ops.Web.JobScheduling
                 ["SendPendingVolunteerNotifications"]
                     = volunteerNotificationService.SendPendingNotificationsAsync,
                 ["OnlineCardRenewalReports"] = renewCardReportingService.RunPendingReportsAsync,
+                ["EmediaAccessReports"] = emediaReportingService.RunPendingReportsAsync,
             };
 
             foreach (var methodName in scheduledTasks.Keys)

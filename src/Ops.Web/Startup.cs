@@ -395,6 +395,8 @@ namespace Ocuda.Ops.Web
                 Data.Ops.EmailSetupTextRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IEmailTemplateTextRepository,
                 Data.Ops.EmailTemplateTextRepository>();
+            services.AddScoped<Service.Interfaces.Ops.Repositories.IEmediaStatsRepository,
+                Data.Ops.EmediaStatsRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IEmployeeCardNoteRepository,
                 Data.Ops.EmployeeCardNoteRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IEmployeeCardResultRepository,
@@ -520,6 +522,8 @@ namespace Ocuda.Ops.Web
                 Data.Promenade.CategoryTextRepository>();
             services.AddScoped<Service.Interfaces.Promenade.Repositories.IDeckRepository,
                 Data.Promenade.DeckRepository>();
+            services.AddScoped<Service.Interfaces.Promenade.Repositories.IEmediaAccessRepository,
+                Data.Promenade.EmediaAccessRepository>();
             services.AddScoped<Service.Interfaces.Promenade.Repositories.IEmediaCategoryRepository,
                 Data.Promenade.EmediaCategoryRepository>();
             services.AddScoped<Service.Interfaces.Promenade.Repositories.IEmediaGroupRepository,
@@ -632,10 +636,11 @@ namespace Ocuda.Ops.Web
             services.AddScoped<ICategoryService, CategoryService>();
             services.AddScoped<ICoverIssueService, CoverIssueService>();
             services.AddScoped<IDeckService, DeckService>();
-            services.AddScoped<IDigitalDisplayService, DigitalDisplayService>();
             services.AddScoped<IDigitalDisplayCleanupService, DigitalDisplayCleanupService>();
+            services.AddScoped<IDigitalDisplayService, DigitalDisplayService>();
             services.AddScoped<IDigitalDisplaySyncService, DigitalDisplaySyncService>();
             services.AddScoped<IEmailService, EmailService>();
+            services.AddScoped<IEmediaReportingService, EmediaReportingService>();
             services.AddScoped<IEmediaService, EmediaService>();
             services.AddScoped<IEmployeeCardRequestService, EmployeeCardRequestService>();
             services.AddScoped<IEmployeeCardService, EmployeeCardService>();
@@ -655,9 +660,9 @@ namespace Ocuda.Ops.Web
             services.AddScoped<ILanguageService, LanguageService>();
             services.AddScoped<ILdapService, LdapService>();
             services.AddScoped<ILinkService, LinkService>();
-            services.AddScoped<ILocationHoursService, LocationHoursService>();
-            services.AddScoped<ILocationGroupService, LocationGroupService>();
             services.AddScoped<ILocationFeatureService, LocationFeatureService>();
+            services.AddScoped<ILocationGroupService, LocationGroupService>();
+            services.AddScoped<ILocationHoursService, LocationHoursService>();
             services.AddScoped<ILocationService, LocationService>();
             services.AddScoped<INavBannerService, NavBannerService>();
             services.AddScoped<INavigationService, NavigationService>();

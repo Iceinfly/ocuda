@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -74,6 +74,13 @@ namespace Ocuda.Ops.Data.Promenade
             return await DbSet
                 .AsNoTracking()
                 .SingleOrDefaultAsync(_ => _.IsActive && _.Id == id);
+        }
+
+        public async Task<IDictionary<int, string>> GetIdsNamesAsync()
+        {
+            return await DbSet
+                .AsNoTracking()
+                .ToDictionaryAsync(k => k.Id, v => v.Name);
         }
 
         public async Task<Emedia> GetIncludingGroupAsync(int id)

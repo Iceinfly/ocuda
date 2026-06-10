@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Ocuda.Ops.Models.Entities;
@@ -6,7 +6,7 @@ using Ocuda.Ops.Service.Filters;
 
 namespace Ocuda.Ops.Service.Interfaces.Ops.Repositories
 {
-    public interface IRenewCardStatsRepository
+    public interface IEmediaStatsRepository
     {
         public Task<bool> AnyAsync();
 
@@ -16,8 +16,8 @@ namespace Ocuda.Ops.Service.Interfaces.Ops.Repositories
 
         public Task<DateTime?> GetLatestDateAsync();
 
-        public Task<IEnumerable<RenewCardStats>> GetReportAsync(DateTime period);
+        public Task<IEnumerable<EmediaStats>> GetReportAsync(DateTime period);
 
-        public Task SaveStatsAsync(RenewCardStats stats);
+        public Task SaveStatsAsync(IEnumerable<EmediaStats> stats);
     }
 }

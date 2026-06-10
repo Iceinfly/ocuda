@@ -12,10 +12,10 @@ using Ocuda.Ops.Service.Interfaces.Ops.Repositories;
 
 namespace Ocuda.Ops.Data.Ops
 {
-    public class RenewCardStatsRepository(Repository<OpsContext> repositoryFacade,
-        ILogger<RenewCardStatsRepository> logger)
-            : GenericRepository<OpsContext, RenewCardStats>(repositoryFacade, logger),
-            IRenewCardStatsRepository
+    public class EmediaStatsRepository(Repository<OpsContext> repositoryFacade,
+        ILogger<EmediaStatsRepository> logger)
+            : GenericRepository<OpsContext, EmediaStats>(repositoryFacade, logger),
+            IEmediaStatsRepository
     {
         public async Task<bool> AnyAsync()
         {
@@ -26,8 +26,7 @@ namespace Ocuda.Ops.Data.Ops
         {
             return await DbSet
                 .AsNoTracking()
-                .OrderBy(_ => _.Year)
-                .Distinct()
+                .GroupBy(_ => new { _.Year, _.Month })
                 .CountAsync();
         }
 
@@ -35,15 +34,17 @@ namespace Ocuda.Ops.Data.Ops
         {
             return await DbSet
                 .AsNoTracking()
-                .GroupBy(_ => _.Year)
+                .GroupBy(_ => new { _.Year, _.Month })
                 .Select(_ => new
                 {
                     _.Key,
-                    Count = _.Count(),
+                    Sum = _.Sum(__ => __.Accesses)
                 })
-                .OrderByDescending(_ => _.Key)
+                .OrderByDescending(_ => _.Key.Year)
+                .ThenBy(_ => _.Key.Month)
                 .ApplyPagination(filter)
-                .ToDictionaryAsync(k => new DateTime(k.Key, 1, 1), v => (int?)v.Count);
+                .ToDictionaryAsync(k => new DateTime(k.Key.Year, k.Key.Month, 1),
+                    v => (int?)v.Sum);
         }
 
         public async Task<DateTime?> GetLatestDateAsync()
@@ -57,17 +58,17 @@ namespace Ocuda.Ops.Data.Ops
                 .SingleOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<RenewCardStats>> GetReportAsync(DateTime period)
+        public async Task<IEnumerable<EmediaStats>> GetReportAsync(DateTime period)
         {
             return await DbSet
                 .AsNoTracking()
-                .Where(_ => _.Year == period.Year)
+                .Where(_ => _.Year == period.Year && _.Month == period.Month)
                 .ToListAsync();
         }
 
-        public async Task SaveStatsAsync(RenewCardStats stats)
+        public async Task SaveStatsAsync(IEnumerable<EmediaStats> stats)
         {
-            await DbSet.AddAsync(stats);
+            await DbSet.AddRangeAsync(stats);
             await _context.SaveChangesAsync();
         }
     }

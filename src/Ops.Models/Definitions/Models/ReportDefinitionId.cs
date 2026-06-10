@@ -5,6 +5,7 @@
     /// </summary>
     public static class ReportDefinitionId
     {
+        public const string ElectronicResourceAccesses = "electronic-resource-accesses";
         public const string HooplaCheckouts = "hoopla-checkouts";
         public const string OnlineCardRenewalStats = "online-card-renewal-stats";
     }

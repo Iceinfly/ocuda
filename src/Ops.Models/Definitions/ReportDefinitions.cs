@@ -35,6 +35,16 @@ namespace Ocuda.Ops.Models.Definitions
                 Period = ReportDefinitionPeriod.Yearly,
                 ReportType = ReportTypeOnlineCardRenewal,
             },
+            new ()
+            {
+                CanBeImported = false,
+                Description = "Monthly stats about electronic resource usage",
+                Id = ReportDefinitionId.ElectronicResourceAccesses,
+                Name = "Electronic resource accesses",
+                Period = ReportDefinitionPeriod.Monthly,
+                ReportType = ReportTypeElectronicResources,
+            },
+
         ];
     }
 }
