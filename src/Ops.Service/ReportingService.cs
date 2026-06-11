@@ -129,7 +129,15 @@ namespace Ocuda.Ops.Service
             using var reader = new StreamReader(import);
             using var csv = new CsvReader(reader, csvConfig);
 
-            return [.. csv.GetRecords<T>()];
+            try
+            {
+                return [.. csv.GetRecords<T>()];
+            }
+            catch (HeaderValidationException hvex)
+            {
+                throw new OcudaException($"Error in supplied document headers: {hvex.Message}",
+                    hvex);
+            }
         }
 
         public async Task<DataWithCount<IDictionary<DateTime, int?>>>
