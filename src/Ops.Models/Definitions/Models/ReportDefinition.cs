@@ -58,13 +58,13 @@ namespace Ocuda.Ops.Models.Definitions.Models
         /// Set to true if data can be imported for this report or not, set in the controller by
         /// reviewing permissions
         /// </summary>
-        public bool IsImportable { get; set; }
+        public bool IsPermittedImport { get; set; }
 
         /// <summary>
         /// Set to true if data can be viewed by the curren tuser, set in the controller by
         /// reviewing permissions
         /// </summary>
-        public bool IsViewable { get; set; }
+        public bool IsPermittedView { get; set; }
 
         /// <summary>
         /// Name of the report as displayed to users

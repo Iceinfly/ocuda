@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -13,11 +13,13 @@ namespace Ocuda.Ops.Service.Interfaces.Ops.Services
 {
     public interface IReportingService
     {
-        CollectionWithCount<ReportDefinition> GetList(BaseFilter filter);
+        Task<DataWithCount<IDictionary<DateTime, int?>>> GetDetailsAsync(BaseFilter<string> filter);
+
+        CollectionWithCount<ReportDefinition> GetList();
+
+        CollectionWithCount<ReportDefinition> GetList(BaseFilter<string> filter);
 
         Task<IEnumerable<ReportingImportDetails>> GetNotesAsync(ReportCriteria criteria);
-
-        Task<DataWithCount<IDictionary<DateTime, int?>>> GetDetailsAsync(BaseFilter<string> filter);
 
         Task<IEnumerable<DisplayReport>> GetResultsAsync(ReportCriteria criteria);
 

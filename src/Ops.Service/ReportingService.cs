@@ -139,7 +139,7 @@ namespace Ocuda.Ops.Service
 
             return filter.Data switch
             {
-                ReportDefinitionId.ElectronicResourceAccesses => await emediaReportingService
+                ReportDefinitionId.DigitalLibraryAccesses => await emediaReportingService
                     .GetStatsAsync(filter),
                 ReportDefinitionId.OnlineCardRenewalStats => await renewCardReportingService
                     .GetStatsAsync(filter),
@@ -152,16 +152,32 @@ namespace Ocuda.Ops.Service
             };
         }
 
-        public CollectionWithCount<ReportDefinition> GetList(BaseFilter filter)
+        public CollectionWithCount<ReportDefinition> GetList()
         {
-            ArgumentNullException.ThrowIfNull(filter);
+            return GetList(null);
+        }
+
+        public CollectionWithCount<ReportDefinition> GetList(BaseFilter<string> filter)
+        {
+            var baseQuery = ReportDefinitions.Definitions.OrderBy(_ => _.Name).AsEnumerable();
+
+            if (filter != null)
+            {
+                if (!string.IsNullOrEmpty(filter.Data))
+                {
+                    baseQuery = baseQuery.Where(_ => _.ReportType == filter.Data);
+                }
+
+                if (filter.Skip.HasValue && filter.Take.HasValue)
+                {
+                    baseQuery = baseQuery.Skip(filter.Skip.Value).Take(filter.Take.Value);
+                }
+            }
+
             return new CollectionWithCount<ReportDefinition>
             {
-                Count = ReportDefinitions.Definitions.Length,
-                Data = [.. ReportDefinitions.Definitions
-                    .OrderBy(_ => _.Name)
-                    .Skip(filter.Skip.Value)
-                    .Take(filter.Take.Value)],
+                Count = baseQuery.Count(),
+                Data = [.. baseQuery],
             };
         }
 
@@ -181,7 +197,7 @@ namespace Ocuda.Ops.Service
 
             switch (criteria.Report.Id)
             {
-                case ReportDefinitionId.ElectronicResourceAccesses:
+                case ReportDefinitionId.DigitalLibraryAccesses:
                     return await emediaReportingService.GetReportAsync(criteria);
                 case ReportDefinitionId.OnlineCardRenewalStats:
                     return await renewCardReportingService.GetReportAsync(criteria);
@@ -203,7 +219,7 @@ namespace Ocuda.Ops.Service
         {
             return reportType switch
             {
-                ReportDefinitionId.ElectronicResourceAccesses
+                ReportDefinitionId.DigitalLibraryAccesses
                     => await emediaReportingService.AnyAsync(),
                 ReportDefinitionId.OnlineCardRenewalStats
                     => await renewCardReportingService.AnyAsync(),

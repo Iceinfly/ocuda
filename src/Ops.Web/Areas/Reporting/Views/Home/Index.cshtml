@@ -5,7 +5,7 @@
 }
 
 <div class="row">
-    @if (!(Model.Reports?.Count() > 0) || !Model.Reports.Any(_ => _.IsViewable))
+    @if (!(Model.Reports?.Count() > 0) || !Model.Reports.Any(_ => _.IsPermittedView))
     {
         <div class="col-12 col-md-4 offset-md-4">
             <div class="alert alert-info">No reports are available.</div>
@@ -13,9 +13,9 @@
     }
     else
     {
-        @foreach (var report in Model.Reports.Where(_ => _.IsViewable))
+        @foreach (var report in Model.Reports.Where(_ => _.IsPermittedView))
         {
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-4 mb-3">
                 <div class="card">
                     <div class="card-header d-flex">
                         <div class="flex-grow-1">
@@ -44,7 +44,7 @@
                     <div class="card-body">
                         <p class="card-text">@report.Description</p>
                     </div>
-                    @if (Model.CanAdjustPermissions || report.IsImportable)
+                    @if (Model.CanAdjustPermissions || report.IsPermittedImport)
                     {
                         <div class="card-footer d-flex justify-content-end">
                             @if (Model.CanAdjustPermissions)
@@ -55,7 +55,7 @@
                                     Permissions
                                 </a>
                             }
-                            @if (report.IsImportable)
+                            @if (report.IsPermittedImport)
                             {
                                 <a class="btn btn-sm btn-outline-primary ms-2"
                                    data-bs-target="#reportingImportModal"
@@ -103,7 +103,7 @@
 
 <nav paginate="@Model"></nav>
 
-@if (Model.Reports.Any(_ => _.IsImportable))
+@if (Model.Reports.Any(_ => _.IsPermittedImport))
 {
     <partial name="_ReportingImportPartial" model="Model.ImportViewModel" />
 

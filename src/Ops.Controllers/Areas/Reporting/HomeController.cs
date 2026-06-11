@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -12,7 +13,6 @@ using Ocuda.Ops.Models;
 using Ocuda.Ops.Models.Definitions;
 using Ocuda.Ops.Models.Definitions.Models;
 using Ocuda.Ops.Models.Entities;
-using Ocuda.Ops.Models.Keys;
 using Ocuda.Ops.Service.Filters;
 using Ocuda.Ops.Service.Interfaces.Ops.Services;
 using Ocuda.Utility.Exceptions;
@@ -92,13 +92,14 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
                 return StatusCode(404);
             }
 
-            var permissions = await GetPermissionsAsync(report);
-            if (!permissions.CanView)
+            report = await PopulatePermissionsAsync(permissionGroupService, report);
+
+            if (!report.IsPermittedView)
             {
                 return RedirectToUnauthorized();
             }
 
-            report.IsImportable = report.CanBeImported && permissions.CanImport;
+            report.IsPermittedImport = report.CanBeImported && report.IsPermittedImport;
 
             var filter = new BaseFilter<string>(currentPage, itemsPerPage)
             {
@@ -118,7 +119,7 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
 
             viewModel.TimespanTotals.AddRange(collectionWithCount.Data);
 
-            if (report.IsImportable)
+            if (report.IsPermittedImport)
             {
                 viewModel.Navigations.Add("Import Data", "import");
             }
@@ -129,6 +130,19 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
             }
 
             SetPageTitle(viewModel.Heading);
+
+            viewModel.BackLink = report.ReportType switch
+            {
+                ReportDefinitions.ReportTypeDigitalLibrary =>
+                    Url.Action(nameof(SiteManagement.EmediaController.Index),
+                            SiteManagement.EmediaController.Name,
+                            new { SiteManagement.EmediaController.Area }),
+                ReportDefinitions.ReportTypeOnlineCardRenewal =>
+                    Url.Action(nameof(Services.RenewCardController.Index),
+                        Services.RenewCardController.Name,
+                        new { Services.RenewCardController.Area }),
+                _ => null
+            };
 
             return report.Period switch
             {
@@ -148,8 +162,8 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
                     return StatusCode(404);
                 }
 
-                var permissions = await GetPermissionsAsync(report);
-                if (!permissions.CanView)
+                report = await PopulatePermissionsAsync(permissionGroupService, report);
+                if (!report.IsPermittedView)
                 {
                     return RedirectToUnauthorized();
                 }
@@ -179,7 +193,7 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
                         SecondaryHeading = $"{year}",
                     };
 
-                    if (report.CanBeImported && permissions.CanImport)
+                    if (report.CanBeImported && report.IsPermittedImport)
                     {
                         viewModel.Navigations.Add(
                             "Import Notes",
@@ -207,8 +221,8 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
                 return StatusCode(404);
             }
 
-            var permissions = await GetPermissionsAsync(report);
-            if (!permissions.CanView)
+            report = await PopulatePermissionsAsync(permissionGroupService, report);
+            if (!report.IsPermittedView)
             {
                 return RedirectToUnauthorized();
             }
@@ -238,7 +252,7 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
                     SecondaryHeading = $"{month}/{year}",
                 };
 
-                if (permissions.CanImport)
+                if (report.IsPermittedImport)
                 {
                     viewModel.Navigations.Add("Import Notes",
                         Url.Action(nameof(Notes), new { reportId, year, month }));
@@ -270,8 +284,8 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
                 return StatusCode(404);
             }
 
-            var permissions = await GetPermissionsAsync(report);
-            if (!permissions.CanView)
+            report = await PopulatePermissionsAsync(permissionGroupService, report);
+            if (!report.IsPermittedView)
             {
                 return RedirectToUnauthorized();
             }
@@ -331,9 +345,9 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
             }
             else
             {
-                var permissions = await GetPermissionsAsync(report);
+                report = await PopulatePermissionsAsync(permissionGroupService, report);
 
-                if (!permissions.CanView)
+                if (!report.IsPermittedView)
                 {
                     jsonResponse.Message = "Permission denied";
                 }
@@ -372,9 +386,9 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
                 return RedirectToAction(nameof(Index));
             }
 
-            var permissions = await GetPermissionsAsync(report);
+            report = await PopulatePermissionsAsync(permissionGroupService, report);
 
-            if (!permissions.CanImport)
+            if (!report.IsPermittedImport)
             {
                 return RedirectToUnauthorized();
             }
@@ -412,12 +426,7 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
         {
             var currentPage = page > 0 ? page : 1;
 
-            var itemsPerPage = await _siteSettingService
-                .GetSettingIntAsync(Models.Keys.SiteSetting.UserInterface.ItemsPerPage);
-
-            var filter = new BaseFilter(currentPage, itemsPerPage);
-
-            var collectionWithCount = reportingService.GetList(filter);
+            var collectionWithCount = reportingService.GetList();
 
             var viewModel = new IndexViewModel
             {
@@ -425,9 +434,8 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
                 CurrentPage = currentPage,
                 Heading = "Reporting",
                 IsIndex = true,
-                ItemCount = collectionWithCount.Count,
-                ItemsPerPage = filter.Take.Value,
-                Reports = collectionWithCount.Data,
+                ItemsPerPage = await _siteSettingService
+                    .GetSettingIntAsync(Models.Keys.SiteSetting.UserInterface.ItemsPerPage),
             };
 
             if (viewModel.PastMaxPage)
@@ -436,14 +444,23 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
             }
 
             // loop through reports to see if the current user can import for them
-            foreach (var report in viewModel.Reports)
+            foreach (var report in collectionWithCount.Data)
             {
-                var permissions = await GetPermissionsAsync(report);
+                var reportPermissions = await PopulatePermissionsAsync(permissionGroupService,
+                    report);
 
                 report.HasResults = await reportingService.HasResultsAsync(report.Id);
-                report.IsImportable = report.CanBeImported && permissions.CanImport;
-                report.IsViewable = permissions.CanView;
+                report.IsPermittedImport = report.CanBeImported
+                    && reportPermissions.IsPermittedImport;
+                report.IsPermittedView = reportPermissions.IsPermittedView;
             }
+
+            viewModel.ItemCount = collectionWithCount.Data.Count(_ => _.IsPermittedView);
+
+            viewModel.Reports = collectionWithCount.Data
+                .Where(_ => _.IsPermittedView)
+                .Skip(viewModel.ItemsPerPage * (page - 1))
+                .Take(viewModel.ItemsPerPage);
 
             SetPageTitle(viewModel.Heading);
             return View(viewModel);
@@ -458,8 +475,8 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
                 return StatusCode(404);
             }
 
-            var permissions = await GetPermissionsAsync(report);
-            if (!permissions.CanImport)
+            report = await PopulatePermissionsAsync(permissionGroupService, report);
+            if (!report.IsPermittedImport)
             {
                 return RedirectToUnauthorized();
             }
@@ -607,44 +624,6 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
             await permissionGroupService.SavePermissionGroups();
 
             return RedirectToAction(nameof(Permissions), new { reportId = report.Id });
-        }
-
-        /// <summary>
-        /// Return the current user's permissions in reference to the supplied
-        /// <see cref="ReportDefinition"/>.
-        /// </summary>
-        /// <param name="report">The report to look up permissions for.</param>
-        /// <returns>A populated <see cref="ReportPermission"/> object.</returns>
-        private async Task<ReportPermission> GetPermissionsAsync(ReportDefinition report)
-        {
-            if (await HasAppPermissionAsync(permissionGroupService,
-                ApplicationPermission.ImportAllReports) || IsSiteManager())
-            {
-                return new ReportPermission
-                {
-                    CanImport = true,
-                    CanView = true,
-                };
-            }
-
-            var perms = await permissionGroupService
-                .GetPermissionsAsync<PermissionGroupReporting>(report.InternalId);
-
-            return new ReportPermission
-            {
-                CanImport = perms?.Any(_ => _.CanImport) == true,
-                CanView = perms?.Count > 0,
-            };
-        }
-
-        /// <summary>
-        /// Contains information about whether the current user can view a report or import data.
-        /// </summary>
-        private class ReportPermission
-        {
-            public bool CanImport { get; set; }
-
-            public bool CanView { get; set; }
         }
     }
 }

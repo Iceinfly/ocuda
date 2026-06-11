@@ -8,7 +8,7 @@ namespace Ocuda.Ops.Models.Definitions
     /// </summary>
     public static class ReportDefinitions
     {
-        public const string ReportTypeElectronicResources = "Electronic Resources";
+        public const string ReportTypeDigitalLibrary = "Digital Library";
 
         public const string ReportTypeOnlineCardRenewal = "Online Card Renewal";
 
@@ -23,7 +23,7 @@ namespace Ocuda.Ops.Models.Definitions
                 ImportFileTypes = [MediaTypeNames.Text.Csv],
                 Name = "Hoopla Circulations",
                 Period = ReportDefinitionPeriod.Monthly,
-                ReportType = ReportTypeElectronicResources,
+                ReportType = ReportTypeDigitalLibrary,
                 SkipFirstColumn = [string.Empty, "Grand Total"],
             },
             new ()
@@ -38,13 +38,12 @@ namespace Ocuda.Ops.Models.Definitions
             new ()
             {
                 CanBeImported = false,
-                Description = "Monthly stats about electronic resource usage",
-                Id = ReportDefinitionId.ElectronicResourceAccesses,
-                Name = "Electronic resource accesses",
+                Description = "Monthly stats about digital library usage",
+                Id = ReportDefinitionId.DigitalLibraryAccesses,
+                Name = "Digital Library Accesses",
                 Period = ReportDefinitionPeriod.Monthly,
-                ReportType = ReportTypeElectronicResources,
+                ReportType = ReportTypeDigitalLibrary,
             },
-
         ];
     }
 }

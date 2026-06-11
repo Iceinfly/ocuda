@@ -5,10 +5,11 @@
         <h1>
             Emedia Groups
         </h1>
-        <div>
+        <div class="pt-1 d-print-none">
+            <partial name="_ReportingNavPartial" model="Model.ReportLinks" />
             <button data-bs-toggle="modal"
                     data-bs-target="#addModal"
-                    class="btn btn-outline-success">
+                    class="btn btn-outline-success ms-2">
                 <span class="fa-solid fa-circle-plus" aria-hidden="true"></span>
                 Add Group
             </button>
@@ -53,13 +54,13 @@
                                         class="btn btn-outline-primary changeSort decreaseSortButton"
                                         data-id="@group.Id"
                                         data-increase="false"
-                                        disabled="@(group.Id == Model.EmediaGroups.First().Id && !Model.PaginateModel.FirstPage.HasValue ? "disabled" : null)">
+                                        disabled="@(group.Id == Model.EmediaGroups.First().Id && !Model.FirstPage.HasValue ? "disabled" : null)">
                                     <span class="fa-solid fa-arrow-up" aria-hidden="true"></span>
                                 </button>
                                 <button class="btn btn-outline-primary changeSort increaseSortButton"
                                         data-id="@group.Id"
                                         data-increase="true"
-                                        disabled="@(group.Id == Model.EmediaGroups.Last().Id && !Model.PaginateModel.LastPage.HasValue ? "disabled" : null)">
+                                        disabled="@(group.Id == Model.EmediaGroups.Last().Id && !Model.LastPage.HasValue ? "disabled" : null)">
                                     <span class="fa-solid fa-arrow-down" aria-hidden="true"></span>
                                 </button>
                                 <button type="button"
@@ -95,7 +96,7 @@
     </div>
 </div>
 
-<nav paginate="@Model.PaginateModel"></nav>
+<nav paginate="@Model"></nav>
 
 <form id="addForm" role="form">
     <div modal
@@ -120,7 +121,7 @@
 </form>
 
 <form asp-controller="@EmediaController.Name" asp-action="@(nameof(EmediaController.DeleteGroup))" method="post" role="form">
-    <input id="deleteCurrentPage" asp-for="PaginateModel.CurrentPage" type="hidden" />
+    <input id="deleteCurrentPage" asp-for="CurrentPage" type="hidden" />
 
     <input id="deleteId" asp-for="EmediaGroup.Id" type="hidden" />
     <input id="deleteName" asp-for="EmediaGroup.Name" type="hidden" />

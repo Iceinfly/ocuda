@@ -47,7 +47,7 @@
 
 <nav paginate="@Model"></nav>
 
-@if (Model.Report.IsImportable)
+@if (Model.Report.IsPermittedImport)
 {
     <partial name="_ReportingImportPartial" model="Model.ImportViewModel" />
 }

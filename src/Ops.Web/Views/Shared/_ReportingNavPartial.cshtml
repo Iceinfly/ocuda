@@ -1,0 +1,33 @@
+﻿@model IDictionary<string,string>
+
+@if (Model?.Any() == true)
+{
+    if (Model.Count == 1)
+    {
+        @foreach (var reportLink in Model.OrderBy(_ => _.Key))
+        {
+            <a class="btn btn-outline-dark ms-2"
+               href="@reportLink.Value">@reportLink.Key</a>
+        }
+    }
+    else
+    {
+        <div class="dropdown ms-2 d-inline">
+            <button class="btn btn-outline-secondary dropdown-toggle"
+                    type="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                Reporting
+            </button>
+            <ul class="dropdown-menu">
+                @foreach (var reportLink in Model.OrderBy(_ => _.Key))
+                {
+                    <li>
+                        <a class="dropdown-item"
+                           href="@reportLink.Value">@reportLink.Key</a>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+}

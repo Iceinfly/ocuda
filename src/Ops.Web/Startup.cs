@@ -631,6 +631,7 @@ namespace Ocuda.Ops.Web
 
             // services
             services.AddScoped<IApiKeyService, ApiKeyService>();
+            services.AddScoped<IAuthenticateService, AuthenticateService>();
             services.AddScoped<IAuthorizationService, AuthorizationService>();
             services.AddScoped<ICarouselService, CarouselService>();
             services.AddScoped<ICategoryService, CategoryService>();
