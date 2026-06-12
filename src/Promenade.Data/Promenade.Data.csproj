@@ -17,7 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Promenade.Models\Promenade.Models.csproj" />
     <ProjectReference Include="..\Promenade.Service\Promenade.Service.csproj" />
-    <ProjectReference Include="..\Utility\Utility.csproj" />
+    <ProjectReference Include="..\Ocuda\Utility\Utility.csproj" />
   </ItemGroup>
 
   <ItemGroup>

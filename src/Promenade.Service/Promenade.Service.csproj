@@ -19,9 +19,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\i18n\i18n.csproj" />
+    <ProjectReference Include="..\Ocuda\i18n\i18n.csproj" />
     <ProjectReference Include="..\Promenade.Models\Promenade.Models.csproj" />
-    <ProjectReference Include="..\Utility\Utility.csproj" />
+    <ProjectReference Include="..\Ocuda\Utility\Utility.csproj" />
   </ItemGroup>
 
 </Project>

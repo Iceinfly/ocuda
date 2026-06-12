@@ -19,8 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\i18n\i18n.csproj" />
-    <ProjectReference Include="..\..\..\src\Utility\Utility.csproj" />
+    <ProjectReference Include="..\..\..\src\Ocuda\i18n\i18n.csproj" />
+    <ProjectReference Include="..\..\..\src\Ocuda\Utility\Utility.csproj" />
   </ItemGroup>
 
 </Project>

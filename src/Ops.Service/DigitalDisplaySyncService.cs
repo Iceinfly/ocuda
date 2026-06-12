@@ -10,39 +10,23 @@ using Ocuda.Ops.Service.Interfaces.Ops.Repositories;
 using Ocuda.Ops.Service.Interfaces.Ops.Services;
 using Ocuda.Ops.Service.Models.Screenly.v11;
 using Ocuda.Utility.Exceptions;
+using Ocuda.Utility.Services.Interfaces;
 
 namespace Ocuda.Ops.Service
 {
-    public class DigitalDisplaySyncService
-        : BaseService<DigitalDisplaySyncService>, IDigitalDisplaySyncService
+    public class DigitalDisplaySyncService(
+        ILogger<DigitalDisplaySyncService> logger,
+        IOcudaCache ocudaCache,
+        IHttpContextAccessor httpContextAccessor,
+        IDigitalDisplayItemRepository digitalDisplayItemRepository,
+        IDigitalDisplayRepository digitalDisplayRepository,
+        IDigitalDisplayService digitalDisplayService,
+        IDigitalDisplayAssetSetRepository digitalDisplayAssetSetRepository,
+        IScreenlyService screenlyService)
+        : BaseService<DigitalDisplaySyncService>(logger, httpContextAccessor), IDigitalDisplaySyncService
 
     {
-        private readonly IDigitalDisplayAssetSetRepository _digitalDisplayAssetSetRepository;
-        private readonly IDigitalDisplayItemRepository _digitalDisplayItemRepository;
-        private readonly IDigitalDisplayRepository _digitalDisplayRepository;
-        private readonly IDigitalDisplayService _digitalDisplayService;
-        private readonly IScreenlyService _screenlyService;
-
-        public DigitalDisplaySyncService(ILogger<DigitalDisplaySyncService> logger,
-            IHttpContextAccessor httpContextAccessor,
-            IDigitalDisplayItemRepository digitalDisplayItemRepository,
-            IDigitalDisplayRepository digitalDisplayRepository,
-            IDigitalDisplayService digitalDisplayService,
-            IDigitalDisplayAssetSetRepository digitalDisplayAssetSetRepository,
-            IScreenlyService screenlyService)
-            : base(logger, httpContextAccessor)
-        {
-            _digitalDisplayItemRepository = digitalDisplayItemRepository
-                ?? throw new ArgumentNullException(nameof(digitalDisplayItemRepository));
-            _digitalDisplayRepository = digitalDisplayRepository
-                ?? throw new ArgumentNullException(nameof(digitalDisplayRepository));
-            _digitalDisplayService = digitalDisplayService
-                ?? throw new ArgumentNullException(nameof(digitalDisplayService));
-            _digitalDisplayAssetSetRepository = digitalDisplayAssetSetRepository
-                ?? throw new ArgumentNullException(nameof(digitalDisplayAssetSetRepository));
-            _screenlyService = screenlyService
-                ?? throw new ArgumentNullException(nameof(screenlyService));
-        }
+        private const int OpsDigitalDisplayWarningHours = 24;
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design",
             "CA1031:Do not catch general exception types",
@@ -58,39 +42,39 @@ namespace Ocuda.Ops.Service
 
             try
             {
-                if (display?.RemoteAddress != null)
+                if (display?.RemoteAddress != null && display?.RemoteAddress.IsAbsoluteUri == true)
                 {
-                    await _digitalDisplayService.SetDisplayStatusAsync(display.Id,
+                    await digitalDisplayService.SetDisplayStatusAsync(display.Id,
                         "Connecting to update slides...");
 
-                    await _digitalDisplayRepository
+                    await digitalDisplayRepository
                         .UpdateLastAttemptAsync(display.Id, DateTime.Now);
 
                     ICollection<AssetModel> currentSlides;
                     try
                     {
                         // slides in the display based on an api request
-                        currentSlides = await _screenlyService.GetCurrentSlidesAsync(display);
+                        currentSlides = await screenlyService.GetCurrentSlidesAsync(display);
 
                         startingSlides = currentSlides.Count;
 
-                        await _digitalDisplayRepository
+                        await digitalDisplayRepository
                             .UpdateLastCommunicationAsync(display.Id, DateTime.Now);
 
-                        await _digitalDisplayService.SetDisplayStatusAsync(display.Id,
+                        await digitalDisplayService.SetDisplayStatusAsync(display.Id,
                             $"Connected, found {currentSlides.Count} slides");
                     }
                     catch (OcudaException oex)
                     {
-                        await _digitalDisplayRepository
+                        await digitalDisplayRepository
                             .UpdateLastCommunicationAsync(display.Id, DateTime.Now);
-                        await _digitalDisplayService.SetDisplayStatusAsync(display.Id,
+                        await digitalDisplayService.SetDisplayStatusAsync(display.Id,
                             oex.Message);
                         return;
                     }
 
                     // get the sets that this display is associated with
-                    var sets = await _digitalDisplayService
+                    var sets = await digitalDisplayService
                         .GetDisplaysSetsAsync(new[] { display.Id });
 
                     if (sets.Count == 0)
@@ -104,7 +88,7 @@ namespace Ocuda.Ops.Service
                                     display.Id,
                                     display.Name,
                                     currentSlide.Name);
-                                await _screenlyService
+                                await screenlyService
                                     .RemoveSlideAsync(display, currentSlide.AssetId);
                                 deleted++;
                             }
@@ -121,11 +105,11 @@ namespace Ocuda.Ops.Service
                     else
                     {
                         // assets which should be in the display
-                        var assets = await _digitalDisplayAssetSetRepository
+                        var assets = await digitalDisplayAssetSetRepository
                             .GetAssetsBySetsAsync(sets.Select(_ => _.DigitalDisplaySetId));
 
                         // our record of assets in the display now
-                        var displayItems = await _digitalDisplayItemRepository
+                        var displayItems = await digitalDisplayItemRepository
                             .GetByDisplayAsync(display.Id);
 
                         // loop through assets that should be in this display
@@ -140,7 +124,7 @@ namespace Ocuda.Ops.Service
                                 // asset is not present, upload it, update displayItems
                                 try
                                 {
-                                    string filePath = _digitalDisplayService
+                                    string filePath = digitalDisplayService
                                         .GetAssetPath(asset.DigitalDisplayAsset.Path);
                                     _logger.LogInformation("Display {DisplayId} named {Name} uploading slide {AssetId}",
                                         display.Id,
@@ -148,12 +132,12 @@ namespace Ocuda.Ops.Service
                                         asset.DigitalDisplayAssetId);
                                     var newItem = new DigitalDisplayItem
                                     {
-                                        AssetId = await _screenlyService
+                                        AssetId = await screenlyService
                                             .AddSlideAsync(display, filePath, asset),
                                         DigitalDisplayAssetId = asset.DigitalDisplayAssetId,
                                         DigitalDisplayId = display.Id
                                     };
-                                    await _digitalDisplayItemRepository.AddAsync(newItem);
+                                    await digitalDisplayItemRepository.AddAsync(newItem);
                                     displayItems.Add(newItem);
                                     uploaded++;
                                 }
@@ -180,16 +164,16 @@ namespace Ocuda.Ops.Service
                                     // upload it and update the displayitem record with the new assetid
                                     try
                                     {
-                                        string filePath = _digitalDisplayService
+                                        string filePath = digitalDisplayService
                                             .GetAssetPath(asset.DigitalDisplayAsset.Path);
                                         _logger.LogInformation("Display {DisplayId} named {Name} uploading missing slide {AssetId}",
                                             display.Id,
                                             display.Name,
                                             asset.DigitalDisplayAssetId);
                                         displayItems.Remove(assetInDisplay);
-                                        assetInDisplay.AssetId = await _screenlyService
+                                        assetInDisplay.AssetId = await screenlyService
                                             .AddSlideAsync(display, filePath, asset);
-                                        _digitalDisplayItemRepository.Update(assetInDisplay);
+                                        digitalDisplayItemRepository.Update(assetInDisplay);
                                         displayItems.Add(assetInDisplay);
                                         uploaded++;
                                     }
@@ -219,7 +203,7 @@ namespace Ocuda.Ops.Service
                                                 display.Id,
                                                 display.Name,
                                                 asset.DigitalDisplayAssetId);
-                                            await _screenlyService.UpdateSlideAsync(display,
+                                            await screenlyService.UpdateSlideAsync(display,
                                                 currentSlide.AssetId,
                                                 asset);
                                             updated++;
@@ -247,7 +231,7 @@ namespace Ocuda.Ops.Service
                         // remove those items from displayitems
                         foreach (var staleDisplayItem in staleDisplayItems)
                         {
-                            _digitalDisplayItemRepository
+                            digitalDisplayItemRepository
                                 .RemoveByAssetId(staleDisplayItem.DigitalDisplayAssetId);
                             displayItems.Remove(staleDisplayItem);
                         }
@@ -265,7 +249,7 @@ namespace Ocuda.Ops.Service
                                     display.Id,
                                     display.Name,
                                     currentSlides.Single(_ => _.AssetId == assetId).Name);
-                                await _screenlyService.RemoveSlideAsync(display, assetId);
+                                await screenlyService.RemoveSlideAsync(display, assetId);
                                 deleted++;
                             }
                             catch (OcudaException oex)
@@ -287,11 +271,27 @@ namespace Ocuda.Ops.Service
                         deleted,
                         updated);
 
-                    await _digitalDisplayService.SetDisplayStatusAsync(display.Id,
+                    await digitalDisplayService.SetDisplayStatusAsync(display.Id,
                         $"Updated: added {uploaded}, updated {updated}, deleted {deleted}");
 
-                    await _digitalDisplayRepository
+                    await digitalDisplayRepository
                         .UpdateLastVerificationAsync(display.Id, DateTime.Now);
+                }
+                else
+                {
+                    if (await ocudaCache
+                            .GetBoolFromCacheAsync(Utility.Keys.Cache.OpsDigitalDisplayWarning)
+                            != true)
+                    {
+                        _logger.LogWarning(
+                            "Unable to load digital display address {Address} - won't warn again for {Hours} hours",
+                            display?.RemoteAddress,
+                            OpsDigitalDisplayWarningHours);
+                        await ocudaCache.SaveToCacheAsync(
+                            Utility.Keys.Cache.OpsDigitalDisplayWarning,
+                            true,
+                            OpsDigitalDisplayWarningHours);
+                    }
                 }
             }
             catch (OcudaException oex)
@@ -310,7 +310,7 @@ namespace Ocuda.Ops.Service
 
         private async Task<DigitalDisplay> GetPendingDisplayAsync()
         {
-            var displays = await _digitalDisplayRepository.GetAllAsync();
+            var displays = await digitalDisplayRepository.GetAllAsync();
 
             var lastAttempt = displays.OrderBy(_ => _.LastAttempt).FirstOrDefault();
 

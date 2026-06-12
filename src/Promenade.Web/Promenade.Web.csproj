@@ -6,7 +6,7 @@
     <CodeAnalysisRuleSet>../../OcudaRuleSet.ruleset</CodeAnalysisRuleSet>
     <Company>Maricopa County Library District</Company>
     <Copyright>Copyright 2018 Maricopa County Library District</Copyright>
-    <FileVersion>1.0.0.358</FileVersion>
+    <FileVersion>1.0.0.359</FileVersion>
     <LangVersion>Latest</LangVersion>
     <PackageLicenseUrl>https://github.com/MCLD/ocuda/blob/develop/LICENSE</PackageLicenseUrl>
     <Product>Ocuda</Product>
@@ -47,7 +47,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\i18n\i18n.csproj" />
+    <ProjectReference Include="..\Ocuda\i18n\i18n.csproj" />
     <ProjectReference Include="..\Promenade.Controllers\Promenade.Controllers.csproj" />
     <ProjectReference Include="..\Promenade.DataProvider.SqlServer.Promenade\Promenade.DataProvider.SqlServer.Promenade.csproj" />
     <ProjectReference Include="..\Promenade.Data\Promenade.Data.csproj" />

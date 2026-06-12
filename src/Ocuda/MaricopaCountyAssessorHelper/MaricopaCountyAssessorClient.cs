@@ -1,4 +1,8 @@
-﻿using System.Text.Json;
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Text.Json;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -6,21 +10,20 @@ using Ocuda.Models;
 using Ocuda.Utility.Abstract;
 using Ocuda.Utility.Exceptions;
 
-namespace TrestleHelper
+namespace Ocuda.MaricopaCountyAssessorHelper
 {
-    public class TrestleClient : IAddressLookupHelper
+    public class MaricopaCountyAssessorClient : IAddressLookupHelper
     {
-        public static readonly string Source = nameof(TrestleClient);
-        private const string QueryApiKey = "api_key";
-        private const string QueryPostalCode = "postal_code";
-        private const string QueryStreetLine1 = "street_line_1";
+        private const string HeaderAuthorization = "Authorization";
+        private const string QueryQ = "q";
+        public static readonly string Source = nameof(MaricopaCountyAssessorClient);
         private readonly HttpClient _httpClient;
-        private readonly ILogger<TrestleClient> _logger;
-        private readonly TrestleSettings _settings;
+        private readonly ILogger<MaricopaCountyAssessorClient> _logger;
+        private readonly MaricopaCountyAssessorSettings _settings;
 
-        public TrestleClient(HttpClient httpClient,
+        public MaricopaCountyAssessorClient(HttpClient httpClient,
             IConfiguration config,
-            ILogger<TrestleClient> logger)
+            ILogger<MaricopaCountyAssessorClient> logger)
         {
             ArgumentNullException.ThrowIfNull(config);
             ArgumentNullException.ThrowIfNull(httpClient);
@@ -29,9 +32,14 @@ namespace TrestleHelper
             _httpClient = httpClient;
             _logger = logger;
 
-            _settings = new TrestleSettings();
-            config.GetSection(TrestleSettings.SectionName).Bind(_settings);
+            _settings = new MaricopaCountyAssessorSettings();
+            config.GetSection(MaricopaCountyAssessorSettings.SectionName).Bind(_settings);
             IsConfigured = ValidateConfiguration();
+
+            if (IsConfigured)
+            {
+                _httpClient.DefaultRequestHeaders.Add(HeaderAuthorization, _settings.Key);
+            }
         }
 
         public bool IsConfigured { get; }
@@ -44,38 +52,26 @@ namespace TrestleHelper
                 throw new OcudaException("Lookup client is not configured, lookup failed");
             }
 
-            var uri = new Uri(QueryHelpers.AddQueryString(_settings.ReverseAddressEndpoint,
-                new Dictionary<string, string?> {
-                    { QueryApiKey, _settings.Key },
-                    { QueryPostalCode, zip },
-                    { QueryStreetLine1, address }
-            }));
+            var uri = new Uri(QueryHelpers.AddQueryString(_settings.PropertySearchEndpoint,
+                new Dictionary<string, string?> { { QueryQ, $"{address} {zip}" } }));
 
-            var response = await GetAsync<TrestleResponse>(uri)
+            var response = await GetAsync<MaricopaCountyAssessorResponse>(uri)
                 ?? throw new OcudaException("Address not found or lookup is broken.");
-
-            if (response?.IsValid != true)
-            {
-                if (response?.Warnings != null)
-                {
-                    throw new OcudaException($"Error on lookup: {string.Join(", ", response.Warnings)}");
-                }
-                throw new OcudaException("Error on lookup: address is not valid.");
-            }
 
             var associations = new List<AddressAssociation>();
 
-            if (response?.CurrentResidents != null && response.CurrentResidents.Length > 0)
+            if (response?.Results?.Length > 0)
             {
-                associations.Add(new AddressAssociation
+                foreach (var association in response.Results)
                 {
-                    Entities = [.. response.CurrentResidents.Select(_ => _.Name ?? "Unknown name")],
-                    PostalCode = response.PostalCode ?? zip,
-                    PropertyType = response.IsCommercial.HasValue
-                        ? response.IsCommercial.Value ? "Commercial" : "Non-commercial"
-                        : "Unknown",
-                    StreetAddress1 = response.StreetLine1 ?? address
-                });
+                    associations.Add(new AddressAssociation
+                    {
+                        Entities = [association.Ownership],
+                        PostalCode = association.SitusZip,
+                        PropertyType = association.PropertyType,
+                        StreetAddress1 = association.SitusAddress
+                    });
+                }
             }
 
             return associations;
@@ -115,15 +111,16 @@ namespace TrestleHelper
                 var sanitizedResponse = responseText?.Replace(_settings.Key,
                         "--APIKEY--",
                         StringComparison.OrdinalIgnoreCase);
+
                 using (_logger.BeginScope(new Dictionary<string, object>
                 {
-                    {"TrestleRequestUri", sanitizedUri},
-                    {"TrestleResponseText", sanitizedResponse ?? ""}
+                    {"RequestUri", sanitizedUri},
+                    {"ResponseText", sanitizedResponse ?? ""}
                 }))
                 {
                     _logger.LogWarning(ex, "Error in Web query: {ErrorMessage}", ex.Message);
                 }
-                throw new OcudaException($"Error: {ex.Message}", ex);
+                throw new OcudaException("Error: {ex.Message}", ex);
             }
         }
 
@@ -131,14 +128,16 @@ namespace TrestleHelper
         {
             if (string.IsNullOrEmpty(_settings.Key))
             {
-                _logger.LogWarning("Setting {SettingName} is not configured.",
-                    nameof(_settings.Key));
+                _logger.LogWarning("Setting {SettingName} in {SectionName} is not configured.",
+                    nameof(_settings.Key),
+                    MaricopaCountyAssessorSettings.SectionName);
                 return false;
             }
-            else if (string.IsNullOrEmpty(_settings.ReverseAddressEndpoint))
+            else if (string.IsNullOrEmpty(_settings.PropertySearchEndpoint))
             {
-                _logger.LogWarning("Setting {SettingName} is not configured.",
-                    nameof(_settings.ReverseAddressEndpoint));
+                _logger.LogWarning("Setting {SettingName} in {SectionName} is not configured.",
+                    nameof(_settings.PropertySearchEndpoint),
+                    MaricopaCountyAssessorSettings.SectionName);
                 return false;
             }
 

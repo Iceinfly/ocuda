@@ -1,29 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <AssemblyName>Ocuda.Ops.Service</AssemblyName>
+    <AssemblyName>Ocuda.MaricopaCountyAssessorHelper</AssemblyName>
     <Authors>Maricopa County Library District Web developers</Authors>
-    <CodeAnalysisRuleSet>../../OcudaRuleSet.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>../../../OcudaRuleSet.ruleset</CodeAnalysisRuleSet>
     <Company>Maricopa County Library District</Company>
     <Copyright>Copyright 2018 Maricopa County Library District</Copyright>
+    <Nullable>enable</Nullable>
     <PackageLicenseUrl>https://github.com/MCLD/ocuda/blob/develop/LICENSE</PackageLicenseUrl>
     <Product>Ocuda</Product>
     <RepositoryType>Git</RepositoryType>
     <RepositoryUrl>https://github.com/MCLD/ocuda/</RepositoryUrl>
-    <RootNamespace>Ocuda.Ops.Service</RootNamespace>
+    <RootNamespace>Ocuda.MaricopaCountyAssessorHelper</RootNamespace>
     <TargetFramework>net8.0</TargetFramework>
-  </PropertyGroup>
+</PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AspNetSaml" Version="2.1.8" />
-    <PackageReference Include="CommonMark.NET" Version="0.15.1" />
-    <PackageReference Include="CsvHelper" Version="33.1.0" />
-    <PackageReference Include="DNParser" Version="1.3.5" />
-    <PackageReference Include="ExcelDataReader" Version="3.8.0" />
-    <PackageReference Include="ImageOptimApi" Version="1.1.0" />
-    <PackageReference Include="MailKit" Version="4.17.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.1" />
-    <PackageReference Include="NLayer" Version="1.16.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3" />
     <PackageReference Include="Roslynator.Analyzers" Version="4.15.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -36,23 +30,15 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
-    <PackageReference Include="Slugify.Core" Version="5.1.1" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="System.DirectoryServices.Protocols" Version="8.0.2" />
-    <PackageReference Include="System.Net.Http" Version="4.3.4" />
-    <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Ops.Models\Ops.Models.csproj" />
-    <ProjectReference Include="..\Ocuda\PolarisHelper\PolarisHelper.csproj" />
-    <ProjectReference Include="..\Promenade.Models\Promenade.Models.csproj" />
-    <ProjectReference Include="..\Promenade.Service\Promenade.Service.csproj" />
-    <ProjectReference Include="..\Ocuda\Utility\Utility.csproj" />
+    <ProjectReference Include="..\Models\Models.csproj" />
+    <ProjectReference Include="..\Utility\Utility.csproj" />
   </ItemGroup>
 
 </Project>

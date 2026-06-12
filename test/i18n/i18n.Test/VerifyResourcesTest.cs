@@ -14,7 +14,7 @@ namespace i18n.Test
     /// </summary>
     public class VerifyResourcesTest
     {
-        private const string BasePathToResx = "..{0}..{0}..{0}..{0}..{0}..{0}src{0}i18n{0}Resources";
+        private const string BasePathToResx = "..{0}..{0}..{0}..{0}..{0}..{0}src{0}Ocuda{0}i18n{0}Resources";
         private const char NonBreakingSpaceCharacter = (char)160;
         private const string ResxFileEnglish = "Shared.en.resx";
         private const string ResxFileSpanish = "Shared.es.resx";
