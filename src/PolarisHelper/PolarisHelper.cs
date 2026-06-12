@@ -123,14 +123,14 @@ namespace Ocuda.PolarisHelper
             {
                 registrationData.Addresses.Add(
                     new PatronRegistrationData.PatronRegistrationAddressData
-                {
-                    City = address.City,
-                    CountryID = address.CountryId,
-                    County = address.County,
-                    PostalCode = address.PostalCode,
-                    State = address.State,
-                    StreetOne = address.StreetAddressOne
-                });
+                    {
+                        City = address.City,
+                        CountryID = address.CountryId,
+                        County = address.County,
+                        PostalCode = address.PostalCode,
+                        State = address.State,
+                        StreetOne = address.StreetAddressOne
+                    });
             }
 
             var createResult = new CreateRegistrationResult();
@@ -260,6 +260,67 @@ namespace Ocuda.PolarisHelper
             var patronData = patronDataResult?.Data?.PatronBasicData;
 
             return patronData == null ? null : GetCustomerInfo(patronData);
+        }
+
+        public async Task<int?> GetOrganizationIdFormerDirect(string formerBarcode)
+        {
+            try
+            {
+                var formerBarcodeQuery = await _context.Database.SqlQuery<BarcodeOrgId>(
+                    @$"SELECT pr.FormerID [Barcode], p.OrganizationID
+                    FROM Polaris.PatronRegistration pr (NOLOCK)
+                    INNER JOIN Polaris.Patrons p (NOLOCK) ON pr.PatronID = p.PatronID
+                    WHERE pr.FormerID = {formerBarcode}")
+                    .ToListAsync();
+
+                return formerBarcodeQuery.FirstOrDefault()?.OrganizationID;
+            }
+            catch (Exception ex) when (ex is DbException || ex is InvalidOperationException)
+            {
+                _logger.LogError(ex, "Error querying Polaris organization for former barcode {FormerBarcode}",
+                    formerBarcode);
+                throw new OcudaException("Error retrieving based on former barcode", ex);
+            }
+        }
+
+        public async Task<IDictionary<string, int>> GetOrganizationIdsBatchDirect(IEnumerable<string> barcodes)
+        {
+            ArgumentNullException.ThrowIfNull(barcodes);
+            try
+            {
+                return await _context.Database
+                    .SqlQuery<BarcodeOrgId>($"SELECT Barcode, OrganizationID FROM Polaris.Patrons (NOLOCK)")
+                    .Where(_ => barcodes.Contains(_.Barcode))
+                    .ToDictionaryAsync(k => k.Barcode, v => v.OrganizationID);
+            }
+            catch (Exception ex) when (ex is DbException || ex is InvalidOperationException)
+            {
+                _logger.LogError(ex, "Error querying Polaris organization id for barcodes {Barcodes}",
+                    barcodes);
+                throw new OcudaException("Error retrieving customer organization id", ex);
+            }
+        }
+
+        public IEnumerable<Organization> GetOrganizations()
+        {
+            var orgGetResult = _papiClient.OrganizationsGet();
+            if (orgGetResult.Exception != null)
+            {
+                _logger.LogError(orgGetResult.Exception,
+                    "Error getting Polaris organizations through PAPI");
+                throw new OcudaException("Error accessing Polaris records",
+                    orgGetResult.Exception);
+            }
+
+            return orgGetResult.Data.OrganizationsGetRows.Select(_ => new Organization
+            {
+                Abbreviation = _.Abbreviation,
+                DisplayName = _.DisplayName,
+                Name = _.Name,
+                OrganizationCodeID = _.OrganizationCodeID,
+                OrganizationID = _.OrganizationID,
+                ParentOrganizationID = _.ParentOrganizationID
+            });
         }
 
         public RenewRegistrationResult RenewCustomerRegistration(string barcode, string email)
@@ -430,6 +491,12 @@ namespace Ocuda.PolarisHelper
             }
 
             return validConfiguration;
+        }
+
+        private class BarcodeOrgId
+        {
+            public string Barcode { get; set; }
+            public int OrganizationID { get; set; }
         }
     }
 }

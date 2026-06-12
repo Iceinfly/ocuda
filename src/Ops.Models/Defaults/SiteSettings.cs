@@ -8,17 +8,14 @@ namespace Ocuda.Ops.Models.Defaults
     {
         public static IEnumerable<SiteSetting> Get { get; } =
         [
-
-            #region Address Verification
-
             new SiteSetting
             {
                 Id = Keys.SiteSetting.AddressVerification.Link,
                 Name = "Link to address verificaiton information",
                 Description = "A link to information about address verification",
                 Category = nameof(Keys.SiteSetting.AddressVerification),
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -26,14 +23,9 @@ namespace Ocuda.Ops.Models.Defaults
                 Name = "Text for the address verification information link",
                 Description = "A text to hyperlink to the address verification link",
                 Category = nameof(Keys.SiteSetting.AddressVerification),
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
-
-            #endregion Address Verification
-
-            #region RenewCard
-
             new SiteSetting
             {
                 Id = Keys.SiteSetting.RenewCard.AcceptedCounty,
@@ -41,7 +33,7 @@ namespace Ocuda.Ops.Models.Defaults
                 Description = "Accepted county for card renewal addresses",
                 Category = nameof(Keys.SiteSetting.RenewCard),
                 Value = string.Empty,
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -50,7 +42,7 @@ namespace Ocuda.Ops.Models.Defaults
                 Description = "Charges amount when a warning starts being shown",
                 Category = nameof(Keys.SiteSetting.RenewCard),
                 Value = "-1",
-                Type = SiteSettingType.Double
+                Type = SiteSettingType.Double,
             },
             new SiteSetting
             {
@@ -59,7 +51,7 @@ namespace Ocuda.Ops.Models.Defaults
                 Description = "Ids of blocks that won't be included, comma delimited",
                 Category = nameof(Keys.SiteSetting.RenewCard),
                 Value = string.Empty,
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -68,21 +60,25 @@ namespace Ocuda.Ops.Models.Defaults
                 Description = "Leap patron records url with scheme, host and path",
                 Category = nameof(Keys.SiteSetting.RenewCard),
                 Value = string.Empty,
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
-
-            #endregion RenewCard
-
-            #region Carousel
-
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.RenewCard.StatsLookback,
+                Name = "Stats lookback",
+                Description = "Run stats after this many days have passed from the first of the month",
+                Category = nameof(Keys.SiteSetting.RenewCard),
+                Value = "35",
+                Type = SiteSettingType.Int,
+            },
             new SiteSetting
             {
                 Id = Keys.SiteSetting.Carousel.AltTextEnglish,
                 Name = "Alt text default (English)",
                 Description = "Default carousel item alt text ({0} is replaced with the title)",
                 Category = "Carousel",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -90,8 +86,8 @@ namespace Ocuda.Ops.Models.Defaults
                 Name = "Alt text default (español)",
                 Description = "Default carousel item alt text ({0} is replaced with the title)",
                 Category = "Carousel",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -99,8 +95,8 @@ namespace Ocuda.Ops.Models.Defaults
                 Name = "Image restrict to domain",
                 Description = "Restrict carousel images to only these domains, comma delimited",
                 Category = "Carousel",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -108,35 +104,26 @@ namespace Ocuda.Ops.Models.Defaults
                 Name = "Link restrict to domain",
                 Description = "Restrict carousel links to only these domains, comma delimited",
                 Category = "Carousel",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
-
-            #endregion Carousel
-
-            #region CoverIssueReporting
-
             new SiteSetting
             {
                 Id = Keys.SiteSetting.CoverIssueReporting.LeapBibUrl,
                 Name = "Leap bib records url",
                 Description = "Leap bib records url with scheme, host and path",
                 Category = "Cover Issue Reporting",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
-
-            #endregion CoverIssueReporting
-
-            #region Email
-
-            new SiteSetting{
+            new SiteSetting
+            {
                 Id = Keys.SiteSetting.Email.AdminAddress,
                 Name = "Email address of the intranet site administrator",
                 Description = "Email address in case staff has questions/poblems",
                 Category = "Email",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -144,8 +131,8 @@ namespace Ocuda.Ops.Models.Defaults
                 Name = "BCC address",
                 Description = "BCC all outgoing emails to this address",
                 Category = "Email",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -153,8 +140,8 @@ namespace Ocuda.Ops.Models.Defaults
                 Name = "Email from address",
                 Description = "Email address that outgoing system mails are from",
                 Category = "Email",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -162,8 +149,8 @@ namespace Ocuda.Ops.Models.Defaults
                 Name = "Email from name",
                 Description = "Name that outgoing system mails are from",
                 Category = "Email",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -171,8 +158,8 @@ namespace Ocuda.Ops.Models.Defaults
                 Name = "Email outgoing host",
                 Description = "Outgoing host name for emails",
                 Category = "Email",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -180,8 +167,8 @@ namespace Ocuda.Ops.Models.Defaults
                 Name = "Email outgoing login",
                 Description = "Login name for the outgoing host",
                 Category = "Email",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -189,8 +176,8 @@ namespace Ocuda.Ops.Models.Defaults
                 Name = "Email outgoing password",
                 Description = "Password for the outgoing host",
                 Category = "Email",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -199,7 +186,7 @@ namespace Ocuda.Ops.Models.Defaults
                 Description = "Port used for outgoing emails",
                 Category = "Email",
                 Value = "25",
-                Type = SiteSettingType.Int
+                Type = SiteSettingType.Int,
             },
             new SiteSetting
             {
@@ -207,8 +194,8 @@ namespace Ocuda.Ops.Models.Defaults
                 Name = "Override to email",
                 Description = "Override all outgoing emails and send to this address",
                 Category = "Email",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -216,14 +203,9 @@ namespace Ocuda.Ops.Models.Defaults
                 Name = "Restrict to domain",
                 Description = "Restrict all outgoing emails to only addresses @ this domain",
                 Category = "Email",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
-
-            #endregion Email
-
-            #region EmployeeSignup
-
             new SiteSetting
             {
                 Id = Keys.SiteSetting.EmployeeSignup.NewEmailSetupId,
@@ -231,7 +213,7 @@ namespace Ocuda.Ops.Models.Defaults
                 Description = "Email setup id to use when sending a notification for a new employee card",
                 Category = "EmployeeSignup",
                 Value = "-1",
-                Type = SiteSettingType.Int
+                Type = SiteSettingType.Int,
             },
             new SiteSetting
             {
@@ -240,7 +222,7 @@ namespace Ocuda.Ops.Models.Defaults
                 Description = "Country id for new account registrations",
                 Category = "EmployeeSignup",
                 Value = "-1",
-                Type = SiteSettingType.Int
+                Type = SiteSettingType.Int,
             },
             new SiteSetting
             {
@@ -248,7 +230,7 @@ namespace Ocuda.Ops.Models.Defaults
                 Name = "Registration county",
                 Description = "County name for new account registrations",
                 Category = "EmployeeSignup",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -257,7 +239,7 @@ namespace Ocuda.Ops.Models.Defaults
                 Description = "Customer code id for new account registrations",
                 Category = "EmployeeSignup",
                 Value = "-1",
-                Type = SiteSettingType.Int
+                Type = SiteSettingType.Int,
             },
             new SiteSetting
             {
@@ -265,7 +247,7 @@ namespace Ocuda.Ops.Models.Defaults
                 Name = "Registration state",
                 Description = "State name for new account registrations",
                 Category = "EmployeeSignup",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -273,7 +255,7 @@ namespace Ocuda.Ops.Models.Defaults
                 Name = "Registration user field",
                 Description = "User field value for new account registrations",
                 Category = "EmployeeSignup",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -282,13 +264,8 @@ namespace Ocuda.Ops.Models.Defaults
                 Description = "Email setup id to use when sending a notification for a renewed employee card",
                 Category = "EmployeeSignup",
                 Value = "-1",
-                Type = SiteSettingType.Int
+                Type = SiteSettingType.Int,
             },
-
-            #endregion EmployeeSignup
-
-            #region FileManagement
-
             new SiteSetting
             {
                 Id = Keys.SiteSetting.FileManagement.MaxThumbnailCount,
@@ -296,7 +273,7 @@ namespace Ocuda.Ops.Models.Defaults
                 Description = "Maximum number of thumbnails that can be attached to a file",
                 Category = "File Management",
                 Value = "4",
-                Type = SiteSettingType.Int
+                Type = SiteSettingType.Int,
             },
             new SiteSetting
             {
@@ -305,7 +282,7 @@ namespace Ocuda.Ops.Models.Defaults
                 Description = "Maximum file upload size (in bytes)",
                 Category = "File Management",
                 Value = "2097152",
-                Type = SiteSettingType.Int
+                Type = SiteSettingType.Int,
             },
             new SiteSetting
             {
@@ -314,13 +291,8 @@ namespace Ocuda.Ops.Models.Defaults
                 Description = "Comma separated list of acceptable file type extensions for thumbnails",
                 Category = "File Management",
                 Value = ".jpg,.png",
-                Type = SiteSettingType.String
+                Type = SiteSettingType.String,
             },
-
-            #endregion FileManagement
-
-            #region Incident
-
             new SiteSetting
             {
                 Id = Keys.SiteSetting.Incident.EmailTemplateId,
@@ -328,7 +300,7 @@ namespace Ocuda.Ops.Models.Defaults
                 Description = "Email template id to use when sending a notificaton about a new incident report, 0 is disabled",
                 Category = "Incident",
                 Value = "0",
-                Type = SiteSettingType.Int
+                Type = SiteSettingType.Int,
             },
             new SiteSetting
             {
@@ -336,8 +308,8 @@ namespace Ocuda.Ops.Models.Defaults
                 Name = "Link to incident documentation",
                 Description = "A link to documentation about incidents",
                 Category = "Incident",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -345,8 +317,8 @@ namespace Ocuda.Ops.Models.Defaults
                 Name = "Law Enforcement addresses",
                 Description = "Comma-separated email addresses to email incident reports when law enforcement is contacted",
                 Category = "Incident",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -354,8 +326,8 @@ namespace Ocuda.Ops.Models.Defaults
                 Name = "Notify TitleClassifciationIds",
                 Description = "Comma-separated list of title classification ids to notify for the submitting user's management chain",
                 Category = "Incident",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -363,36 +335,26 @@ namespace Ocuda.Ops.Models.Defaults
                 Name = "Notify user ids",
                 Description = "Comma-separated list of user ids to notify for each incident submission",
                 Category = "Incident",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
-
-            #endregion Incident
-
-            #region Scheduling
-
             new SiteSetting
             {
                 Id = Keys.SiteSetting.Scheduling.Documentation,
                 Name = "Link to scheduling documentation",
                 Description = "A link to documentation about scheduling",
                 Category = "Scheduling",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
-
-            #endregion Scheduling
-
-            #region SiteManagement
-
             new SiteSetting
             {
                 Id = Keys.SiteSetting.SiteManagement.PromenadePublicPath,
                 Name = "Promenade Public Path",
                 Description = "Drive path to the Promenade 'public' folder",
                 Category = "Site Management",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -400,22 +362,17 @@ namespace Ocuda.Ops.Models.Defaults
                 Name = "Promenade Url",
                 Description = "Promenade url with scheme and host",
                 Category = "Site Management",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
-
-            #endregion SiteManagement
-
-            #region UserInterface
-
             new SiteSetting
             {
                 Id = Keys.SiteSetting.UserInterface.BaseIntranetLink,
                 Name = "Base link for the Intranet",
                 Description = "The base of the URL for the administration/Intranet site",
                 Category = "User Interface",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -424,7 +381,7 @@ namespace Ocuda.Ops.Models.Defaults
                 Description = "Items shown on each page for pagination",
                 Category = "User Interface",
                 Value = "10",
-                Type = SiteSettingType.Int
+                Type = SiteSettingType.Int,
             },
             new SiteSetting
             {
@@ -433,7 +390,7 @@ namespace Ocuda.Ops.Models.Defaults
                 Description = "Timeout for submitted pages to perform validation",
                 Category = "User Interface",
                 Value = "2",
-                Type =  SiteSettingType.Int
+                Type = SiteSettingType.Int,
             },
             new SiteSetting
             {
@@ -441,12 +398,9 @@ namespace Ocuda.Ops.Models.Defaults
                 Name = "Page title base",
                 Description = "First part of page titles when viewing the intranet",
                 Category = "User Interface",
-                Value = "",
-                Type = SiteSettingType.StringNullable
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
             },
-
-            #endregion UserInterface
-
         ];
     }
 }

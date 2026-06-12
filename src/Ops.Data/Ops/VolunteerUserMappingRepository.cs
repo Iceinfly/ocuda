@@ -8,14 +8,12 @@ using Ocuda.Ops.Service.Interfaces.Ops.Repositories;
 
 namespace Ocuda.Ops.Data.Ops
 {
-    public class VolunteerUserMappingRepository
-        : GenericRepository<OpsContext, VolunteerFormUserMapping>, IVolunteerUserMappingRepository
+    public class VolunteerUserMappingRepository(
+        ServiceFacade.Repository<OpsContext> repositoryFacade,
+        ILogger<VolunteerUserMappingRepository> logger)
+            : GenericRepository<OpsContext, VolunteerFormUserMapping>(repositoryFacade, logger),
+            IVolunteerUserMappingRepository
     {
-        public VolunteerUserMappingRepository(ServiceFacade.Repository<OpsContext> repositoryFacade,
-            ILogger<VolunteerUserMappingRepository> logger) : base(repositoryFacade, logger)
-        {
-        }
-
         public async Task AddSaveFormUserMappingAsync(int formId, int locationId, int userId)
         {
             await AddAsync(new VolunteerFormUserMapping

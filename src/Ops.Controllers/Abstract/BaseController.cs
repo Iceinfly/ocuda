@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Ocuda.Ops.Controllers.ServiceFacades;
 using Ocuda.Ops.Models.Abstract;
+using Ocuda.Ops.Models.Definitions.Models;
+using Ocuda.Ops.Models.Entities;
 using Ocuda.Ops.Models.Keys;
 using Ocuda.Ops.Service.Abstract;
 using Ocuda.Ops.Service.Interfaces.Ops.Services;
@@ -15,15 +17,9 @@ using Ocuda.Utility.Keys;
 namespace Ocuda.Ops.Controllers.Abstract
 {
     [Authorize]
-    public abstract class BaseController<T> : BaseUnauthenticatedController<T>
+    public abstract class BaseController<T>(Controller<T> context)
+        : BaseUnauthenticatedController<T>(context)
     {
-        protected readonly IUserContextProvider _userContextProvider;
-
-        protected BaseController(Controller<T> context) : base(context)
-        {
-            _userContextProvider = context.UserContextProvider;
-        }
-
         protected ClaimsPrincipal AuthUser
         {
             get
@@ -39,6 +35,7 @@ namespace Ocuda.Ops.Controllers.Abstract
                 var userIdString = HttpContext.User.Claims
                     .FirstOrDefault(_ => _.Type == ClaimType.UserId)?
                     .Value;
+
                 // TODO is this the right approach here? possibly throw
                 return int.TryParse(userIdString, out int userId) ? userId : -1;
             }
@@ -51,6 +48,8 @@ namespace Ocuda.Ops.Controllers.Abstract
                 return HttpContext.User.Identity.Name;
             }
         }
+
+        private IUserContextProvider UserContextProvider { get; } = context.UserContextProvider;
 
         protected async Task<Uri> GetBaseUriAsync(ISiteSettingService siteSettingService)
         {
@@ -93,7 +92,8 @@ namespace Ocuda.Ops.Controllers.Abstract
 
         protected async Task<bool> HasPermissionAsync<TPermissonGroupMappingBase>(
             IPermissionGroupService permissionGroupService,
-            int itemId) where TPermissonGroupMappingBase : PermissionGroupMappingBase
+            int itemId)
+            where TPermissonGroupMappingBase : PermissionGroupMappingBase
         {
             if (!string.IsNullOrEmpty(UserClaim(ClaimType.SiteManager)))
             {
@@ -112,6 +112,7 @@ namespace Ocuda.Ops.Controllers.Abstract
 
                     return permissionClaims.Any(_ => permissionGroupsStrings.Contains(_));
                 }
+
                 return false;
             }
         }
@@ -121,14 +122,77 @@ namespace Ocuda.Ops.Controllers.Abstract
             return !string.IsNullOrEmpty(UserClaim(ClaimType.SiteManager));
         }
 
+        /// <summary>
+        /// Take the passed in <see cref="ReportDefinition"/> and use the provided
+        /// <see cref="IPermissionGroupService"/> to populate the IsPermittedImport and
+        /// IsPermittedView settings based on the current user's rights.
+        /// </summary>
+        /// <param name="permissionGroupService">A valid <see cref="IPermissionGroupService"/>.
+        /// </param>
+        /// <param name="report">The <see cref="ReportDefinition"/> to look up.</param>
+        /// <returns>The populated <see cref="ReportDefinition"/> with IsPermittedImport and
+        /// IsPermittedView set correctly.</returns>
+        protected async Task<ReportDefinition> PopulatePermissionsAsync(
+            IPermissionGroupService permissionGroupService,
+            ReportDefinition report)
+        {
+            ArgumentNullException.ThrowIfNull(permissionGroupService);
+            ArgumentNullException.ThrowIfNull(report);
+
+            if (await HasAppPermissionAsync(permissionGroupService,
+                ApplicationPermission.ImportAllReports) || IsSiteManager())
+            {
+                report.IsPermittedImport = true;
+                report.IsPermittedView = true;
+            }
+            else
+            {
+                var perms = await permissionGroupService
+                    .GetPermissionsAsync<PermissionGroupReporting>(report.InternalId);
+
+                report.IsPermittedImport = perms?.Any(_ => _.CanImport) == true;
+                report.IsPermittedView = perms?.Count > 0;
+            }
+
+            return report;
+        }
+
+        /// <summary>
+        /// Take the passed in <see cref="IEnumerable{ReportDefinition}"/> list and use the provided
+        /// <see cref="IPermissionGroupService"/> to populate the IsPermittedImport and
+        /// IsPermittedView settings based on the current user's rights.
+        /// </summary>
+        /// <param name="permissionGroupService">A valid <see cref="IPermissionGroupService"/>.
+        /// </param>
+        /// <param name="reports">The collection of reports to look up.</param>
+        /// <returns>The populated <see cref="IEnumerable{ReportDefinition}"/> with
+        /// IsPermittedImport and IsPermittedView set correctly.</returns>
+        protected async Task<IEnumerable<ReportDefinition>> PopulatePermissionsAsync(
+            IPermissionGroupService permissionGroupService,
+            IEnumerable<ReportDefinition> reports)
+        {
+            ArgumentNullException.ThrowIfNull(permissionGroupService);
+            ArgumentNullException.ThrowIfNull(reports);
+
+            ICollection<ReportDefinition> permissionedReports = [];
+
+            foreach (var pendingReport in reports)
+            {
+                permissionedReports.Add(await PopulatePermissionsAsync(permissionGroupService,
+                    pendingReport));
+            }
+
+            return permissionedReports;
+        }
+
         protected string UserClaim(string claimType)
         {
-            return _userContextProvider.UserClaim(AuthUser, claimType);
+            return UserContextProvider.UserClaim(AuthUser, claimType);
         }
 
         protected IList<string> UserClaims(string claimType)
         {
-            return _userContextProvider.UserClaims(AuthUser, claimType);
+            return UserContextProvider.UserClaims(AuthUser, claimType);
         }
     }
 }

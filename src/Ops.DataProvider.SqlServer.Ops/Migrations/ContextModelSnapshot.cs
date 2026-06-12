@@ -17,7 +17,7 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Ops.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.25")
+                .HasAnnotation("ProductVersion", "8.0.26")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -608,6 +608,28 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Ops.Migrations
                     b.HasKey("EmailTemplateId", "PromenadeLanguageName");
 
                     b.ToTable("EmailTemplateTexts");
+                });
+
+            modelBuilder.Entity("Ocuda.Ops.Models.Entities.EmediaStats", b =>
+                {
+                    b.Property<int>("Month")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EmediaId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Accesses")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Month", "Year", "EmediaId");
+
+                    b.ToTable("EmediaStats");
                 });
 
             modelBuilder.Entity("Ocuda.Ops.Models.Entities.EmployeeCardNote", b =>
@@ -1520,6 +1542,22 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Ops.Migrations
                     b.ToTable("PermissionGroupReplaceFiles");
                 });
 
+            modelBuilder.Entity("Ocuda.Ops.Models.Entities.PermissionGroupReporting", b =>
+                {
+                    b.Property<int>("PermissionGroupId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReportId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("CanImport")
+                        .HasColumnType("bit");
+
+                    b.HasKey("PermissionGroupId", "ReportId");
+
+                    b.ToTable("PermissionGroupReportings");
+                });
+
             modelBuilder.Entity("Ocuda.Ops.Models.Entities.PermissionGroupSectionManager", b =>
                 {
                     b.Property<int>("PermissionGroupId")
@@ -1682,6 +1720,208 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Ops.Migrations
                     b.HasIndex("RenewCardResponseId");
 
                     b.ToTable("RenewCardResults");
+                });
+
+            modelBuilder.Entity("Ocuda.Ops.Models.Entities.RenewCardStats", b =>
+                {
+                    b.Property<int>("Month")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Accepted")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Denied")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Discarded")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Partial")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Unprocessed")
+                        .HasColumnType("int");
+
+                    b.HasKey("Month", "Year");
+
+                    b.ToTable("RenewCardStats");
+                });
+
+            modelBuilder.Entity("Ocuda.Ops.Models.Entities.ReportingImportDatum", b =>
+                {
+                    b.Property<int>("ReportingImportHeaderId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("LocationId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReportValue")
+                        .HasColumnType("int");
+
+                    b.HasKey("ReportingImportHeaderId", "LocationId");
+
+                    b.ToTable("ReportingImportData");
+                });
+
+            modelBuilder.Entity("Ocuda.Ops.Models.Entities.ReportingImportDetails", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("ReportingImportHeaderId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("ReportingImportHeaderId");
+
+                    b.HasIndex("UpdatedBy");
+
+                    b.ToTable("ReportingImportDetails");
+                });
+
+            modelBuilder.Entity("Ocuda.Ops.Models.Entities.ReportingImportHeader", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Filename")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReportType")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("ReportingLocationSetId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Total")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("ReportingLocationSetId");
+
+                    b.HasIndex("UpdatedBy");
+
+                    b.ToTable("ReportingImportHeaders");
+                });
+
+            modelBuilder.Entity("Ocuda.Ops.Models.Entities.ReportingLocation", b =>
+                {
+                    b.Property<int>("LocationId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReportingLocationSetId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Abbreviation")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<bool>("FallbackLocation")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("LocationId", "ReportingLocationSetId");
+
+                    b.HasIndex("ReportingLocationSetId");
+
+                    b.ToTable("ReportingLocations");
+                });
+
+            modelBuilder.Entity("Ocuda.Ops.Models.Entities.ReportingLocationSet", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsCurrent")
+                        .HasColumnType("bit");
+
+                    b.Property<byte[]>("Sha256Checksum")
+                        .HasMaxLength(256)
+                        .HasColumnType("varbinary(256)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("UpdatedBy");
+
+                    b.ToTable("ReportingLocationSets");
                 });
 
             modelBuilder.Entity("Ocuda.Ops.Models.Entities.RosterDetail", b =>
@@ -3149,6 +3389,96 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Ops.Migrations
                     b.Navigation("RenewCardResponse");
                 });
 
+            modelBuilder.Entity("Ocuda.Ops.Models.Entities.ReportingImportDatum", b =>
+                {
+                    b.HasOne("Ocuda.Ops.Models.Entities.ReportingImportHeader", null)
+                        .WithMany("ReportingImportData")
+                        .HasForeignKey("ReportingImportHeaderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Ocuda.Ops.Models.Entities.ReportingImportDetails", b =>
+                {
+                    b.HasOne("Ocuda.Ops.Models.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ocuda.Ops.Models.Entities.ReportingImportHeader", "ReportingImportHeader")
+                        .WithMany("ReportingImportDetails")
+                        .HasForeignKey("ReportingImportHeaderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ocuda.Ops.Models.Entities.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("ReportingImportHeader");
+
+                    b.Navigation("UpdatedByUser");
+                });
+
+            modelBuilder.Entity("Ocuda.Ops.Models.Entities.ReportingImportHeader", b =>
+                {
+                    b.HasOne("Ocuda.Ops.Models.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ocuda.Ops.Models.Entities.ReportingLocationSet", "ReportingLocationSet")
+                        .WithMany()
+                        .HasForeignKey("ReportingLocationSetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ocuda.Ops.Models.Entities.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("ReportingLocationSet");
+
+                    b.Navigation("UpdatedByUser");
+                });
+
+            modelBuilder.Entity("Ocuda.Ops.Models.Entities.ReportingLocation", b =>
+                {
+                    b.HasOne("Ocuda.Ops.Models.Entities.ReportingLocationSet", "ReportingLocationSet")
+                        .WithMany("ReportingLocations")
+                        .HasForeignKey("ReportingLocationSetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ReportingLocationSet");
+                });
+
+            modelBuilder.Entity("Ocuda.Ops.Models.Entities.ReportingLocationSet", b =>
+                {
+                    b.HasOne("Ocuda.Ops.Models.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ocuda.Ops.Models.Entities.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("UpdatedByUser");
+                });
+
             modelBuilder.Entity("Ocuda.Ops.Models.Entities.RosterDetail", b =>
                 {
                     b.HasOne("Ocuda.Ops.Models.Entities.User", "CreatedByUser")
@@ -3464,6 +3794,18 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Ops.Migrations
             modelBuilder.Entity("Ocuda.Ops.Models.Entities.LinkLibrary", b =>
                 {
                     b.Navigation("Links");
+                });
+
+            modelBuilder.Entity("Ocuda.Ops.Models.Entities.ReportingImportHeader", b =>
+                {
+                    b.Navigation("ReportingImportData");
+
+                    b.Navigation("ReportingImportDetails");
+                });
+
+            modelBuilder.Entity("Ocuda.Ops.Models.Entities.ReportingLocationSet", b =>
+                {
+                    b.Navigation("ReportingLocations");
                 });
 
             modelBuilder.Entity("Ocuda.Ops.Models.Entities.TitleClass", b =>

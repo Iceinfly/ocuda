@@ -33,21 +33,9 @@ using TrestleHelper;
 
 namespace Ocuda.Ops.Web
 {
-    public class Startup
+    public class Startup(IConfiguration configuration, IWebHostEnvironment environment)
     {
         private const string DefaultCulture = "en-US";
-
-        private readonly IConfiguration _config;
-        private readonly bool _isDevelopment;
-
-        public Startup(IConfiguration configuration,
-            IWebHostEnvironment env)
-        {
-            ArgumentNullException.ThrowIfNull(configuration);
-
-            _config = configuration;
-            _isDevelopment = env.IsDevelopment();
-        }
 
         public void Configure(IApplicationBuilder app,
             Utility.Services.Interfaces.IPathResolverService pathResolver)
@@ -55,7 +43,7 @@ namespace Ocuda.Ops.Web
             ArgumentNullException.ThrowIfNull(pathResolver);
 
             // configure error page handling and development IDE linking
-            if (_isDevelopment)
+            if (environment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
@@ -99,7 +87,7 @@ namespace Ocuda.Ops.Web
             {
                 FileProvider
                     = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(contentFilePath),
-                RequestPath = new PathString(contentUrl)
+                RequestPath = new PathString(contentUrl),
             });
 
             app.UseRouting();
@@ -124,7 +112,7 @@ namespace Ocuda.Ops.Web
             ArgumentNullException.ThrowIfNull(services);
 
             // set a default culture of en-US if none is specified
-            string culture = _config[Configuration.OpsCulture] ?? DefaultCulture;
+            string culture = configuration[Configuration.OpsCulture] ?? DefaultCulture;
             services.Configure<RequestLocalizationOptions>(_ =>
             {
                 _.DefaultRequestCulture
@@ -135,27 +123,29 @@ namespace Ocuda.Ops.Web
 
             services.AddHealthChecks();
 
-            switch (_config[Configuration.OpsDistributedCache])
+            switch (configuration[Configuration.OpsDistributedCache])
             {
                 case "Redis":
                     string redisConfiguration
-                        = _config[Configuration.OpsDistributedCacheRedisConfiguration]
+                        = configuration[Configuration.OpsDistributedCacheRedisConfiguration]
                         ?? throw new OcudaException("Configuration.OpsDistributedCache has Redis selected but Configuration.OpsDistributedCacheRedisConfiguration is not set.");
                     string instanceName = CacheInstance.OcudaOps;
                     if (!instanceName.EndsWith(".", StringComparison.OrdinalIgnoreCase))
                     {
                         instanceName += ".";
                     }
+
                     string cacheDiscriminator
-                        = _config[Configuration.OpsDistributedCacheInstanceDiscriminator]
+                        = configuration[Configuration.OpsDistributedCacheInstanceDiscriminator]
                         ?? string.Empty;
                     if (!string.IsNullOrEmpty(cacheDiscriminator))
                     {
                         instanceName = $"{instanceName}{cacheDiscriminator}.";
                     }
-                    _config[Configuration.OcudaRuntimeRedisCacheConfiguration]
+
+                    configuration[Configuration.OcudaRuntimeRedisCacheConfiguration]
                         = redisConfiguration;
-                    _config[Configuration.OcudaRuntimeRedisCacheInstance] = instanceName;
+                    configuration[Configuration.OcudaRuntimeRedisCacheInstance] = instanceName;
                     services.AddStackExchangeRedisCache(_ =>
                     {
                         _.Configuration = redisConfiguration;
@@ -168,14 +158,14 @@ namespace Ocuda.Ops.Web
                     break;
             }
 
-            string opsCs = _config.GetConnectionString("Ops")
+            string opsCs = configuration.GetConnectionString("Ops")
                 ?? throw new OcudaException("ConnectionString:Ops not configured.");
-            string promCs = _config.GetConnectionString("Promenade")
+            string promCs = configuration.GetConnectionString("Promenade")
                 ?? throw new OcudaException("ConnectionString:Promenade not configured.");
 
-            string polarisCs = _config.GetConnectionString("Polaris");
+            string polarisCs = configuration.GetConnectionString("Polaris");
 
-            if (_config[Configuration.OpsDatabaseProvider]?.ToUpperInvariant() == "SQLSERVER")
+            if (configuration[Configuration.OpsDatabaseProvider]?.ToUpperInvariant() == "SQLSERVER")
             {
                 services.AddDbContextPool<OpsContext,
                     DataProvider.SqlServer.Ops.Context>(_ => _.UseSqlServer(opsCs));
@@ -194,7 +184,7 @@ namespace Ocuda.Ops.Web
             // store the data protection key in the context
             services.AddDataProtection().PersistKeysToDbContext<OpsContext>();
 
-            if (_isDevelopment)
+            if (environment.IsDevelopment())
             {
                 services.AddControllersWithViews(_ =>
                         _.ModelBinderProviders.RemoveType<DateTimeModelBinderProvider>())
@@ -221,17 +211,17 @@ namespace Ocuda.Ops.Web
             }
 
             var sessionTimeout = TimeSpan.FromHours(8);
-            if (int.TryParse(_config[Configuration.OpsSessionTimeoutMinutes],
+            if (int.TryParse(configuration[Configuration.OpsSessionTimeoutMinutes],
                 out int configuredTimeout))
             {
                 sessionTimeout = TimeSpan.FromMinutes(configuredTimeout);
             }
 
-            string cookieDomain = _config[Configuration.OcudaCookieDomainName];
+            string cookieDomain = configuration[Configuration.OcudaCookieDomainName];
 
-            string cookieName = string.IsNullOrEmpty(_config[Configuration.OcudaCookieName])
+            string cookieName = string.IsNullOrEmpty(configuration[Configuration.OcudaCookieName])
                 ? ".oc.ops"
-                : _config[Configuration.OcudaCookieName];
+                : configuration[Configuration.OcudaCookieName];
 
             services.AddSession(_ =>
             {
@@ -245,7 +235,7 @@ namespace Ocuda.Ops.Web
                 }
             });
 
-            _config[Configuration.OcudaRuntimeSessionTimeout] = sessionTimeout.ToString();
+            configuration[Configuration.OcudaRuntimeSessionTimeout] = sessionTimeout.ToString();
 
             services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
                 .AddCookie(_ =>
@@ -256,6 +246,7 @@ namespace Ocuda.Ops.Web
                     {
                         _.Cookie.Domain = cookieDomain;
                     }
+
                     _.ExpireTimeSpan = sessionTimeout;
                     _.LoginPath = "/Authentication";
                     _.LogoutPath = "/Authentication/Logout";
@@ -278,27 +269,27 @@ namespace Ocuda.Ops.Web
                     "js/slick.js",
                     "js/slugify.js",
                     "Scripts/Layout.js",
-                    "Scripts/ops.js"
-                    ).UseContentRoot();
+                    "Scripts/ops.js")
+                    .UseContentRoot();
 
                 // minifying Bootstrap seems to upset this tool, bring it in pre-minified
                 _.AddJavaScriptBundle("/js/bootstrap.min.js",
                     new WebOptimizer.Processors.JsSettings
                     {
-                        CodeSettings = new NUglify.JavaScript.CodeSettings { MinifyCode = false }
+                        CodeSettings = new NUglify.JavaScript.CodeSettings { MinifyCode = false },
                     },
                     "js/bootstrap.min.js").UseContentRoot();
 
                 _.AddJavaScriptBundle("/js/md.min.js",
                     "js/commonmark.js",
-                    "Scripts/md-editor.js"
-                    ).UseContentRoot();
+                    "Scripts/md-editor.js")
+                    .UseContentRoot();
 
                 _.AddJavaScriptBundle("/js/crop.min.js",
                     "js/smartcrop.js",
                     "js/cropper.js",
-                    "Scripts/localcrop.js"
-                    ).UseContentRoot();
+                    "Scripts/localcrop.js")
+                    .UseContentRoot();
 
                 // minifying Bootstrap seems to upset this tool, bring it in pre-minified
                 _.AddCssBundle("/css/bootstrap.min.css",
@@ -309,16 +300,16 @@ namespace Ocuda.Ops.Web
                     "css/all.css",
                     "css/slick.css",
                     "css/slick-theme.css",
-                    "Styles/ops.css"
-                    ).UseContentRoot();
+                    "Styles/ops.css")
+                    .UseContentRoot();
 
                 _.AddCssBundle("/css/md.min.css",
-                    "Styles/md-editor.css"
-                    ).UseContentRoot();
+                    "Styles/md-editor.css")
+                    .UseContentRoot();
 
                 _.AddCssBundle("/css/crop.min.css",
-                    "css/cropper.css"
-                    ).UseContentRoot();
+                    "css/cropper.css")
+                    .UseContentRoot();
             });
 
             services.AddHttpClient<IGoogleClient, Utility.Clients.GoogleClient>();
@@ -328,13 +319,13 @@ namespace Ocuda.Ops.Web
                     return new HttpClientHandler
                     {
                         ServerCertificateCustomValidationCallback
-                            = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                            = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
                     };
                 });
             services.AddHttpClient<ImageOptimApi.Client>()
                 .ConfigurePrimaryHttpMessageHandler(_ => new HttpClientHandler
                 {
-                    AllowAutoRedirect = true
+                    AllowAutoRedirect = true,
                 })
                 .ConfigureHttpClient(_ =>
                 {
@@ -404,6 +395,8 @@ namespace Ocuda.Ops.Web
                 Data.Ops.EmailSetupTextRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IEmailTemplateTextRepository,
                 Data.Ops.EmailTemplateTextRepository>();
+            services.AddScoped<Service.Interfaces.Ops.Repositories.IEmediaStatsRepository,
+                Data.Ops.EmediaStatsRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IEmployeeCardNoteRepository,
                 Data.Ops.EmployeeCardNoteRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IEmployeeCardResultRepository,
@@ -444,10 +437,12 @@ namespace Ocuda.Ops.Web
                 Data.Ops.PermissionGroupPageContentRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IPermissionGroupPodcastItemRepository,
                 Data.Ops.PermissionGroupPodcastItemRepository>();
-            services.AddScoped<Service.Interfaces.Ops.Repositories.IPermissionGroupReplaceFilesRepository
-                , Data.Ops.PermissionGroupReplaceFilesRepository>();
+            services.AddScoped<Service.Interfaces.Ops.Repositories.IPermissionGroupReplaceFilesRepository,
+                Data.Ops.PermissionGroupReplaceFilesRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IPermissionGroupProductManagerRepository,
                 Data.Ops.PermissionGroupProductManagerRepository>();
+            services.AddScoped<Service.Interfaces.Ops.Repositories.IPermissionGroupReportingRepository,
+                Data.Ops.PermissionGroupReportingRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IPermissionGroupRepository,
                 Data.Ops.PermissionGroupRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IPermissionGroupSectionManagerRepository,
@@ -458,6 +453,18 @@ namespace Ocuda.Ops.Web
                 Data.Ops.RenewCardResponseRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IRenewCardResultRepository,
                 Data.Ops.RenewCardResultRepository>();
+            services.AddScoped<Service.Interfaces.Ops.Repositories.IRenewCardStatsRepository,
+                Data.Ops.RenewCardStatsRepository>();
+            services.AddScoped<Service.Interfaces.Ops.Repositories.IReportingImportDatumRepository,
+                Data.Ops.ReportingImportDatumRepository>();
+            services.AddScoped<Service.Interfaces.Ops.Repositories.IReportingImportDetailsRepository,
+                Data.Ops.ReportingImportDetailsRepository>();
+            services.AddScoped<Service.Interfaces.Ops.Repositories.IReportingImportHeaderRepository,
+                Data.Ops.ReportingImportHeaderRepository>();
+            services.AddScoped<Service.Interfaces.Ops.Repositories.IReportingLocationRepository,
+                Data.Ops.ReportingLocationRepository>();
+            services.AddScoped<Service.Interfaces.Ops.Repositories.IReportingLocationSetRepository,
+                Data.Ops.ReportingLocationSetRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IRosterDetailRepository,
                 Data.Ops.RosterDetailRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IRosterDivisionRepository,
@@ -515,6 +522,8 @@ namespace Ocuda.Ops.Web
                 Data.Promenade.CategoryTextRepository>();
             services.AddScoped<Service.Interfaces.Promenade.Repositories.IDeckRepository,
                 Data.Promenade.DeckRepository>();
+            services.AddScoped<Service.Interfaces.Promenade.Repositories.IEmediaAccessRepository,
+                Data.Promenade.EmediaAccessRepository>();
             services.AddScoped<Service.Interfaces.Promenade.Repositories.IEmediaCategoryRepository,
                 Data.Promenade.EmediaCategoryRepository>();
             services.AddScoped<Service.Interfaces.Promenade.Repositories.IEmediaGroupRepository,
@@ -622,15 +631,17 @@ namespace Ocuda.Ops.Web
 
             // services
             services.AddScoped<IApiKeyService, ApiKeyService>();
+            services.AddScoped<IAuthenticateService, AuthenticateService>();
             services.AddScoped<IAuthorizationService, AuthorizationService>();
             services.AddScoped<ICarouselService, CarouselService>();
             services.AddScoped<ICategoryService, CategoryService>();
             services.AddScoped<ICoverIssueService, CoverIssueService>();
             services.AddScoped<IDeckService, DeckService>();
-            services.AddScoped<IDigitalDisplayService, DigitalDisplayService>();
             services.AddScoped<IDigitalDisplayCleanupService, DigitalDisplayCleanupService>();
+            services.AddScoped<IDigitalDisplayService, DigitalDisplayService>();
             services.AddScoped<IDigitalDisplaySyncService, DigitalDisplaySyncService>();
             services.AddScoped<IEmailService, EmailService>();
+            services.AddScoped<IEmediaReportingService, EmediaReportingService>();
             services.AddScoped<IEmediaService, EmediaService>();
             services.AddScoped<IEmployeeCardRequestService, EmployeeCardRequestService>();
             services.AddScoped<IEmployeeCardService, EmployeeCardService>();
@@ -650,9 +661,9 @@ namespace Ocuda.Ops.Web
             services.AddScoped<ILanguageService, LanguageService>();
             services.AddScoped<ILdapService, LdapService>();
             services.AddScoped<ILinkService, LinkService>();
-            services.AddScoped<ILocationHoursService, LocationHoursService>();
-            services.AddScoped<ILocationGroupService, LocationGroupService>();
             services.AddScoped<ILocationFeatureService, LocationFeatureService>();
+            services.AddScoped<ILocationGroupService, LocationGroupService>();
+            services.AddScoped<ILocationHoursService, LocationHoursService>();
             services.AddScoped<ILocationService, LocationService>();
             services.AddScoped<INavBannerService, NavBannerService>();
             services.AddScoped<INavigationService, NavigationService>();
@@ -666,8 +677,10 @@ namespace Ocuda.Ops.Web
             services.AddScoped<IPermissionGroupService, PermissionGroupService>();
             services.AddScoped<IProductService, ProductService>();
             services.AddScoped<IPublicFilesService, PublicFilesService>();
+            services.AddScoped<IRenewCardReportingService, RenewCardReportingService>();
             services.AddScoped<IRenewCardRequestService, RenewCardRequestService>();
             services.AddScoped<IRenewCardService, RenewCardService>();
+            services.AddScoped<IReportingService, ReportingService>();
             services.AddScoped<IRosterService, RosterService>();
             services.AddScoped<ISamlService, SamlService>();
             services.AddScoped<IScheduleNotificationService, ScheduleNotificationService>();

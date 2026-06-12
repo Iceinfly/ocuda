@@ -1,0 +1,70 @@
+﻿@model Ocuda.Ops.Controllers.Areas.Reporting.ViewModel.DetailsViewModel
+
+@section header {
+    <partial name="_ReportingPartial" model="Model" />
+}
+
+<div class="row">
+    @if (!(Model.TimespanTotals?.Count() > 0))
+    {
+        <div class="col-12 col-md-6 offset-md-3">
+            <div class="alert alert-info">No results are available for this report.</div>
+        </div>
+    }
+    else
+    {
+        @foreach (var year in Model.TimespanTotals.Keys.OrderByDescending(_ => _).Select(_ => _.Year).Distinct())
+        {
+            <div class="col-12 col-md-4">
+                <div class="card">
+                    <div class="card-header h5">@year</div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th class="px-2">Month</th>
+                                    @if (Model.TimespanTotals.Any(_ => _.Value.HasValue))
+                                    {
+                                        <th class="px-2">Total</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var dateRange in Model.TimespanTotals.OrderBy(_ => _.Key))
+                                {
+                                    <tr>
+                                        <td class="px-2">
+                                            <a asp-action="@nameof(HomeController.Display)"
+                                               asp-route-month="@dateRange.Key.Month"
+                                               asp-route-reportId="@Model.Report.Id"
+                                               asp-route-year="@dateRange.Key.Year">@dateRange.Key.ToString("MMMM")</a>
+                                        </td>
+                                        @if (Model.TimespanTotals.Any(_ => _.Value.HasValue))
+                                        {
+                                            <td class="px-2">@dateRange.Value.Value.ToString("N0")</td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th>Total</th>
+                                    <th>
+                                        @Model.TimespanTotals.Sum(_ => _.Value.Value).ToString("N0")
+                                    </th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<nav paginate="@Model"></nav>
+
+@if (Model.Report.IsPermittedImport)
+{
+    <partial name="_ReportingImportPartial" model="Model.ImportViewModel" />
+}

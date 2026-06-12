@@ -411,7 +411,6 @@ else
         <script>
             const addressListContainer = document.getElementById("addressListContainer");
             const addressLookupResults = document.getElementById("addressLookupResults");
-            const loadingHtml = "<div class=\"d-flex justify-content-center align-items-center\"><span class=\"fa-solid fa-spinner fa-pulse fa-2x fa-fw\"></div>";
             var abortController;
             var addressLookupUnderway = false;
 
@@ -453,7 +452,7 @@ else
 
             async function performLookup(address, zip) {
                 abortController = new AbortController();
-                addressLookupResults.innerHTML = loadingHtml;
+                addressLookupResults.innerHTML = ocudaOpsLoadingHtml;
                 if(!lookupProviders || lookupProviders.length == 0) {
                     alertMessage.innerText = "No address lookup providers are configured.";
                     alertRow.classList.remove("d-none");

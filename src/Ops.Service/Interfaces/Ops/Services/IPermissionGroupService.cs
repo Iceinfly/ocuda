@@ -69,9 +69,28 @@ namespace Ocuda.Ops.Service.Interfaces.Ops.Services
             where T : PermissionGroupMappingBase;
 
         Task RemoveApplicationPermissionGroupAsync(string applicationPermission,
-                            int permissionGroupId);
+            int permissionGroupId);
 
         Task RemoveFromPermissionGroupAsync<T>(int itemId, int permissionGroupId)
+            where T : PermissionGroupMappingBase;
+
+        /// <summary>
+        /// Commits changes performed by
+        /// <see cref="UpdatePermissionGroup{T}(PermissionGroupMappingBase)"/>. Other calls do not
+        /// require you to call this method.
+        /// </summary>
+        Task SavePermissionGroups();
+
+        /// <summary>
+        /// For <see cref="PermissionGroupMappingBase"/> inheritors that have additional settings
+        /// beyond just the presence of a permission record, this allows updating the additional
+        /// parameters.  See <see cref="PermissionGroupReporting"/> for an example. NOTE: this call
+        /// does not perform a save, call use <see cref="SavePermissionGroups"/> to commit changes!
+        /// </summary>
+        /// <typeparam name="T">The <see cref="PermissionGroupMappingBase"/> inheriting object
+        /// to be updated</typeparam>
+        /// <param name="permissionGroup">The object with updated parameters</param>
+        void UpdatePermissionGroup<T>(PermissionGroupMappingBase permissionGroup)
             where T : PermissionGroupMappingBase;
     }
 }

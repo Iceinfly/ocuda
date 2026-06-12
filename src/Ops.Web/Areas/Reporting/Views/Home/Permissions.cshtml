@@ -1,0 +1,112 @@
+﻿@model Ocuda.Ops.Controllers.Areas.Reporting.ViewModel.PermissionsViewModel
+
+@section header {
+    <partial name="_ReportingPartial" model="Model" />
+}
+
+<div class="row">
+    <div class="col-12 col-sm-6">
+        <div class="card">
+            <div class="card-header h5">
+                Available Groups <small><em>(@(Model.AvailableGroups?.Count ?? 0))</em></small>
+            </div>
+            <ul class="list-group list-group-flush">
+                @if (Model.AvailableGroups?.Count > 0)
+                {
+                    foreach (var availableGroup in Model.AvailableGroups)
+                    {
+                        <li class="list-group-item d-flex align-items-center">
+                            <div class="me-2">
+                                <form asp-action="@nameof(HomeController.AddPermissionGroup)"
+                                      asp-route-reportId="@Model.Report.Id"
+                                      asp-route-permissionGroupId="@availableGroup.Key"
+                                      method="post">
+                                    <button class="btn btn-sm btn-outline-success">
+                                        <span class="fa-solid fa-fw fa-circle-plus"></span>
+                                    </button>
+                                </form>
+                            </div>
+                            <div>@availableGroup.Value</div>
+                        </li>
+                    }
+                }
+                else
+                {
+                    <li class="list-group-item text-danger fw-bold">No groups available.</li>
+                }
+            </ul>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6">
+        <div class="card">
+            <div class="card-header h5">
+                Assigned Groups <small><em>(@(Model.AssignedGroups?.Count ?? 0))</em></small>
+            </div>
+            <ul class="list-group list-group-flush">
+                @if (Model.AssignedGroups?.Count > 0)
+                {
+                    foreach (var assignedGroup in Model.AssignedGroups)
+                    {
+                        <li class="list-group-item d-flex align-items-center">
+                            <div class="me-2">
+                                <form asp-action="@nameof(HomeController.RemovePermissionGroup)"
+                                      asp-route-reportId="@Model.Report.Id"
+                                      asp-route-permissionGroupId="@assignedGroup.Key"
+                                      method="post">
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <span class="fa-solid fa-fw fa-circle-minus"></span>
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="flex-grow-1">
+                                @assignedGroup.Value
+                                @if (Model.Report.CanBeImported)
+                                {
+                                    @if (Model.ImportGroups.ContainsKey(assignedGroup.Key))
+                                    {
+                                        <em class="text-success fw-bold">can import</em>
+                                    }
+                                    else
+                                    {
+                                        <em class="text-danger fw-bold">cannot import</em>
+                                    }
+                                }
+                            </div>
+                            @if (Model.Report.CanBeImported)
+                            {
+                                @if (Model.ImportGroups.ContainsKey(assignedGroup.Key))
+                                {
+                                    <form asp-action="@nameof(HomeController.ToggleImportPermission)"
+                                          asp-route-reportId="@Model.Report.Id"
+                                          asp-route-permissionGroupId="@assignedGroup.Key"
+                                          method="post">
+                                        <button class="btn btn-sm btn-outline-danger">
+                                            <span class="fa-solid fa-fw fa-circle-minus"></span>
+                                            Remove Import Ability
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form asp-action="@nameof(HomeController.ToggleImportPermission)"
+                                          asp-route-reportId="@Model.Report.Id"
+                                          asp-route-permissionGroupId="@assignedGroup.Key"
+                                          method="post">
+                                        <button class="btn btn-sm btn-outline-success">
+                                            <span class="fa-solid fa-fw fa-circle-plus"></span>
+                                            Add Import Ability
+                                        </button>
+                                    </form>
+                                }
+                            }
+                        </li>
+                    }
+                }
+                else
+                {
+                    <li class="list-group-item text-danger fw-bold">No groups assigned.</li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>

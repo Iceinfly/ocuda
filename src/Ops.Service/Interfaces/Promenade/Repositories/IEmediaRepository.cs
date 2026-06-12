@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Ocuda.Ops.Service.Filters;
 using Ocuda.Promenade.Models.Entities;
@@ -19,6 +19,8 @@ namespace Ocuda.Ops.Service.Interfaces.Promenade.Repositories
         Task<Emedia> FindAsync(int id);
 
         Task<Emedia> FindAsync(string slug);
+
+        Task<IDictionary<int, string>> GetIdsNamesAsync();
 
         Task<Emedia> GetIncludingGroupAsync(int id);
 

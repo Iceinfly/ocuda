@@ -1,0 +1,69 @@
+﻿@model Ocuda.Ops.Models.Definitions.Models.ReportDefinition
+@using System.Text
+@{
+    Layout = "";
+}
+<ul>
+    <li>Report type: <strong>@Model.ReportType</strong></li>
+    <li>Description: <strong>@Model.Description</strong></li>
+    <li>Period: <strong>@Model.Period</strong></li>
+    @if (Model.CanBeImported)
+    {
+        <li>Data for this report: <strong>is imported</strong></li>
+        @if (Model.ImportFileTypes?.Count() > 0)
+        {
+            <li>
+                Data comes in formatted as:
+                <ul>
+                    @foreach (var fileType in Model.ImportFileTypes)
+                    {
+                        <li><code>@fileType</code></li>
+                    }
+                </ul>
+            </li>
+        }
+        <li>
+            Column delimiter: <code>
+                @if (Model.Delimiter.Length == 1)
+                {
+                    <em>
+                        @if (Encoding.UTF8.GetBytes(Model.Delimiter)[0] == 9)
+                        {
+                            <em>
+                                tab character
+                            </em>
+                        }
+                        (@($"0x{BitConverter.ToString(Encoding.UTF8.GetBytes(Model.Delimiter))}"))
+                    </em>
+                }
+                else
+                {
+                    @Model.Delimiter
+                }
+            </code>
+        </li>
+        @if (Model.SkipFirstColumn?.Count() > 0)
+        {
+            <li>
+                If the following is found in the first column, the row is skipped:
+                <ul>
+                    @foreach (var column in Model.SkipFirstColumn)
+                    {
+                        <li>
+                            <code>
+                                @if (string.IsNullOrEmpty(column))
+                                {
+                                    <em>empty column</em>
+                                }
+                                else
+                                {
+                                    @column
+                                }
+                            </code>
+                        </li>
+                    }
+                </ul>
+            </li>
+        }
+    }
+</ul>
