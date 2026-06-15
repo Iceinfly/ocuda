@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -110,6 +110,18 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
 
             var viewModel = new DetailsViewModel
             {
+                BackLink = report.ReportType switch
+                {
+                    ReportDefinitions.ReportTypeDigitalLibrary =>
+                        Url.Action(nameof(SiteManagement.EmediaController.Index),
+                                SiteManagement.EmediaController.Name,
+                                new { SiteManagement.EmediaController.Area }),
+                    ReportDefinitions.ReportTypeOnlineCardRenewal =>
+                        Url.Action(nameof(Services.RenewCardController.Index),
+                            Services.RenewCardController.Name,
+                            new { Services.RenewCardController.Area }),
+                    _ => null
+                },
                 CurrentPage = currentPage,
                 Heading = $"Results for {report.Name}",
                 ItemCount = collectionWithCount.Count,
@@ -131,19 +143,6 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
 
             SetPageTitle(viewModel.Heading);
 
-            viewModel.BackLink = report.ReportType switch
-            {
-                ReportDefinitions.ReportTypeDigitalLibrary =>
-                    Url.Action(nameof(SiteManagement.EmediaController.Index),
-                            SiteManagement.EmediaController.Name,
-                            new { SiteManagement.EmediaController.Area }),
-                ReportDefinitions.ReportTypeOnlineCardRenewal =>
-                    Url.Action(nameof(Services.RenewCardController.Index),
-                        Services.RenewCardController.Name,
-                        new { Services.RenewCardController.Area }),
-                _ => null
-            };
-
             return report.Period switch
             {
                 ReportDefinitionPeriod.Yearly => View("DetailsYearly", viewModel),
@@ -155,61 +154,33 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
         [HttpGet("[action]/{reportId}/{year}")]
         public async Task<IActionResult> Display(string reportId, int year)
         {
+            var report = ReportDefinitions.Definitions.SingleOrDefault(_ => _.Id == reportId);
+            if (report == null)
             {
-                var report = ReportDefinitions.Definitions.SingleOrDefault(_ => _.Id == reportId);
-                if (report == null)
-                {
-                    return StatusCode(404);
-                }
-
-                report = await PopulatePermissionsAsync(permissionGroupService, report);
-                if (!report.IsPermittedView)
-                {
-                    return RedirectToUnauthorized();
-                }
-
-                IEnumerable<DisplayReport> results = null;
-                try
-                {
-                    results = await reportingService.GetResultsAsync(new ReportCriteria
-                    {
-                        Report = report,
-                        StartDate = new System.DateTime(year, 1, 1),
-                        NumberFormat = "N0",
-                    });
-                }
-                catch (OcudaException oex)
-                {
-                    _logger.LogWarning(oex, "Report display failed: {ErrorMessage}", oex.Message);
-                }
-
-                if (results?.Count() > 0)
-                {
-                    var viewModel = new DisplayViewModel
-                    {
-                        BackLink = Url.Action(nameof(Details), new { reportId }),
-                        Heading = report.Name,
-                        Reports = results,
-                        SecondaryHeading = $"{year}",
-                    };
-
-                    if (report.CanBeImported && report.IsPermittedImport)
-                    {
-                        viewModel.Navigations.Add(
-                            "Import Notes",
-                            Url.Action(nameof(Notes), new { reportId, year }));
-                    }
-
-                    viewModel.Navigations.Add(
-                        "Export",
-                        Url.Action(nameof(Export), new { reportId, year }));
-
-                    SetPageTitle(viewModel.Heading);
-                    return View(viewModel);
-                }
-
                 return StatusCode(404);
             }
+
+            report = await PopulatePermissionsAsync(permissionGroupService, report);
+            if (!report.IsPermittedView)
+            {
+                return RedirectToUnauthorized();
+            }
+
+            try
+            {
+                var viewModel = await GetReportResultsAsync(report, new DateTime(year, 1, 1));
+
+                if (viewModel != null)
+                {
+                    return View(viewModel);
+                }
+            }
+            catch (OcudaException oex)
+            {
+                _logger.LogWarning(oex, "Report display failed: {ErrorMessage}", oex.Message);
+            }
+
+            return StatusCode(404);
         }
 
         [HttpGet("[action]/{reportId}/{year}/{month}")]
@@ -227,43 +198,18 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
                 return RedirectToUnauthorized();
             }
 
-            IEnumerable<DisplayReport> results = null;
             try
             {
-                results = await reportingService.GetResultsAsync(new ReportCriteria
+                var viewModel = await GetReportResultsAsync(report, new DateTime(year, month, 1));
+
+                if (viewModel != null)
                 {
-                    Report = report,
-                    StartDate = new System.DateTime(year, month, 1),
-                    NumberFormat = "N0",
-                });
+                    return View(viewModel);
+                }
             }
             catch (OcudaException oex)
             {
                 _logger.LogWarning(oex, "Report display failed: {ErrorMessage}", oex.Message);
-            }
-
-            if (results?.Count() > 0)
-            {
-                var viewModel = new DisplayViewModel
-                {
-                    BackLink = Url.Action(nameof(Details), new { reportId }),
-                    Heading = report.Name,
-                    Reports = results,
-                    SecondaryHeading = $"{month}/{year}",
-                };
-
-                if (report.IsPermittedImport)
-                {
-                    viewModel.Navigations.Add("Import Notes",
-                        Url.Action(nameof(Notes), new { reportId, year, month }));
-                }
-
-                viewModel.Navigations.Add(
-                    "Export",
-                    Url.Action(nameof(Export), new { reportId, year, month }));
-
-                SetPageTitle(viewModel.Heading);
-                return View(viewModel);
             }
 
             return StatusCode(404);
@@ -296,7 +242,7 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
                 results = await reportingService.GetResultsAsync(new ReportCriteria
                 {
                     Report = report,
-                    StartDate = new System.DateTime(year, month ?? 1, 1),
+                    StartDate = new DateTime(year, month ?? 1, 1),
                 });
             }
             catch (OcudaException oex)
@@ -624,6 +570,69 @@ namespace Ocuda.Ops.Controllers.Areas.Reporting
             await permissionGroupService.SavePermissionGroups();
 
             return RedirectToAction(nameof(Permissions), new { reportId = report.Id });
+        }
+
+        private async Task<DisplayViewModel> GetReportResultsAsync(
+            ReportDefinition report,
+            DateTime period)
+        {
+            IEnumerable<DisplayReport> results = null;
+            try
+            {
+                results = await reportingService.GetResultsAsync(new ReportCriteria
+                {
+                    Report = report,
+                    StartDate = period,
+                    NumberFormat = "N0",
+                });
+            }
+            catch (OcudaException oex)
+            {
+                _logger.LogWarning(oex, "Report display failed: {ErrorMessage}", oex.Message);
+            }
+
+            if (results?.Count() > 0)
+            {
+                var viewModel = new DisplayViewModel
+                {
+                    BackLink = Url.Action(nameof(Details), new { reportId = report.Id }),
+                    Heading = report.Name,
+                    Reports = results,
+                    SecondaryHeading = report.Period == ReportDefinitionPeriod.Yearly
+                        ? $"{period.Year}"
+                        : $"{period.Month}/{period.Year}",
+                };
+
+                if (report.CanBeImported && report.IsPermittedImport)
+                {
+                    var notesLink = report.Period == ReportDefinitionPeriod.Yearly
+                        ? Url.Action(nameof(Notes), new { reportId = report.Id, period.Year })
+                        : Url.Action(nameof(Notes), new
+                        {
+                            reportId = report.Id,
+                            period.Year,
+                            period.Month
+                        });
+
+                    viewModel.Navigations.Add("Import Notes", notesLink);
+                }
+
+                var exportLink = report.Period == ReportDefinitionPeriod.Yearly
+                    ? Url.Action(nameof(Export), new { reportId = report.Id, period.Year })
+                    : Url.Action(nameof(Export), new
+                    {
+                        reportId = report.Id,
+                        period.Year,
+                        period.Month
+                    });
+
+                viewModel.Navigations.Add("Export", exportLink);
+
+                SetPageTitle(viewModel.Heading);
+                return viewModel;
+            }
+
+            return null;
         }
     }
 }
