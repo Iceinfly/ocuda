@@ -9,6 +9,10 @@
         </h1>
         <div class="pt-1 d-print-none">
             <partial name="_ReportingNavPartial" model="Model.ReportLinks" />
+            <a asp-action="@nameof(Ocuda.Ops.Controllers.Areas.ContentManagement.RenewCardController.RenewalResponses)"
+               asp-area="@Ocuda.Ops.Controllers.Areas.ContentManagement.RenewCardController.Area"
+               asp-controller="@Ocuda.Ops.Controllers.Areas.ContentManagement.RenewCardController.Name"
+               class="btn btn-outline-primary ms-2">Responses</a>
             <a asp-action="@nameof(HomeController.Index)"
                asp-area=""
                asp-controller="@HomeController.Name"

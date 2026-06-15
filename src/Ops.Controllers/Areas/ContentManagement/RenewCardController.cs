@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -18,36 +18,22 @@ namespace Ocuda.Ops.Controllers.Areas.ContentManagement
 {
     [Area("ContentManagement")]
     [Route("[area]/[controller]")]
-    public class RenewCardController : BaseController<RenewCardController>
+    public class RenewCardController(ServiceFacades.Controller<RenewCardController> context,
+        IEmailService emailService,
+        ILanguageService languageService,
+        IPermissionGroupService permissionGroupService,
+        IRenewCardService renewCardService)
+        : BaseController<RenewCardController>(context)
     {
-        private readonly IEmailService _emailService;
-        private readonly ILanguageService _languageService;
-        private readonly IPermissionGroupService _permissionGroupService;
-        private readonly IRenewCardService _renewCardService;
-
-        public RenewCardController(ServiceFacades.Controller<RenewCardController> context,
-            IEmailService emailService,
-            ILanguageService languageService,
-            IPermissionGroupService permissionGroupService,
-            IRenewCardService renewCardService)
-            : base(context)
+        public static string Area
         {
-            ArgumentNullException.ThrowIfNull(emailService);
-            ArgumentNullException.ThrowIfNull(languageService);
-            ArgumentNullException.ThrowIfNull(permissionGroupService);
-            ArgumentNullException.ThrowIfNull(renewCardService);
-
-            _emailService = emailService;
-            _languageService = languageService;
-            _permissionGroupService = permissionGroupService;
-            _renewCardService = renewCardService;
+            get { return nameof(ContentManagement); }
         }
 
-        public static string Area
-        { get { return nameof(ContentManagement); } }
-
         public static string Name
-        { get { return "RenewCard"; } }
+        {
+            get { return "RenewCard"; }
+        }
 
         [HttpPost("[action]")]
         public async Task<JsonResult> ChangeResponseSort(int id, bool increase)
@@ -58,10 +44,10 @@ namespace Ocuda.Ops.Controllers.Areas.ContentManagement
             {
                 try
                 {
-                    await _renewCardService.UpdateResponseSortOrderAsync(id, increase);
+                    await renewCardService.UpdateResponseSortOrderAsync(id, increase);
                     response = new JsonResponse
                     {
-                        Success = true
+                        Success = true,
                     };
                 }
                 catch (OcudaException ex)
@@ -69,7 +55,7 @@ namespace Ocuda.Ops.Controllers.Areas.ContentManagement
                     response = new JsonResponse
                     {
                         Message = ex.Message,
-                        Success = false
+                        Success = false,
                     };
                 }
             }
@@ -78,7 +64,7 @@ namespace Ocuda.Ops.Controllers.Areas.ContentManagement
                 response = new JsonResponse
                 {
                     Message = "Unauthorized",
-                    Success = false
+                    Success = false,
                 };
             }
 
@@ -88,11 +74,14 @@ namespace Ocuda.Ops.Controllers.Areas.ContentManagement
         [HttpPost("[action]")]
         public async Task<IActionResult> CreateResponse(RenewCardResponsesViewModel viewModel)
         {
-            if (!await HasRenewCardManagementRightsAsync()) { return RedirectToUnauthorized(); }
+            if (!await HasRenewCardManagementRightsAsync())
+            {
+                return RedirectToUnauthorized();
+            }
 
             ArgumentNullException.ThrowIfNull(viewModel);
 
-            var response = await _renewCardService.CreateResponseAsync(viewModel.Response);
+            var response = await renewCardService.CreateResponseAsync(viewModel.Response);
 
             return RedirectToAction(nameof(RenewalResponse), new { id = response.Id });
         }
@@ -100,11 +89,14 @@ namespace Ocuda.Ops.Controllers.Areas.ContentManagement
         [HttpPost("[action]")]
         public async Task<IActionResult> DeleteResponse(RenewCardResponsesViewModel viewModel)
         {
-            if (!await HasRenewCardManagementRightsAsync()) { return RedirectToUnauthorized(); }
+            if (!await HasRenewCardManagementRightsAsync())
+            {
+                return RedirectToUnauthorized();
+            }
 
             ArgumentNullException.ThrowIfNull(viewModel);
 
-            await _renewCardService.DeleteResponseAsync(viewModel.Response.Id);
+            await renewCardService.DeleteResponseAsync(viewModel.Response.Id);
 
             ShowAlertSuccess($"Deleted response: {viewModel.Response.Name}");
 
@@ -120,7 +112,7 @@ namespace Ocuda.Ops.Controllers.Areas.ContentManagement
             {
                 try
                 {
-                    var emailSetupText = await _emailService.GetSetupTextByLanguageAsync(
+                    var emailSetupText = await emailService.GetSetupTextByLanguageAsync(
                         emailSetupId, languageName);
 
                     return Json(new
@@ -128,7 +120,7 @@ namespace Ocuda.Ops.Controllers.Areas.ContentManagement
                         success = true,
                         emailSetupText?.Subject,
                         emailSetupText?.Preview,
-                        emailSetupText?.BodyText
+                        emailSetupText?.BodyText,
                     });
                 }
                 catch (OcudaException ex)
@@ -136,7 +128,7 @@ namespace Ocuda.Ops.Controllers.Areas.ContentManagement
                     response = new JsonResponse
                     {
                         Message = ex.Message,
-                        Success = false
+                        Success = false,
                     };
                 }
             }
@@ -145,7 +137,7 @@ namespace Ocuda.Ops.Controllers.Areas.ContentManagement
                 response = new JsonResponse
                 {
                     Message = "Unauthorized",
-                    Success = false
+                    Success = false,
                 };
             }
 
@@ -156,27 +148,30 @@ namespace Ocuda.Ops.Controllers.Areas.ContentManagement
         [RestoreModelState]
         public async Task<IActionResult> RenewalResponse(int id)
         {
-            if (!await HasRenewCardManagementRightsAsync()) { return RedirectToUnauthorized(); }
+            if (!await HasRenewCardManagementRightsAsync())
+            {
+                return RedirectToUnauthorized();
+            }
 
-            var response = await _renewCardService.GetResponseAsync(id);
+            var response = await renewCardService.GetResponseAsync(id);
             if (response == null)
             {
                 ShowAlertDanger($"Could not find Response with ID: {id}");
                 return RedirectToAction(nameof(RenewalResponses));
             }
 
-            var emailSetups = await _emailService.GetEmailSetupsAsync();
+            var emailSetups = await emailService.GetEmailSetupsAsync();
 
             var viewModel = new RenewCardResponseViewModel
             {
                 Response = response,
                 EmailSetups = new SelectList(emailSetups, "Key", "Value"),
-                Languages = await _languageService.GetActiveAsync()
+                Languages = await languageService.GetActiveAsync(),
             };
 
             if (response.EmailSetupId.HasValue && viewModel.Languages.Any())
             {
-                viewModel.EmailSetupText = await _emailService.GetSetupTextByLanguageAsync(
+                viewModel.EmailSetupText = await emailService.GetSetupTextByLanguageAsync(
                     response.EmailSetupId.Value,
                     viewModel.Languages.FirstOrDefault()?.Name);
             }
@@ -188,7 +183,10 @@ namespace Ocuda.Ops.Controllers.Areas.ContentManagement
         [SaveModelState]
         public async Task<IActionResult> RenewalResponse(int id, RenewCardResponseViewModel viewModel)
         {
-            if (!await HasRenewCardManagementRightsAsync()) { return RedirectToUnauthorized(); }
+            if (!await HasRenewCardManagementRightsAsync())
+            {
+                return RedirectToUnauthorized();
+            }
 
             ArgumentNullException.ThrowIfNull(viewModel?.Response);
 
@@ -198,12 +196,13 @@ namespace Ocuda.Ops.Controllers.Areas.ContentManagement
             {
                 try
                 {
-                    await _renewCardService.UpdateResponseAsync(viewModel.Response);
+                    await renewCardService.UpdateResponseAsync(viewModel.Response);
                     ShowAlertSuccess("Updated response");
                 }
                 catch (OcudaException ex)
                 {
-                    _logger.LogError(ex, "Error updating card renewal response: {Message}",
+                    _logger.LogError(ex,
+                        "Error updating card renewal response: {Message}",
                         ex.Message);
                     ShowAlertDanger("Error updating response");
                 }
@@ -215,21 +214,26 @@ namespace Ocuda.Ops.Controllers.Areas.ContentManagement
         [HttpGet("[action]")]
         public async Task<IActionResult> RenewalResponses()
         {
-            if (!await HasRenewCardManagementRightsAsync())
+            if (!await HasRenewCardAccessRightsAsync())
             {
                 return RedirectToUnauthorized();
             }
 
             var viewModel = new RenewCardResponsesViewModel
             {
-                Responses = await _renewCardService.GetResponsesAsync()
+                HasManagementPermission = await HasRenewCardManagementRightsAsync(),
+                Responses = await renewCardService.GetResponsesAsync(),
             };
 
             return View(viewModel);
         }
 
+        private async Task<bool> HasRenewCardAccessRightsAsync()
+            => await HasAppPermissionAsync(permissionGroupService,
+                ApplicationPermission.RenewCardAccess);
+
         private async Task<bool> HasRenewCardManagementRightsAsync()
-            => await HasAppPermissionAsync(_permissionGroupService,
+            => await HasAppPermissionAsync(permissionGroupService,
                 ApplicationPermission.RenewCardManagement);
     }
 }

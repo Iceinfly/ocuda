@@ -223,7 +223,7 @@ namespace Ocuda.Ops.Controllers.Areas.Services
 
         [HttpPost("[action]/{id}")]
         [SaveModelState]
-        public async Task<IActionResult> Details(DetailsViewModel viewModel)
+        public async Task<IActionResult> Details(int id, DetailsViewModel viewModel)
         {
             ArgumentNullException.ThrowIfNull(viewModel);
 
@@ -242,33 +242,33 @@ namespace Ocuda.Ops.Controllers.Areas.Services
                 try
                 {
                     var processResult = await renewCardService.ProcessRequestAsync(
-                        viewModel.RequestId,
+                        id,
                         viewModel.ResponseId.Value,
                         viewModel.ResponseText,
                         viewModel.CustomerName);
 
                     if (!processResult.EmailSent)
                     {
-                        ShowAlertDanger($"There was an error sending the email for request {viewModel.RequestId}");
+                        ShowAlertDanger($"There was an error sending the email for request {id}");
                     }
 
                     if (processResult.Type == RenewCardResponse.ResponseType.Accept)
                     {
-                        ShowAlertSuccess($"Request {viewModel.RequestId} has been successfully processed and the record has been updated in Polaris!");
+                        ShowAlertSuccess($"Request {id} has been successfully processed and the record has been updated in Polaris!");
 
                         if (processResult.EmailNotUpdated)
                         {
                             ShowAlertWarning("Email was not able to be updated");
-                            return RedirectToAction(nameof(Details), new { viewModel.RequestId });
+                            return RedirectToAction(nameof(Details), new { id });
                         }
                     }
                     else if (processResult.Type == RenewCardResponse.ResponseType.Partial)
                     {
-                        ShowAlertSuccess($"Request {viewModel.RequestId} has been successfully processed, be sure to update the record in Polaris!");
+                        ShowAlertSuccess($"Request {id} has been successfully processed, be sure to update the record in Polaris!");
                     }
                     else
                     {
-                        ShowAlertSuccess($"Request {viewModel.RequestId} has been successfully processed");
+                        ShowAlertSuccess($"Request {id} has been successfully processed");
                     }
 
                     return RedirectToAction(nameof(Index));
@@ -281,12 +281,12 @@ namespace Ocuda.Ops.Controllers.Areas.Services
 
             return RedirectToAction(nameof(Details), new
             {
-                id = viewModel.RequestId,
+                id,
             });
         }
 
-        [HttpPost("[action]")]
-        public async Task<IActionResult> Discard(int requestId)
+        [HttpPost("[action]/{id}")]
+        public async Task<IActionResult> Discard(int id)
         {
             if (!await HasPermissionAsync())
             {
@@ -295,13 +295,13 @@ namespace Ocuda.Ops.Controllers.Areas.Services
 
             try
             {
-                await renewCardService.DiscardRequestAsync(requestId);
-                ShowAlertSuccess($"Request {requestId} has been discarded");
+                await renewCardService.DiscardRequestAsync(id);
+                ShowAlertSuccess($"Request {id} has been discarded");
             }
             catch (OcudaException ex)
             {
                 ShowAlertDanger($"Unable to discard request: {ex.Message}");
-                return RedirectToAction(nameof(Details), new { requestId });
+                return RedirectToAction(nameof(Details), new { id });
             }
 
             return RedirectToAction(nameof(Index));
