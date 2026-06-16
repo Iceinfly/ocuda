@@ -18,7 +18,7 @@
     <ProjectReference Include="..\Ops.Models\Ops.Models.csproj" />
     <ProjectReference Include="..\Ops.Service\Ops.Service.csproj" />
     <ProjectReference Include="..\Promenade.Models\Promenade.Models.csproj" />
-    <ProjectReference Include="..\Utility\Utility.csproj" />
+    <ProjectReference Include="..\Ocuda\Utility\Utility.csproj" />
   </ItemGroup>
 
   <ItemGroup>

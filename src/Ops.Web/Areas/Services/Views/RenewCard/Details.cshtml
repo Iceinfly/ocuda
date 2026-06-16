@@ -290,12 +290,11 @@
 
 @if (!Model.Request.ProcessedAt.HasValue)
 {
-    <form asp-controller="@RenewCardController.Name"
-          asp-action="@nameof(RenewCardController.Details)"
+    <form asp-action="@nameof(RenewCardController.Details)"          
+          asp-route-id="@Model.Request.Id"
           method="post"
           role="form">
         <input asp-for="CustomerName" type="hidden" />
-        <input asp-for="RequestId" value="@Model.Request.Id" type="hidden" />
         <div class="row">
             <div class="col-12 col-xl-8 offset-xl-2">
                 <div class="mb-3">
@@ -339,10 +338,10 @@
         </div>
     </form>
     <form asp-action="@nameof(RenewCardController.Discard)"
+          asp-route-id="@Model.Request.Id"
           enctype="multipart/form-data"
           method="post"
           role="form">
-        <input id="discardId" asp-for="RequestId" value="@Model.Request.Id" type="hidden" />
         <div class="modal" tabindex="-1" id="discardModal">
             <div class="modal-dialog">
                 <div class="modal-content">

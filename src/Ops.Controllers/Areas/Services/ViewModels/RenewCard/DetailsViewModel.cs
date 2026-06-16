@@ -41,8 +41,8 @@ namespace Ocuda.Ops.Controllers.Areas.Services.ViewModels.RenewCard
         public int MaxNotesDisplayLength { get; }
 
         public bool OverChargesLimit { get; set; }
+
         public RenewCardRequest Request { get; set; }
-        public int RequestId { get; set; }
 
         [DisplayName("Response")]
         [Required]

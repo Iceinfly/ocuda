@@ -63,11 +63,10 @@
     </div>
 </div>
 <form asp-action="@nameof(RenewCardController.Discard)"
+      asp-route-id="@Model.Request.Id"
       enctype="multipart/form-data"
       method="post"
       role="form">
-    <input id="discardId" asp-for="RequestId" value="@Model.Request.Id" type="hidden" />
-
     <div class="modal" tabindex="-1" id="discardModal">
         <div class="modal-dialog">
             <div class="modal-content">

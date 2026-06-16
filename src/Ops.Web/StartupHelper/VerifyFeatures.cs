@@ -1,11 +1,11 @@
 ﻿using System;
-using MaricopaCountyAssessorHelper;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Ocuda.MaricopaCountyAssessorHelper;
 using Ocuda.Ops.Models;
 using Ocuda.PolarisHelper;
-using TrestleHelper;
+using Ocuda.TrestleHelper;
 
 namespace Ocuda.Ops.Web.StartupHelper
 {
