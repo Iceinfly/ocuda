@@ -1,11 +1,14 @@
 ﻿@model Ocuda.Promenade.Controllers.ViewModels.DigitalLibrary.LaunchViewModel
 
 <form action="@Model.Uri" id="launchForm" method="@Model.Method">
-    @foreach (var (key, stringValues) in Model.QueryStringValues)
+    @if (Model.Method.Equals("POST", StringComparison.OrdinalIgnoreCase))
     {
-        foreach (var value in stringValues)
+        @foreach (var (key, stringValues) in Model.QueryStringValues)
         {
-            <input name="@key" value="@value" type="hidden" />
+            foreach (var value in stringValues)
+            {
+                <input name="@key" value="@value" type="hidden" />
+            }
         }
     }
     <div class="d-flex justify-content-center mt-3">
@@ -44,7 +47,11 @@
         }
 
         window.onload = (_) => {
-            window.setTimeout(() => form.submit(), launchDelay);
+            if("@Model.Method.Equals("POST", StringComparison.OrdinalIgnoreCase)" === "True") {
+                window.setTimeout(() => form.submit(), launchDelay);
+            } else {
+                window.setTimeout(() => window.location = form.action, launchDelay);
+            }
         };
     </script>
 }
