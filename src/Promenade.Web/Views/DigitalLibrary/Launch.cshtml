@@ -1,20 +1,29 @@
-﻿@using Ocuda.Promenade.Controllers
-@model Ocuda.Promenade.Controllers.ViewModels.DigitalLibrary.LaunchViewModel
+﻿@model Ocuda.Promenade.Controllers.ViewModels.DigitalLibrary.LaunchViewModel
 
-<form action="@Model.Uri" id="launchForm">
-    @foreach (var (key, stringValues) in Model.QueryStringValues)
+<form action="@Model.Uri" id="launchForm" method="@Model.Method">
+    @if (Model.Method.Equals("POST", StringComparison.OrdinalIgnoreCase))
     {
-        foreach (var value in stringValues)
+        @foreach (var (key, stringValues) in Model.QueryStringValues)
         {
-            <input name="@key" value="@value" type="hidden" />
+            foreach (var value in stringValues)
+            {
+                <input name="@key" value="@value" type="hidden" />
+            }
         }
     }
-
     <div class="d-flex justify-content-center mt-3">
         <div class="card">
-            <div class="card-body">
-                <h1 class="display-4 px-5 py-3">Launching @Model.Name...</h1>
-                <div class="d-flex justify-content-end mt-2">
+            <div class="card-header">
+                <h1 class="display-4 px-5 pt-2">Launching @Model.Name...</h1>
+            </div>
+            @if (!string.IsNullOrEmpty(Model.LaunchText))
+            {
+                <div class="card-body px-4 py-4">
+                    <p class="card-text">@Model.LaunchText</p>
+                </div>
+            }
+            <div class="card-footer">
+                <div class="d-flex justify-content-end px-2 py-1">
                     <button class="btn btn-outline-dark btn-lg"
                             id="btnsub"
                             type="submit">
@@ -30,6 +39,7 @@
 @section scripts {
     <script>
         const form = document.getElementById("launchForm");
+        const launchDelay = @(Model.LaunchDelayMs > -1 ? Model.LaunchDelayMs : 0)
 
         form.onsubmit = (_) => {
             document.getElementById("btnspin").classList.remove("d-none");
@@ -37,7 +47,7 @@
         }
 
         window.onload = (_) => {
-            form.submit();
+            window.setTimeout(() => form.submit(), launchDelay);
         };
     </script>
 }

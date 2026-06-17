@@ -174,6 +174,116 @@
     <div class="col-12 col-md-4 my-2">
         <div class="card">
             <div class="card-header h5">
+                Launch invalid referer behavior
+            </div>
+            <div class="card-body">
+                When a customer tries to directly launch a Digital Library resource, the default
+                action is to redirect them to the front of the Digital Library section of the site.
+                If this option is set, it will instead show the Launch page with the optional
+                Launch page text for the Launch delay.
+            </div>
+            <div class="card-footer">
+                <form asp-action="@nameof(EmediaController.SetInvalidRefererBehavior)"
+                      class="d-inline"
+                      method="post">
+                    <div class="input-group">
+                        <select class="form-select"
+                                name="invalidRefererBehavior"
+                                asp-items="Model.InvalidRefererBehavior"></select>
+                        <button class="btn btn-sm btn-outline-success">
+                            Update behavior
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-4 my-2">
+        <div class="card">
+            <div class="card-header h5">
+                Launch page text
+            </div>
+            <div class="card-body">
+                When a resource is loaded via HTTP POST or a customer is accessing a resource
+                without a valid referer (or with no referer), the site shows a launch page briefly
+                before loading the electronic resource. This text is shown in the box on the page.
+                This can only be text, do not use Commonmark.
+                @if (Model.LaunchSegmentLanguages != null)
+                {
+                    <div class="mt-2">
+                        @foreach (var lang in Model.LaunchSegmentLanguages)
+                        {
+                            <a asp-action="@nameof(SegmentsController.Detail)"
+                               asp-area="@SegmentsController.Area"
+                               asp-controller="@SegmentsController.Name"
+                               asp-route-id="@Model.LaunchSegmentId"
+                               asp-route-language="@lang"
+                               class="btn btn-sm btn-outline-primary">@Model.Languages[lang]</a>
+                        }
+                    </div>
+                }
+            </div>
+            <div class="card-footer">
+                @if (Model.LaunchSegmentLanguages == null)
+                {
+                    <form asp-action="@nameof(EmediaController.CreateLaunchSegment)"
+                          class="d-inline"
+                          method="post">
+                        <button class="btn btn-sm btn-outline-success my-1">
+                            <span class="fa-solid fa-circle-plus fa-fw"></span>
+                            Create "Launch" page text
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <form asp-action="@nameof(EmediaController.RemoveLaunchSegment)"
+                          class="d-inline"
+                          method="post">
+                        <button class="btn btn-sm btn-outline-danger my-1">
+                            <span class="fa-solid fa-circle-minus fa-fw"></span>
+                            Remove "Launch" page text in all languages
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-4 my-2">
+        <div class="card">
+            <div class="card-header h5">
+                Launch delay
+            </div>
+            <div class="card-body">
+                If a resource is loaded with a missing or invalid referer and the Invalid Referer
+                Show Resource value is set to true, this sets the delay that the page shows the
+                Launch page text so the user can read it. Zero means that the page redirects
+                as quickly as possible.
+            </div>
+            <div class="card-footer">
+                <form asp-action="@nameof(EmediaController.SetLaunchDelay)"
+                      class="d-inline"
+                      method="post">
+                    <div class="input-group">
+                        <input class="form-control"
+                               name="launchDelay"
+                               type="number"
+                               value="@Model.LaunchDelay" />
+                        <button class="btn btn-sm btn-outline-success">
+                            Update delay
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-4 my-2">
+        <div class="card">
+            <div class="card-header h5">
                 Referer restriction
             </div>
             <div class="card-body">

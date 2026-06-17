@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -210,15 +210,38 @@ namespace Ocuda.Ops.Controllers.Areas.SiteManagement
             var validReferers = await siteSettingPromService
                 .GetSettingStringAsync(Promenade.Models.Keys.SiteSetting.Emedia.ValidReferers);
 
+            var invalidRefererShowResource = await siteSettingPromService.GetSettingBoolAsync(
+                Promenade.Models.Keys.SiteSetting.Emedia.InvalidRefererShowResource);
+
+            var launchDelay = await siteSettingPromService
+                .GetSettingIntAsync(Promenade.Models.Keys.SiteSetting.Emedia.LaunchDelay);
+
             var viewModel = new ConfigureViewModel
             {
                 AllSegmentId = await siteSettingPromService
                     .GetSettingIntAsync(Promenade.Models.Keys.SiteSetting.Emedia.AllSegment),
                 ButtonAllSegmentId = await siteSettingPromService
                     .GetSettingIntAsync(Promenade.Models.Keys.SiteSetting.Emedia.ButtonAllSegment),
-                ButtonGroupSegmentId = await siteSettingPromService
-                    .GetSettingIntAsync(Promenade.Models.Keys.SiteSetting.Emedia.ButtonGroupSegment),
+                ButtonGroupSegmentId = await siteSettingPromService.GetSettingIntAsync(
+                    Promenade.Models.Keys.SiteSetting.Emedia.ButtonGroupSegment),
                 HasReferers = !string.IsNullOrEmpty(validReferers),
+                InvalidRefererBehavior =
+                    [
+                        new ()
+                        {
+                             Text = "Redirect to index",
+                             Value = "False",
+                        },
+                        new ()
+                        {
+                            Selected = invalidRefererShowResource,
+                            Text = "Launch resource",
+                            Value = "True",
+                        },
+                    ],
+                LaunchDelay = launchDelay,
+                LaunchSegmentId = await siteSettingPromService
+                    .GetSettingIntAsync(Promenade.Models.Keys.SiteSetting.Emedia.LaunchSegment),
                 ValidReferers = validReferers.Split(','),
             };
 
@@ -235,6 +258,9 @@ namespace Ocuda.Ops.Controllers.Areas.SiteManagement
                 : null;
             viewModel.ButtonGroupSegmentLanguages = viewModel.ButtonGroupSegmentId > 0
                 ? await segmentService.GetSegmentLanguagesByIdAsync(viewModel.ButtonGroupSegmentId)
+                : null;
+            viewModel.LaunchSegmentLanguages = viewModel.LaunchSegmentId > 0
+                ? await segmentService.GetSegmentLanguagesByIdAsync(viewModel.LaunchSegmentId)
                 : null;
 
             return View(viewModel);
@@ -381,6 +407,15 @@ namespace Ocuda.Ops.Controllers.Areas.SiteManagement
                 null,
                 i18n.Keys.Promenade.EmediaGroups,
                 Promenade.Models.Keys.SiteSetting.Emedia.ButtonGroupSegment);
+        }
+
+        [HttpPost("[action]")]
+        public async Task<IActionResult> CreateLaunchSegment()
+        {
+            return await RedirectToNewSegmentAsync("Emedia Launch Text",
+                null,
+                i18n.Keys.Promenade.LaunchSegment,
+                Promenade.Models.Keys.SiteSetting.Emedia.LaunchSegment);
         }
 
         [HttpPost("[action]")]
@@ -869,6 +904,13 @@ namespace Ocuda.Ops.Controllers.Areas.SiteManagement
         }
 
         [HttpPost("[action]")]
+        public async Task<IActionResult> RemoveLaunchSegment()
+        {
+            await RemoveSegment(Promenade.Models.Keys.SiteSetting.Emedia.LaunchSegment);
+            return RedirectToAction(nameof(Configure));
+        }
+
+        [HttpPost("[action]")]
         public async Task<IActionResult> RemoveReferer(string referer)
         {
             if (string.IsNullOrWhiteSpace(referer))
@@ -895,6 +937,36 @@ namespace Ocuda.Ops.Controllers.Areas.SiteManagement
                     string.Join(',', asList).Trim(','));
 
             ShowAlertSuccess($"Removed referer: {referer}");
+            return RedirectToAction(nameof(Configure));
+        }
+
+        [HttpPost("[action]")]
+        public async Task<IActionResult> SetInvalidRefererBehavior(bool invalidRefererBehavior)
+        {
+            await siteSettingPromService.UpdateAsync(
+                Promenade.Models.Keys.SiteSetting.Emedia.InvalidRefererShowResource,
+                invalidRefererBehavior.ToString(CultureInfo.InvariantCulture));
+            string name = Promenade.Models.Defaults.SiteSettings
+                .Get
+                .Single(_ => _.Id
+                    == Promenade.Models.Keys.SiteSetting.Emedia.InvalidRefererShowResource)
+                .Name;
+            ShowAlertSuccess($"Updated setting: {name}");
+
+            return RedirectToAction(nameof(Configure));
+        }
+
+        [HttpPost("[action]")]
+        public async Task<IActionResult> SetLaunchDelay(int launchDelay)
+        {
+            await siteSettingPromService.UpdateAsync(
+                Promenade.Models.Keys.SiteSetting.Emedia.LaunchDelay,
+                launchDelay.ToString(CultureInfo.InvariantCulture));
+            string name = Promenade.Models.Defaults.SiteSettings
+                .Get
+                .Single(_ => _.Id == Promenade.Models.Keys.SiteSetting.Emedia.LaunchDelay)
+                .Name;
+            ShowAlertSuccess($"Updated setting: {name}");
             return RedirectToAction(nameof(Configure));
         }
 
