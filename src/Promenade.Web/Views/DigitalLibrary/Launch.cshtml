@@ -1,14 +1,11 @@
 ﻿@model Ocuda.Promenade.Controllers.ViewModels.DigitalLibrary.LaunchViewModel
 
 <form action="@Model.Uri" id="launchForm" method="@Model.Method">
-    @if (Model.Method.Equals("POST", StringComparison.OrdinalIgnoreCase))
+    @foreach (var (key, stringValues) in Model.QueryStringValues)
     {
-        @foreach (var (key, stringValues) in Model.QueryStringValues)
+        foreach (var value in stringValues)
         {
-            foreach (var value in stringValues)
-            {
-                <input name="@key" value="@value" type="hidden" />
-            }
+            <input name="@key" value="@value" type="hidden" />
         }
     }
     <div class="d-flex justify-content-center mt-3">
