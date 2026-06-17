@@ -54,6 +54,7 @@
         public const string KeywordsItem = "Keywords: {0}";
         public const string LabelNo = "No";
         public const string LabelYes = "Yes";
+        public const string LaunchSegment = "Now launching this Digital Library resource...";
         public const string LinkAdultVolunteerForm = "Use our adult volunteer form.";
         public const string LinkTeenVolunteerForm = "Use our teen volunteer form.";
         public const string LocationBackToLocationName = "Back to {0}";

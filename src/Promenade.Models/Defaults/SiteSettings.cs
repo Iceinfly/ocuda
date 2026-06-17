@@ -8,16 +8,13 @@ namespace Ocuda.Promenade.Models.Defaults
     {
         public static IEnumerable<SiteSetting> Get { get; } =
         [
-
-            #region Contact
-
             new SiteSetting
             {
                 Category = nameof(Keys.SiteSetting.Contact),
                 Description = "Link for 'Contact Us' text in the site footer",
                 Id = Keys.SiteSetting.Contact.Link,
                 Name = "Contact Us link",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -25,61 +22,78 @@ namespace Ocuda.Promenade.Models.Defaults
                 Description = "Telephone number for the site footer",
                 Id = Keys.SiteSetting.Contact.Telephone,
                 Name = "Telephone number",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
-
-            #endregion Contact
-
-            #region Emedia
-
             new SiteSetting
             {
                 Category = nameof(Keys.SiteSetting.Emedia),
                 Description = "Segment ID to show a the top of the All Emedia page",
-                Id= Keys.SiteSetting.Emedia.AllSegment,
-                Name="All Emedia segment id",
-                Type=SiteSettingType.Int,
-                Value="-1"
+                Id = Keys.SiteSetting.Emedia.AllSegment,
+                Name = "All Emedia segment id",
+                Type = SiteSettingType.Int,
+                Value = "-1",
             },
             new SiteSetting
             {
                 Category = nameof(Keys.SiteSetting.Emedia),
                 Description = "Segment ID for the All Emedia button, blank to not display",
-                Id= Keys.SiteSetting.Emedia.ButtonAllSegment,
-                Name="All emedia button segment id",
-                Type=SiteSettingType.Int,
-                Value="-1"
+                Id = Keys.SiteSetting.Emedia.ButtonAllSegment,
+                Name = "All emedia button segment id",
+                Type = SiteSettingType.Int,
+                Value = "-1",
             },
             new SiteSetting
             {
                 Category = nameof(Keys.SiteSetting.Emedia),
                 Description = "Segment ID for the Emedia by Group button, blank to not display",
-                Id= Keys.SiteSetting.Emedia.ButtonGroupSegment,
-                Name="Group emedia button segment id",
-                Type=SiteSettingType.Int,
-                Value="-1"
+                Id = Keys.SiteSetting.Emedia.ButtonGroupSegment,
+                Name = "Group emedia button segment id",
+                Type = SiteSettingType.Int,
+                Value = "-1",
+            },
+            new SiteSetting
+            {
+                Category = nameof(Keys.SiteSetting.Emedia),
+                Description = "If there is an invalid referer false redirects to the index, true shows the launch page with a link",
+                Id = Keys.SiteSetting.Emedia.InvalidRefererShowResource,
+                Name = "Invalid referer show resource",
+                Type = SiteSettingType.Bool,
+                Value = "False",
+            },
+            new SiteSetting
+            {
+                Category = nameof(Keys.SiteSetting.Emedia),
+                Description = "Delay for showing the launch page when a customer comes in with no referer or a referer that isn't on the list before launching the resource",
+                Id = Keys.SiteSetting.Emedia.LaunchDelay,
+                Name = "Launch delay",
+                Type = SiteSettingType.Int,
+                Value = "3",
+            },
+            new SiteSetting
+            {
+                Category = nameof(Keys.SiteSetting.Emedia),
+                Description = "Segment ID for the launch emedia page, blank to not display - this displays when a resource is loaded via HTTP POST or when the referer is empty or not on the list",
+                Id = Keys.SiteSetting.Emedia.LaunchSegment,
+                Name = "Launch page segment id",
+                Type = SiteSettingType.Int,
+                Value = "-1",
             },
             new SiteSetting
             {
                 Category = nameof(Keys.SiteSetting.Emedia),
                 Description = "Valid referers to launch electronic resources",
-                Id= Keys.SiteSetting.Emedia.ValidReferers,
-                Name="Valid Referers",
-                Type=SiteSettingType.StringNullable,
-                Value=""
+                Id = Keys.SiteSetting.Emedia.ValidReferers,
+                Name = "Valid Referers",
+                Type = SiteSettingType.StringNullable,
+                Value = string.Empty,
             },
-
-            #endregion Emedia
-
-            #region EmployeeSignup
-
             new SiteSetting
             {
                 Category = nameof(Keys.SiteSetting.EmployeeSignup),
                 Description = "Required format for employee numbers, as regex",
                 Id = Keys.SiteSetting.EmployeeSignup.EmployeeNumberFormat,
                 Name = "Employee number format",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -88,7 +102,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.EmployeeSignup.HomeSegment,
                 Name = "Home segment",
                 Type = SiteSettingType.Int,
-                Value = "-1"
+                Value = "-1",
             },
             new SiteSetting
             {
@@ -97,34 +111,24 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.EmployeeSignup.SubmittedSegment,
                 Name = "Submitted segment",
                 Type = SiteSettingType.Int,
-                Value = "-1"
+                Value = "-1",
             },
-
-            #endregion EmployeeSignup
-
-            #region Network
-
             new SiteSetting
             {
                 Category = nameof(Keys.SiteSetting.Network),
                 Description = "Networks considered local, comma-separated netblocks",
-                Id= Keys.SiteSetting.Network.LocalNetworks,
-                Name="Local Networks",
-                Type=SiteSettingType.String,
-                Value="10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+                Id = Keys.SiteSetting.Network.LocalNetworks,
+                Name = "Local Networks",
+                Type = SiteSettingType.String,
+                Value = "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16",
             },
-
-            #endregion Network
-
-            #region RenewCard
-
             new SiteSetting
             {
                 Category = nameof(Keys.SiteSetting.RenewCard),
                 Description = "Accepted counties for card renewal addresses, comma delimited",
                 Id = Keys.SiteSetting.RenewCard.AcceptedCounties,
                 Name = "Accepted counties",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -132,16 +136,16 @@ namespace Ocuda.Promenade.Models.Defaults
                 Description = "Customer codes ids to check for becoming 18 years old, comma delimited",
                 Id = Keys.SiteSetting.RenewCard.AgeCheckCustomerCodes,
                 Name = "Age check customer codes",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
-                Category = nameof (Keys.SiteSetting.RenewCard),
+                Category = nameof(Keys.SiteSetting.RenewCard),
                 Description = "Segment to show to age check customers who have become 18",
                 Id = Keys.SiteSetting.RenewCard.AgeCheckSegment,
                 Name = "Age check segment",
                 Type = SiteSettingType.Int,
-                Value = "-1"
+                Value = "-1",
             },
             new SiteSetting
             {
@@ -149,8 +153,8 @@ namespace Ocuda.Promenade.Models.Defaults
                 Description = "Number of days before a cards expiration that it's eligible for online renewal",
                 Id = Keys.SiteSetting.RenewCard.ExpirationCutoffDays,
                 Name = "Card renewal expiration cutoff days",
-                Type= SiteSettingType.Int,
-                Value = "-1"
+                Type = SiteSettingType.Int,
+                Value = "-1",
             },
             new SiteSetting
             {
@@ -159,7 +163,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.RenewCard.HomeSegment,
                 Name = "Home segment",
                 Type = SiteSettingType.Int,
-                Value = "-1"
+                Value = "-1",
             },
             new SiteSetting
             {
@@ -167,7 +171,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Description = "Juvenile customer code ids, comma delimited",
                 Id = Keys.SiteSetting.RenewCard.JuvenileCustomerCodes,
                 Name = "Juvenile customer codes",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -176,7 +180,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.RenewCard.JuvenileSegment,
                 Name = "Juvenile segment",
                 Type = SiteSettingType.Int,
-                Value = "-1"
+                Value = "-1",
             },
             new SiteSetting
             {
@@ -185,7 +189,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.RenewCard.NoAddressSegment,
                 Name = "No address segment",
                 Type = SiteSettingType.Int,
-                Value = "-1"
+                Value = "-1",
             },
             new SiteSetting
             {
@@ -193,7 +197,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Description = "Nonresident customer code ids, comma delimited",
                 Id = Keys.SiteSetting.RenewCard.NonresidentCustomerCodes,
                 Name = "Nonresident customer codes",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -202,7 +206,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.RenewCard.NonresidentSegment,
                 Name = "Nonresident segment",
                 Type = SiteSettingType.Int,
-                Value = "-1"
+                Value = "-1",
             },
             new SiteSetting
             {
@@ -211,7 +215,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.RenewCard.NotConfiguredSegment,
                 Name = "Not configured segment",
                 Type = SiteSettingType.Int,
-                Value = "-1"
+                Value = "-1",
             },
             new SiteSetting
             {
@@ -219,7 +223,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Description = "Staff customer code ids, comma delimited",
                 Id = Keys.SiteSetting.RenewCard.StaffCustomerCodes,
                 Name = "Staff customer codes",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -228,7 +232,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.RenewCard.SubmittedSegment,
                 Name = "Submitted segment",
                 Type = SiteSettingType.Int,
-                Value = "-1"
+                Value = "-1",
             },
             new SiteSetting
             {
@@ -237,13 +241,8 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.RenewCard.VerifyAddressSegment,
                 Name = "Verify address segment",
                 Type = SiteSettingType.Int,
-                Value = "-1"
+                Value = "-1",
             },
-
-            #endregion RenewCard
-
-            #region Scheduling
-
             new SiteSetting
             {
                 Category = nameof(Keys.SiteSetting.Scheduling),
@@ -251,7 +250,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.Scheduling.AvailableHours,
                 Name = "Available hours",
                 Type = SiteSettingType.Double,
-                Value = "7.5"
+                Value = "7.5",
             },
             new SiteSetting
             {
@@ -260,7 +259,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.Scheduling.BufferHours,
                 Name = "Buffer hours",
                 Type = SiteSettingType.Double,
-                Value = "4"
+                Value = "4",
             },
             new SiteSetting
             {
@@ -269,7 +268,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.Scheduling.Enable,
                 Name = "Scheduling enabled",
                 Type = SiteSettingType.Bool,
-                Value = "False"
+                Value = "False",
             },
             new SiteSetting
             {
@@ -278,7 +277,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.Scheduling.EnabledSegment,
                 Name = "Enabled scheduling segment",
                 Type = SiteSettingType.Int,
-                Value = "-1"
+                Value = "-1",
             },
             new SiteSetting
             {
@@ -287,7 +286,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.Scheduling.DisabledSegment,
                 Name = "Disabled scheduling segment",
                 Type = SiteSettingType.Int,
-                Value = "-1"
+                Value = "-1",
             },
             new SiteSetting
             {
@@ -296,7 +295,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.Scheduling.OverLimitSegment,
                 Name = "Over Limit scheduling segment",
                 Type = SiteSettingType.Int,
-                Value = "-1"
+                Value = "-1",
             },
             new SiteSetting
             {
@@ -305,7 +304,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.Scheduling.ScheduledSegment,
                 Name = "Scheduled explanation segment",
                 Type = SiteSettingType.Int,
-                Value = "-1"
+                Value = "-1",
             },
             new SiteSetting
             {
@@ -314,7 +313,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.Scheduling.StartHour,
                 Name = "Start hour",
                 Type = SiteSettingType.Double,
-                Value = "9"
+                Value = "9",
             },
             new SiteSetting
             {
@@ -323,20 +322,15 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.Scheduling.UnavailableDays,
                 Name = "Unavailable days",
                 Type = SiteSettingType.StringNullable,
-                Value = "Sunday,Saturday"
+                Value = "Sunday,Saturday",
             },
-
-            #endregion Scheduling
-
-            #region Site
-
             new SiteSetting
             {
                 Category = nameof(Keys.SiteSetting.Site),
                 Description = "URL to the banner image at the top of the page",
                 Id = Keys.SiteSetting.Site.BannerImage,
                 Name = "Banner Image",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -344,7 +338,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Description = "Alt text when a banner image is displayed",
                 Id = Keys.SiteSetting.Site.BannerImageAlt,
                 Name = "Banner Image Alt",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -352,7 +346,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Description = "The stub of a link to perform a search in the Polaris ILS",
                 Id = Keys.SiteSetting.Site.CatalogSearchLink,
                 Name = "Catalog search link",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -360,7 +354,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Description = "URL to the footer image at the bottom of the page",
                 Id = Keys.SiteSetting.Site.FooterImage,
                 Name = "Footer Image",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -368,7 +362,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Description = "Alt text when a footer image is displayed",
                 Id = Keys.SiteSetting.Site.FooterImageAlt,
                 Name = "Footer Image Alt",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -376,7 +370,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Description = "Link to the forgot password page",
                 Id = Keys.SiteSetting.Site.ForgotPasswordLink,
                 Name = "Forgot Password link",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
              new SiteSetting
             {
@@ -384,7 +378,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Description = "Google Analytics Tracking Code",
                 Id = Keys.SiteSetting.Site.GoogleTrackingCode,
                 Name = "Google Analytics Tracking Code",
-                Type = SiteSettingType.String
+                Type = SiteSettingType.String,
             },
             new SiteSetting
             {
@@ -393,7 +387,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.Site.IsTLS,
                 Name = "TLS Enabled",
                 Type = SiteSettingType.Bool,
-                Value = "False"
+                Value = "False",
             },
             new SiteSetting
             {
@@ -402,7 +396,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.Site.NavigationIdFooter,
                 Name = "Footer Navigation Id",
                 Type = SiteSettingType.Int,
-                Value = "-1"
+                Value = "-1",
             },
             new SiteSetting
             {
@@ -411,7 +405,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.Site.NavigationIdLeft,
                 Name = "Left Navigation Id",
                 Type = SiteSettingType.Int,
-                Value = "-1"
+                Value = "-1",
             },
             new SiteSetting
             {
@@ -420,7 +414,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.Site.NavigationIdMiddle,
                 Name = "Middle Navigation Id",
                 Type = SiteSettingType.Int,
-                Value = "-1"
+                Value = "-1",
             },
             new SiteSetting
             {
@@ -429,7 +423,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.Site.NavigationIdTop,
                 Name = "Top Navigation Id",
                 Type = SiteSettingType.Int,
-                Value = "-1"
+                Value = "-1",
             },
             new SiteSetting
             {
@@ -437,7 +431,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Description = "Name to append to the end of page titles",
                 Id = Keys.SiteSetting.Site.PageTitleSuffix,
                 Name = "Page Title Suffix",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -445,13 +439,8 @@ namespace Ocuda.Promenade.Models.Defaults
                 Description = "A link for 'Services at all locations' on location pages",
                 Id = Keys.SiteSetting.Site.ServicesAtAllLink,
                 Name = "Services at all link",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
-
-            #endregion Site
-
-            #region Social
-
             new SiteSetting
             {
                 Category = nameof(Keys.SiteSetting.Social),
@@ -459,7 +448,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Id = Keys.SiteSetting.Social.EmediaCardId,
                 Name = "eMedia social card id",
                 Type = SiteSettingType.Int,
-                Value = "-1"
+                Value = "-1",
             },
             new SiteSetting
             {
@@ -467,7 +456,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Description = "The URL to a Facebook profile",
                 Id = Keys.SiteSetting.Social.FacebookUrl,
                 Name = "Facebook URL",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -475,7 +464,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Description = "The URL to an Instagram profile",
                 Id = Keys.SiteSetting.Social.InstagramUrl,
                 Name = "Instagram URL",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -483,7 +472,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Description = "The Twitter/X @username a Twitter Card should be attributed to",
                 Id = Keys.SiteSetting.Social.TwitterUsername,
                 Name = "Twitter/X Username",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -491,7 +480,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Description = "The URL to a TikTok profile",
                 Id = Keys.SiteSetting.Social.TikTokUrl,
                 Name = "TikTok URL",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -499,7 +488,7 @@ namespace Ocuda.Promenade.Models.Defaults
                 Description = "The URL to a Twitter/X profile",
                 Id = Keys.SiteSetting.Social.TwitterUrl,
                 Name = "Twitter/X URL",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
             new SiteSetting
             {
@@ -507,11 +496,8 @@ namespace Ocuda.Promenade.Models.Defaults
                 Description = "The URL to a Youtube page",
                 Id = Keys.SiteSetting.Social.YoutubeUrl,
                 Name = "Youtube URL",
-                Type = SiteSettingType.StringNullable
+                Type = SiteSettingType.StringNullable,
             },
-
-            #endregion Social
-
         ];
     }
 }

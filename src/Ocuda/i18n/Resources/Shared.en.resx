@@ -365,6 +365,10 @@
     <value>Notes</value>
     <comment>Label prompting a customer to enter notes regarding their service request</comment>
   </data>
+  <data name="Now launching this Digital Library resource..." xml:space="preserve">
+    <value>Now launching this Digital Library resource...</value>
+    <comment>Default shown when the digital library launch text is added</comment>
+  </data>
   <data name="Open" xml:space="preserve">
     <value>Open</value>
     <comment>Location status message, the location is open</comment>

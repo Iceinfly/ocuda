@@ -21,20 +21,9 @@ namespace Ocuda.Promenade.Controllers
         EmediaService emediaService,
         SegmentService segmentService,
         SocialCardService socialCardService,
-        SubjectService subjectService) : BaseController<DigitalLibraryController>(context)
+        SubjectService subjectService)
+        : BaseController<DigitalLibraryController>(context)
     {
-        private readonly EmediaService _emediaService = emediaService
-            ?? throw new ArgumentNullException(nameof(emediaService));
-
-        private readonly SegmentService _segmentService = segmentService
-            ?? throw new ArgumentNullException(nameof(segmentService));
-
-        private readonly SocialCardService _socialCardService = socialCardService
-            ?? throw new ArgumentNullException(nameof(socialCardService));
-
-        private readonly SubjectService _subjectService = subjectService
-            ?? throw new ArgumentNullException(nameof(subjectService));
-
         public static void ApplyCommonMarkFormatting(IEnumerable<Emedia> emedias)
         {
             if (emedias?.Count() > 0)
@@ -46,6 +35,7 @@ namespace Ocuda.Promenade.Controllers
                         emedia.EmediaText.Description = CommonMark.CommonMarkConverter
                             .Convert(emedia.EmediaText.Description);
                     }
+
                     if (!string.IsNullOrWhiteSpace(emedia.EmediaText?.Details))
                     {
                         emedia.EmediaText.Details = CommonMark.CommonMarkConverter
@@ -76,16 +66,16 @@ namespace Ocuda.Promenade.Controllers
 
             emediaViewModel.GroupedEmedia.Add(new EmediaGroup
             {
-                Emedias = await _emediaService.GetEmediaAsync(forceReload),
+                Emedias = await emediaService.GetEmediaAsync(forceReload),
                 Segment = new Segment
                 {
                     SegmentText = new SegmentText
                     {
                         Header = allSegmentText.Header,
-                        Text = FormatForDisplay(allSegmentText)
-                    }
+                        Text = FormatForDisplay(allSegmentText),
+                    },
                 },
-                SortOrder = 1
+                SortOrder = 1,
             });
 
             foreach (var group in emediaViewModel.GroupedEmedia)
@@ -103,7 +93,7 @@ namespace Ocuda.Promenade.Controllers
         {
             var forceReload = HttpContext.Items[ItemKey.ForceReload] as bool? ?? false;
 
-            var groupedEmedia = await _emediaService.GetGroupedEmediaAsync(forceReload);
+            var groupedEmedia = await emediaService.GetGroupedEmediaAsync(forceReload);
 
             foreach (var group in groupedEmedia)
             {
@@ -127,36 +117,60 @@ namespace Ocuda.Promenade.Controllers
         {
             var forceReload = HttpContext.Items[ItemKey.ForceReload] as bool? ?? false;
 
+            bool showLaunch = false;
+
             if (!await ValidateRefererAsync(forceReload))
             {
-                return RedirectToAction(nameof(Index));
+                showLaunch = await _siteSettingService.GetSettingBoolAsync(
+                    Models.Keys.SiteSetting.Emedia.InvalidRefererShowResource,
+                    forceReload);
+
+                if (!showLaunch)
+                {
+                    return RedirectToAction(nameof(Index));
+                }
             }
 
-            var emedia = await _emediaService.GetAsync(forceReload, id, true);
+            var emedia = await emediaService.GetAsync(forceReload, id, true);
 
             if (emedia == null)
             {
                 return NotFound();
             }
 
-            var isLocalNetwork = HttpContext.Items[ItemKey.IsLocalNetwork] as bool? == true;
+            var isLocalNetwork = (HttpContext.Items[ItemKey.IsLocalNetwork] as bool?) == true;
 
             if (!emedia.IsAvailableExternally && !isLocalNetwork)
             {
                 return View("NotAvailable");
             }
 
-            if (emedia.IsHttpPost)
+            if (emedia.IsHttpPost || showLaunch)
             {
+                var launchText = await GetBySiteSettingAsync(
+                    Models.Keys.SiteSetting.Emedia.LaunchSegment,
+                    forceReload);
+
+                var launchDelay = await _siteSettingService.GetSettingIntAsync(
+                    Models.Keys.SiteSetting.Emedia.LaunchDelay,
+                    forceReload);
+
                 var launchViewModel = new LaunchViewModel
                 {
+                    LaunchDelayMs = showLaunch ? launchDelay * 1000 : 0,
+                    LaunchText = launchText?.Text,
+                    Method = emedia.IsHttpPost ? "POST" : "GET",
                     Name = emedia.Name,
-                    Uri = new Uri(emedia.RedirectUrl)
+                    Uri = new Uri(emedia.RedirectUrl),
                 };
-                foreach (var (s, sv) in QueryHelpers.ParseQuery(launchViewModel.Uri.Query))
+                if (emedia.IsHttpPost)
                 {
-                    launchViewModel.QueryStringValues.Add(s, sv);
+                    foreach (var (s, sv) in QueryHelpers.ParseQuery(launchViewModel.Uri.Query))
+                    {
+                        launchViewModel.QueryStringValues.Add(s, sv);
+                    }
                 }
+
                 return View(launchViewModel);
             }
             else
@@ -170,7 +184,7 @@ namespace Ocuda.Promenade.Controllers
         {
             var forceReload = HttpContext.Items[ItemKey.ForceReload] as bool? ?? false;
 
-            var subjects = await _subjectService.GetAllAsync(forceReload);
+            var subjects = await subjectService.GetAllAsync(forceReload);
 
             var selectedSubject = subjects.SingleOrDefault(_ => _.Slug == subject);
 
@@ -181,26 +195,26 @@ namespace Ocuda.Promenade.Controllers
 
             var filter = new EmediaFilter
             {
-                SubjectId = selectedSubject.Id
+                SubjectId = selectedSubject.Id,
             };
 
             var emediaViewModel = await GetViewModelAsync(forceReload);
 
             emediaViewModel.ActiveKey = subject;
 
-            var subjectText = await _subjectService.GetTextAsync(forceReload, selectedSubject.Id);
+            var subjectText = await subjectService.GetTextAsync(forceReload, selectedSubject.Id);
 
             emediaViewModel.GroupedEmedia.Add(new EmediaGroup
             {
                 SortOrder = 1,
-                Emedias = await _emediaService.GetEmediaAsync(forceReload, filter),
+                Emedias = await emediaService.GetEmediaAsync(forceReload, filter),
                 Segment = new Segment
                 {
                     SegmentText = new SegmentText
                     {
-                        Header = subjectText.Text
-                    }
-                }
+                        Header = subjectText.Text,
+                    },
+                },
             });
 
             foreach (var group in emediaViewModel.GroupedEmedia)
@@ -223,7 +237,7 @@ namespace Ocuda.Promenade.Controllers
 
             if (segmentId > 0)
             {
-                segmentText = await _segmentService
+                segmentText = await segmentService
                     .GetSegmentTextBySegmentIdAsync(segmentId, forceReload);
             }
 
@@ -253,14 +267,14 @@ namespace Ocuda.Promenade.Controllers
             {
                 ButtonAll = allButtonSegmentText?.Text,
                 ButtonGrouped = groupButtonSegmentText?.Text,
-                IsLocalNetwork = HttpContext.Items[ItemKey.IsLocalNetwork] as bool? == true,
+                IsLocalNetwork = (HttpContext.Items[ItemKey.IsLocalNetwork] as bool?) == true,
                 SocialCard = emediaSocial > -1
-                    ? await _socialCardService.GetByIdAsync(emediaSocial, forceReload)
-                    : null
+                    ? await socialCardService.GetByIdAsync(emediaSocial, forceReload)
+                    : null,
             };
 
             emediaViewModel.SlugsSubjects
-                .AddRange(await _subjectService.GetSlugsDescriptionsAsync(forceReload));
+                .AddRange(await subjectService.GetSlugsDescriptionsAsync(forceReload));
 
             if (emediaGroups?.Count > 0)
             {
@@ -282,7 +296,10 @@ namespace Ocuda.Promenade.Controllers
 
             var referer = Request.Headers.Referer;
 
-            if (string.IsNullOrWhiteSpace(referer)) { return false; }
+            if (string.IsNullOrWhiteSpace(referer))
+            {
+                return false;
+            }
 
             Uri refererUri;
 
@@ -295,7 +312,10 @@ namespace Ocuda.Promenade.Controllers
                 return false;
             }
 
-            if (refererUri == null) { return false; }
+            if (refererUri == null)
+            {
+                return false;
+            }
 
             if (string.IsNullOrWhiteSpace(validReferers))
             {

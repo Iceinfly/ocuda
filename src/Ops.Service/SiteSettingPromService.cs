@@ -13,20 +13,12 @@ using Ocuda.Utility.Models;
 
 namespace Ocuda.Ops.Service
 {
-    public class SiteSettingPromService
-        : BaseService<SiteSettingPromService>, ISiteSettingPromService
+    public class SiteSettingPromService(ILogger<SiteSettingPromService> logger,
+        IHttpContextAccessor httpContextAccessor,
+        ISiteSettingPromRepository siteSettingPromRepository)
+        : BaseService<SiteSettingPromService>(logger, httpContextAccessor),
+        ISiteSettingPromService
     {
-        private readonly ISiteSettingPromRepository _siteSettingPromRepository;
-
-        public SiteSettingPromService(ILogger<SiteSettingPromService> logger,
-            IHttpContextAccessor httpContextAccessor,
-            ISiteSettingPromRepository siteSettingPromRepository)
-            : base(logger, httpContextAccessor)
-        {
-            _siteSettingPromRepository = siteSettingPromRepository
-                ?? throw new ArgumentNullException(nameof(siteSettingPromRepository));
-        }
-
         /// <summary>
         /// Ensure all site settings exist in the database.
         /// </summary>
@@ -36,7 +28,7 @@ namespace Ocuda.Ops.Service
 
             foreach (var defaultSetting in SiteSettings.Get)
             {
-                var siteSetting = await _siteSettingPromRepository.FindAsync(defaultSetting.Id);
+                var siteSetting = await siteSettingPromRepository.FindAsync(defaultSetting.Id);
                 if (siteSetting == null)
                 {
                     settingsToAdd.Add(defaultSetting);
@@ -45,42 +37,44 @@ namespace Ocuda.Ops.Service
 
             if (settingsToAdd.Count > 0)
             {
-                await _siteSettingPromRepository.AddRangeAsync(settingsToAdd);
-                await _siteSettingPromRepository.SaveAsync();
+                await siteSettingPromRepository.AddRangeAsync(settingsToAdd);
+                await siteSettingPromRepository.SaveAsync();
             }
         }
 
         public async Task<ICollection<SiteSetting>> GetAllAsync()
         {
-            return await _siteSettingPromRepository.ToListAsync(_ => _.Category, _ => _.Name);
+            return await siteSettingPromRepository.ToListAsync(_ => _.Category, _ => _.Name);
         }
 
         public async Task<double> GetSettingDoubleAsync(string key)
         {
             var settingValue = await GetSettingValueAsync(key);
 
-            if (double.TryParse(settingValue, out double result))
-            {
-                return result;
-            }
-            else
-            {
-                throw new OcudaException($"Invalid value for double setting {key}: {settingValue}");
-            }
+            return double.TryParse(settingValue, out double result)
+                ? result
+                : throw new OcudaException(
+                    $"Invalid value for double setting {key}: {settingValue}");
         }
 
         public async Task<int> GetSettingIntAsync(string key)
         {
             var settingValue = await GetSettingValueAsync(key);
 
-            if (int.TryParse(settingValue, out int result))
-            {
-                return result;
-            }
-            else
-            {
-                throw new OcudaException($"Invalid value for interger setting {key}: {settingValue}");
-            }
+            return int.TryParse(settingValue, out int result)
+                ? result
+                : throw new OcudaException(
+                    $"Invalid value for interger setting {key}: {settingValue}");
+        }
+
+        public async Task<bool> GetSettingBoolAsync(string key)
+        {
+            var settingValue = await GetSettingValueAsync(key);
+
+            return bool.TryParse(settingValue, out bool result)
+                ? result
+                : throw new OcudaException(
+                    $"Invalid value for boolean setting {key}: {settingValue}");
         }
 
         public async Task<string> GetSettingStringAsync(string key)
@@ -90,7 +84,7 @@ namespace Ocuda.Ops.Service
 
         public async Task<SiteSetting> UpdateAsync(string key, string value)
         {
-            var currentSetting = await _siteSettingPromRepository.FindAsync(key);
+            var currentSetting = await siteSettingPromRepository.FindAsync(key);
 
             if (currentSetting.Type == SiteSettingType.StringNullable
                 && string.IsNullOrWhiteSpace(value))
@@ -102,60 +96,64 @@ namespace Ocuda.Ops.Service
 
             ValidateSiteSetting(currentSetting);
 
-            _siteSettingPromRepository.Update(currentSetting);
-            await _siteSettingPromRepository.SaveAsync();
+            siteSettingPromRepository.Update(currentSetting);
+            await siteSettingPromRepository.SaveAsync();
 
             // TODO: Add Promenade cache clearing for the updated setting
-
             return currentSetting;
         }
 
         public void ValidateSiteSetting(SiteSetting siteSetting)
         {
-            if (siteSetting == null)
-            {
-                throw new ArgumentNullException(nameof(siteSetting));
-            }
+            ArgumentNullException.ThrowIfNull(siteSetting);
 
             if (siteSetting.Type == SiteSettingType.Bool)
             {
                 if (!bool.TryParse(siteSetting.Value, out _))
                 {
-                    _logger.LogWarning("Invalid format for boolean site setting key {SiteSettingKey}: {SiteSettingValue}",
+                    _logger.LogWarning(
+                        "Invalid format for boolean site setting key {SiteSettingKey}: {SiteSettingValue}",
                         siteSetting.Id,
                         siteSetting.Value);
-                    throw new OcudaException($"{siteSetting.Name} requires a value of type {siteSetting.Type}.");
+                    throw new OcudaException(
+                        $"{siteSetting.Name} requires a value of type {siteSetting.Type}.");
                 }
             }
             else if (siteSetting.Type == SiteSettingType.Int
                 && !int.TryParse(siteSetting.Value, out _))
             {
-                _logger.LogWarning("Invalid format for integer site setting key {SiteSettingKey}: {SiteSettingValue}",
+                _logger.LogWarning(
+                    "Invalid format for integer site setting key {SiteSettingKey}: {SiteSettingValue}",
                     siteSetting.Id,
                     siteSetting.Value);
-                throw new OcudaException($"{siteSetting.Name} requires a value of type {siteSetting.Type}.");
+                throw new OcudaException(
+                    $"{siteSetting.Name} requires a value of type {siteSetting.Type}.");
             }
             else if (siteSetting.Type == SiteSettingType.String
                 && string.IsNullOrWhiteSpace(siteSetting.Value))
             {
-                _logger.LogError("Invalid format for string site setting key {SiteSettingKey}: {SiteSettingValue}",
+                _logger.LogError(
+                    "Invalid format for string site setting key {SiteSettingKey}: {SiteSettingValue}",
                     siteSetting.Id,
                     siteSetting.Value);
-                throw new OcudaException($"{siteSetting.Name} requires a value of type {siteSetting.Type}.");
+                throw new OcudaException(
+                    $"{siteSetting.Name} requires a value of type {siteSetting.Type}.");
             }
             else if (siteSetting.Type == SiteSettingType.Double
                 && !double.TryParse(siteSetting.Value, out _))
             {
-                _logger.LogError("Invalid format for double site setting key {SiteSettingKey}: {SiteSettingValue}",
+                _logger.LogError(
+                    "Invalid format for double site setting key {SiteSettingKey}: {SiteSettingValue}",
                     siteSetting.Id,
                     siteSetting.Value);
-                throw new OcudaException($"{siteSetting.Name} requires a value of type {siteSetting.Type}.");
+                throw new OcudaException(
+                    $"{siteSetting.Name} requires a value of type {siteSetting.Type}.");
             }
         }
 
         private async Task<string> GetSettingValueAsync(string key)
         {
-            var siteSetting = await _siteSettingPromRepository.FindAsync(key);
+            var siteSetting = await siteSettingPromRepository.FindAsync(key);
             return siteSetting.Value;
         }
     }
