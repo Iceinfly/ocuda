@@ -14,8 +14,8 @@ namespace Ocuda.Ops.Data.Ops
 {
     public class RenewCardStatsRepository(Repository<OpsContext> repositoryFacade,
         ILogger<RenewCardStatsRepository> logger)
-            : GenericRepository<OpsContext, RenewCardStats>(repositoryFacade, logger),
-            IRenewCardStatsRepository
+        : GenericRepository<OpsContext, RenewCardStats>(repositoryFacade, logger),
+        IRenewCardStatsRepository
     {
         public async Task<bool> AnyAsync()
         {
@@ -50,8 +50,8 @@ namespace Ocuda.Ops.Data.Ops
         {
             return await DbSet
                 .AsNoTracking()
-                .OrderByDescending(_ => _.Month)
-                .ThenByDescending(_ => _.Year)
+                .OrderByDescending(_ => _.Year)
+                .ThenByDescending(_ => _.Month)
                 .Take(1)
                 .Select(_ => new DateTime(_.Year, _.Month, 1))
                 .SingleOrDefaultAsync();

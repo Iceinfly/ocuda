@@ -21,9 +21,7 @@ namespace Ocuda.Ops.Data.Ops
         {
             return await DbSet
                 .AsNoTracking()
-                .Where(_ => _.ProcessedAt.HasValue
-                    && _.ProcessedAt.Value.Year >= afterMonthYear.Year
-                    && _.ProcessedAt.Value.Month > afterMonthYear.Month)
+                .Where(_ => _.ProcessedAt > afterMonthYear.AddMonths(1))
                 .Select(_ => new DateTime(_.ProcessedAt.Value.Year, _.ProcessedAt.Value.Month, 1))
                 .Distinct()
                 .ToListAsync();
