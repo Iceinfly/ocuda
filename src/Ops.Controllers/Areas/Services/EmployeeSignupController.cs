@@ -159,7 +159,11 @@ namespace Ocuda.Ops.Controllers.Areas.Services
             ArgumentNullException.ThrowIfNull(viewModel);
 
             viewModel.RequestId = id;
-            viewModel.Note?.EmployeeCardRequestId = id;
+
+            if (viewModel.Note != null)
+            {
+                viewModel.Note.EmployeeCardRequestId = id;
+            }
 
             if (string.IsNullOrWhiteSpace(viewModel.CardNumber)
                 && (viewModel.Type == EmployeeCardResult.ResultType.CardCreated
@@ -264,7 +268,10 @@ namespace Ocuda.Ops.Controllers.Areas.Services
 
             ArgumentNullException.ThrowIfNull(viewModel);
 
-            viewModel.Note?.EmployeeCardRequestId = id;
+            if (viewModel.Note != null)
+            {
+                viewModel.Note.EmployeeCardRequestId = id;
+            }
 
             if (ModelState.IsValid)
             {
