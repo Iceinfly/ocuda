@@ -101,7 +101,7 @@ namespace Ocuda.Ops.Controllers.Areas.Services
 
             var reportsNoPermissions = reportingService.GetList(new BaseFilter<string>
             {
-                Data = Models.Definitions.ReportDefinitions.ReportTypeOnlineCardRenewal,
+                Data = Models.Definitions.ReportDefinitions.ReportTypeEmployeeCards,
             });
 
             var reports = await PopulatePermissionsAsync(permissionGroupService,
