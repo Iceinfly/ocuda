@@ -80,7 +80,7 @@ namespace Ocuda.Ops.Service
             {
                 var pending = await GetPendingJobsAsync();
 
-                logger.LogDebug(
+                logger.LogTrace(
                     "Found {Count} potential jobs to schedule and {PendingCount} pending to run",
                     configurations.Count(),
                     pending.Count());
@@ -92,7 +92,7 @@ namespace Ocuda.Ops.Service
                 {
                     bool schedule = true;
 
-                    logger.LogDebug(
+                    logger.LogTrace(
                         "Found {JobType} is not pending and can potentially be scheduled",
                         configuration.Id);
 
@@ -131,7 +131,7 @@ namespace Ocuda.Ops.Service
                             if (dateTimeProvider.Now < nextRunEligible)
                             {
                                 schedule = false;
-                                logger.LogDebug("Now ({Now}) < last run ({LastRun}) + minimum elapsed ({MinimumElapsed}) can NOT schedule",
+                                logger.LogTrace("Now ({Now}) < last run ({LastRun}) + minimum elapsed ({MinimumElapsed}) can NOT schedule",
                                     dateTimeProvider.Now,
                                     lastRun?.StartedAt.ToString() ?? "never",
                                     configuration.MinimumSecondsBetweenRuns);
@@ -139,7 +139,7 @@ namespace Ocuda.Ops.Service
                             else
                             {
                                 schedule = true;
-                                logger.LogDebug("Now ({Now}) is >= last run ({LastRun}) + minimum elapsed ({MinimumElapsed}) can schedule",
+                                logger.LogTrace("Now ({Now}) is >= last run ({LastRun}) + minimum elapsed ({MinimumElapsed}) can schedule",
                                     dateTimeProvider.Now,
                                     lastRun?.StartedAt.ToString() ?? "never",
                                     configuration.MinimumSecondsBetweenRuns);
@@ -149,7 +149,7 @@ namespace Ocuda.Ops.Service
 
                     if (schedule)
                     {
-                        logger.LogDebug("Scheduling job {JobType}", configuration.Id);
+                        logger.LogTrace("Scheduling job {JobType}", configuration.Id);
                         await jobRepository.AddAsync(new Job
                         {
                             CreatedAt = dateTimeProvider.Now,
