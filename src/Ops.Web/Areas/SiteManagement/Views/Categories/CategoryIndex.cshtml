@@ -1,0 +1,234 @@
+﻿@model Ocuda.Ops.Controllers.Areas.SiteManagement.ViewModels.Categories.IndexViewModel
+
+@section header {
+    <div class="d-flex">
+        <div class="flex-grow-1 align-middle">
+            <h1 class="h2 ps-2 pb-2 flex-grow-1">
+                Media Types
+            </h1>
+        </div>
+        <div>
+            <button class="btn btn-outline-success me-2"
+                    data-bs-toggle="modal"
+                    data-bs-target="#addModal">
+                <span class="fa-solid fa-circle-plus" aria-hidden="true"></span>
+                Add Category
+            </button>
+            <a class="btn btn-outline-dark"
+               asp-controller="@Ocuda.Ops.Controllers.Areas.SiteManagement.HomeController.Name"
+               asp-action="@(nameof(Ocuda.Ops.Controllers.Areas.SiteManagement.HomeController.Index))">Back</a>
+        </div>
+    </div>
+}
+
+<div class="row">
+    <div class="col-12">
+        <div>
+            <table class="table table-sm table-bordered">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>CSS class</th>
+                        <th>Assigned Emedias</th>
+                        <th>Languages</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    @foreach (var category in Model.Categories)
+                    {
+                        <tr>
+                            <td class="align-middle">
+                                <a asp-action="@(nameof(CategoriesController.CategoryDetails))" asp-route-id="@category.Id">
+                                    @category.Name
+                                </a>
+                            </td>
+                            <td>@category.Class</td>
+                            <td>
+                                @category.CategoryEmedias.Count
+                            </td>
+                            <td class="align-middle">@string.Join(", ", category.CategoryLanguages)</td>
+                            <td class="align-middle">
+                                <button type="button"
+                                        class="btn btn-outline-primary"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#editModal"
+                                        data-id="@category.Id"
+                                        data-name="@category.Name"
+                                        data-class="@category.Class"
+                                        title="Edit Category">
+                                    <span class="fa-solid fa-gear" aria-hidden="true"></span>
+                                </button>
+                                <a asp-controller="@CategoriesController.Name"
+                                   asp-action="@(nameof(CategoriesController.CategoryDetails))"
+                                   asp-route-id="@category.Id"
+                                   class="btn btn-outline-primary"
+                                   title="Edit category content">
+                                    <span class="fa-regular fa-file-alt" aria-hidden="true"></span>
+                                </a>
+                                <button type="button"
+                                        class="btn btn-outline-danger"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#deleteModal"
+                                        data-id="@category.Id"
+                                        data-name="@category.Name"
+                                        data-emedia="@string.Join("|", category.CategoryEmedias)">
+                                    <span class="fa-solid fa-circle-minus" aria-hidden="true"></span>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<nav paginate="@Model"></nav>
+
+<form id="addForm" role="form">
+    <div modal
+         id="addModal"
+         isLarge="true"
+         name="Category"
+         type="Ocuda.Utility.TagHelpers.ModalTypes.Add">
+        <div class="alert alert-info">
+            Please ensure the class specified is in the stylesheet as a valid CSS class with the
+            desired formatting.
+        </div>
+        <input id="addName" asp-for="Category.Name" formgroup />
+        <input id="addClass" asp-for="Category.Class" formgroup />
+    </div>
+</form>
+
+<form id="editForm" role="form">
+    <input id="editCategory" asp-for="Category.Id" type="hidden" />
+
+    <div modal
+         id="editModal"
+         isLarge="true"
+         name="Category"
+         type="Ocuda.Utility.TagHelpers.ModalTypes.Edit">
+        <div class="alert alert-warning oc-edit-warning d-none">
+            <strong>
+                Please ensure the class specified is in the stylesheet as a valid CSS class with the
+                desired formatting!
+            </strong>
+        </div>
+        <input id="editName" asp-for="Category.Name" formgroup />
+        <input id="editClass" asp-for="Category.Class" formgroup />
+    </div>
+</form>
+
+<form asp-controller="@CategoriesController.Name"
+      asp-action="@(nameof(CategoriesController.DeleteCategory))"
+      method="post"
+      role="form">
+    <input id="deleteCurrentPage" asp-for="CurrentPage" type="hidden" />
+
+    <input id="deleteId" asp-for="Category.Id" type="hidden" />
+    <input id="deleteName" asp-for="Category.Name" type="hidden" />
+
+    <div modal
+         id="deleteModal"
+         name="Category"
+         type="Ocuda.Utility.TagHelpers.ModalTypes.Delete">
+        <div id="dependentWarnings" class="d-none"></div>
+    </div>
+</form>
+
+@section scripts {
+    <script>
+        $("#addForm").submit(function (e) {
+            e.preventDefault();
+            const form = $(this);
+            $.post("@(Url.Action(nameof(CategoriesController.CreateCategory), CategoriesController.Name))",
+                form.serialize(),
+                function (response) {
+                    if (response.success == true) {
+                        location.href = response.url;
+                    }
+                    else {
+                        alert(response.message);
+                        ResetSpinners(form.find(".btn-spinner"));
+                    }
+                });
+        });
+
+        function showSaveWarning(e) {
+            let currentSlugField = $(e.currentTarget);
+            let priorValue = currentSlugField.data("priorvalue");
+            if(currentSlugField.val() != priorValue) {
+                document.querySelectorAll('.oc-edit-warning').forEach(_ => {
+                    _.classList.remove('d-none');
+                });
+            } else {
+                document.querySelectorAll('.oc-edit-warning').forEach(_ => {
+                    _.classList.add('d-none');
+                });
+            };
+        }
+
+        $("#editModal").on("show.bs.modal", function (e) {
+            const button = $(e.relatedTarget);
+            $("#editCategory").val(button.data("id"));
+            $("#editName").val(button.data("name"));
+            $("#editClass").val(button.data("class"));
+            $("#editClass").data("priorvalue", button.data("class"));
+        });
+
+        document.getElementById('editClass').addEventListener('keyup', showSaveWarning);
+
+
+        $("#editForm").submit(function (e) {
+            e.preventDefault();
+            const form = $(this);
+            $.post("@(Url.Action(nameof(CategoriesController.EditCategory), CategoriesController.Name))",
+                form.serialize(),
+                function (response) {
+                if (response.success == true) {
+                    location.reload();
+                }
+                else {
+                    alert(response.message);
+                    ResetSpinners(form.find(".btn-spinner"));
+                }
+            });
+        });
+
+        $("#deleteModal").on("show.bs.modal", function (e) {
+            const button = $(e.relatedTarget);
+
+            const name = button.data("name");
+            const emedia = button.data("emedia");
+
+            const modal = $(this);
+
+            $("#deleteId").val(button.data("id"));
+            $("#deleteName").val(name);
+
+            modal.find(".modal-text").html(`Are you sure you want to delete <strong>${name}</strong>?`);
+
+            const dependentWarning = modal.find("#dependentWarnings");
+
+            if (emedia) {
+                dependentWarning.text("").removeClass("d-none");
+
+                const emedias = emedia.toString().split("|");
+
+                dependentWarning.append("<div>The following <strong>emedia</strong> use this category:</div>");
+                dependentWarning.append("<ul id=\"emediaDependents\"></ul>");
+
+                const emediaDependents = dependentWarning.find("#emediaDependents");
+
+                $.each(emedias, function (index, value) {
+                    emediaDependents.append(`<li>${value}</li>`)
+                });
+            }
+            else {
+                dependentWarning.addClass("d-none");
+            }
+        });
+    </script>
+}

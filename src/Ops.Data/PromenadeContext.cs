@@ -16,40 +16,28 @@ namespace Ocuda.Ops.Data
         public DbSet<CardDetail> CardDetails { get; set; }
         public DbSet<Card> Cards { get; set; }
         public DbSet<CarouselButtonLabel> CarouselButtonLabels { get; set; }
-
         public DbSet<CarouselButtonLabelText> CarouselButtonLabelTexts { get; set; }
-
         public DbSet<CarouselButton> CarouselButtons { get; set; }
-
         public DbSet<CarouselItem> CarouselItems { get; set; }
-
         public DbSet<CarouselItemText> CarouselItemTexts { get; set; }
-
         public DbSet<Carousel> Carousels { get; set; }
-
         public DbSet<CarouselTemplate> CarouselTemplates { get; set; }
-
         public DbSet<CarouselText> CarouselTexts { get; set; }
-
         public DbSet<Category> Categories { get; set; }
-
         public DbSet<CategoryText> CategoryTexts { get; set; }
-
         public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
-
         public DbSet<Deck> Decks { get; set; }
         public DbSet<Emedia> Emedia { get; set; }
+        public DbSet<EmediaAccess> EmediaAccesses { get; set; }
 
         public DbSet<EmediaCategory> EmediaCategories { get; set; }
-
         public DbSet<EmediaGroup> EmediaGroups { get; set; }
-
+        public DbSet<EmediaSubject> EmediaSubjects { get; set; }
         public DbSet<EmediaText> EmediaTexts { get; set; }
-
+        public DbSet<EmployeeCardDepartment> EmployeeCardDepartments { get; set; }
+        public DbSet<EmployeeCardRequest> EmployeeCardRequests { get; set; }
         public DbSet<ExternalResource> ExternalResources { get; set; }
-
         public DbSet<Feature> Features { get; set; }
-
         public DbSet<Group> Groups { get; set; }
         public DbSet<ImageFeatureItem> ImageFeatureItems { get; set; }
         public DbSet<ImageFeatureItemText> ImageFeatureItemTexts { get; set; }
@@ -82,6 +70,7 @@ namespace Ocuda.Ops.Data
         public DbSet<Podcast> Podcasts { get; set; }
         public DbSet<ProductLocationInventory> ProductLocationInventories { get; set; }
         public DbSet<Product> Products { get; set; }
+        public DbSet<RenewCardRequest> RenewCardRequests { get; set; }
         public DbSet<ScheduleRequest> ScheduleRequest { get; set; }
         public DbSet<ScheduleRequestLimit> ScheduleRequestLimits { get; set; }
         public DbSet<ScheduleRequestSubject> ScheduleRequestSubject { get; set; }
@@ -90,6 +79,8 @@ namespace Ocuda.Ops.Data
         public DbSet<SegmentText> SegmentTexts { get; set; }
         public DbSet<SiteSetting> SiteSettings { get; set; }
         public DbSet<SocialCard> SocialCards { get; set; }
+        public DbSet<Subject> Subjects { get; set; }
+        public DbSet<SubjectText> SubjectTexts { get; set; }
         public DbSet<UrlRedirectAccess> UrlRedirectAccesses { get; set; }
         public DbSet<UrlRedirect> UrlRedirects { get; set; }
         public DbSet<VolunteerForm> VolunteerForms { get; set; }
@@ -97,10 +88,7 @@ namespace Ocuda.Ops.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            if (modelBuilder == null)
-            {
-                throw new System.ArgumentNullException(nameof(modelBuilder));
-            }
+            System.ArgumentNullException.ThrowIfNull(modelBuilder);
 
             // turn off cascading deletes
             foreach (var relationship in modelBuilder.Model
@@ -126,6 +114,8 @@ namespace Ocuda.Ops.Data
                 .HasKey(_ => new { _.CategoryId, _.EmediaId });
             modelBuilder.Entity<EmediaText>()
                 .HasKey(_ => new { _.EmediaId, _.LanguageId });
+            modelBuilder.Entity<EmediaSubject>()
+                .HasKey(_ => new { _.SubjectId, _.EmediaId });
             modelBuilder.Entity<LocationInteriorImageAltText>()
                 .HasKey(_ => new { _.LocationInteriorImageId, _.LanguageId });
             modelBuilder.Entity<ImageFeatureItemText>()
@@ -158,6 +148,8 @@ namespace Ocuda.Ops.Data
                 .HasKey(_ => new { _.ScheduleRequestSubjectId, _.LanguageId });
             modelBuilder.Entity<SegmentText>()
                 .HasKey(_ => new { _.LanguageId, _.SegmentId });
+            modelBuilder.Entity<SubjectText>()
+                .HasKey(_ => new { _.LanguageId, _.SubjectId });
 
             modelBuilder.Entity<VolunteerForm>()
                 .Property(_ => _.VolunteerFormType)

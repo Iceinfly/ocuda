@@ -3,7 +3,6 @@
   <PropertyGroup>
     <AssemblyName>Ocuda.Ops.Controllers</AssemblyName>
     <Authors>Maricopa County Library District Web developers</Authors>
-    <CodeAnalysisRuleSet>../../OcudaRuleSet.ruleset</CodeAnalysisRuleSet>
     <Company>Maricopa County Library District</Company>
     <Copyright>Copyright 2018 Maricopa County Library District</Copyright>
     <LangVersion>Latest</LangVersion>
@@ -22,13 +21,33 @@
 
   <ItemGroup>
     <PackageReference Include="CommonMark.NET" Version="0.15.1" />
-    <PackageReference Include="NUglify" Version="1.21.17" />
+    <PackageReference Include="NUglify" Version="1.22.3" />
+    <PackageReference Include="Roslynator.Analyzers" Version="4.15.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Roslynator.CodeAnalysis.Analyzers" Version="4.15.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Roslynator.Formatting.Analyzers" Version="4.15.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Ocuda\MaricopaCountyAssessorHelper\MaricopaCountyAssessorHelper.csproj" />
+    <ProjectReference Include="..\Ocuda\Models\Models.csproj" />
     <ProjectReference Include="..\Ops.Service\Ops.Service.csproj" />
-    <ProjectReference Include="..\Utility\Utility.csproj" />
+    <ProjectReference Include="..\Ocuda\PolarisHelper\PolarisHelper.csproj" />
+    <ProjectReference Include="..\Ocuda\TrestleHelper\TrestleHelper.csproj" />
+    <ProjectReference Include="..\Ocuda\Utility\Utility.csproj" />
   </ItemGroup>
 
   <ItemGroup>

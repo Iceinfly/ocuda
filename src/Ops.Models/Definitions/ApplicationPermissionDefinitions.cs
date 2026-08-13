@@ -6,7 +6,12 @@ namespace Ocuda.Ops.Models.Definitions
     public static class ApplicationPermissionDefinitions
     {
         public static readonly ApplicationPermissionDefinition[] ApplicationPermissions =
-            {
+            [
+            new() {
+                Id = ApplicationPermission.CategoryManagement,
+                Info = "Manage categories such as Media Types and Subjects.",
+                Name = "Category Management"
+            },
             new() {
                 Id = ApplicationPermission.CoverIssueManagement,
                 Info = "Able to mark cover issues as resolved.",
@@ -21,6 +26,12 @@ namespace Ocuda.Ops.Models.Definitions
                 Id = ApplicationPermission.EmediaManagement,
                 Info = "Manage the Promenade Emedia page.",
                 Name = "Emedia Management"
+            },
+            new()
+            {
+                Id = ApplicationPermission.EmployeeCardAccess,
+                Info = "Access customer details in employee card management",
+                Name="Employee Card Management"
             },
             new()
             {
@@ -59,6 +70,18 @@ namespace Ocuda.Ops.Models.Definitions
                 Info = "Add and edit podcast show notes.",
                 Name = "Podcast Show Notes Management"
             },
+            new()
+            {
+                Id = ApplicationPermission.RenewCardAccess,
+                Info = "Access customer details in card renewal.",
+                Name = "Card Renewal"
+            },
+            new()
+            {
+                Id = ApplicationPermission.RenewCardManagement,
+                Info = "Manage settings related to card renewal.",
+                Name = "Card Renewal Management"
+            },
             new() {
                 Id = ApplicationPermission.RosterManagement,
                 Info = "Upload rosters and manage mapping units to locations.",
@@ -84,6 +107,6 @@ namespace Ocuda.Ops.Models.Definitions
                 Info = "Edit all pages.",
                 Name = "Web Page Content Management"
             }
-        };
+        ];
     }
 }

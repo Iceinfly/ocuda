@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Ocuda.Ops.Service.Filters;
 using Ocuda.Promenade.Models.Entities;
@@ -8,9 +8,27 @@ namespace Ocuda.Ops.Service.Interfaces.Promenade.Repositories
 {
     public interface IEmediaRepository : IGenericRepository<Emedia>
     {
+        Task ApplySlugAsync(int id, string slug);
+
+        Task DeactivateAsync(int emediaId);
+
+        void DeactivateRange(IEnumerable<Emedia> emedias, bool clearGroup);
+
+        Task<Emedia> FindAsync(string name, string link);
+
         Task<Emedia> FindAsync(int id);
+
+        Task<Emedia> FindAsync(string slug);
+
+        Task<IDictionary<int, string>> GetIdsNamesAsync();
+
         Task<Emedia> GetIncludingGroupAsync(int id);
-        Task<DataWithCount<ICollection<Emedia>>> GetPaginatedListForGroupAsync(int groupId,
-            BaseFilter filter);
+
+        Task<IDictionary<int, string>> GetMissingSlugsAsync();
+
+        Task<DataWithCount<ICollection<Emedia>>>
+            GetPaginatedListForGroupAsync(int groupId, BaseFilter filter);
+
+        Task<string> GetUnusedSlugAsync(string slug);
     }
 }

@@ -11,15 +11,13 @@ using Ocuda.Utility.Models;
 
 namespace Ocuda.Ops.Data.Ops
 {
-    public class LinkRepository
-        : OpsRepository<OpsContext, Link, int>, ILinkRepository
+    public class LinkRepository(
+        ServiceFacade.Repository<OpsContext> repositoryFacade,
+        ILogger<LinkRepository> logger)
+        : OpsRepository<OpsContext, Link, int>(repositoryFacade, logger),
+        ILinkRepository
     {
-        public LinkRepository(ServiceFacade.Repository<OpsContext> repositoryFacade,
-            ILogger<LinkRepository> logger) : base(repositoryFacade, logger)
-        {
-        }
-
-        public async Task<List<Link>> GetFileLibraryFilesAsync(int id)
+        public async Task<ICollection<Link>> GetLinkLibraryLinksAsync(int id)
         {
             return await DbSet
                 .AsNoTracking()
@@ -37,22 +35,23 @@ namespace Ocuda.Ops.Data.Ops
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<DataWithCount<ICollection<Link>>> GetPaginatedListAsync(BlogFilter filter)
+        public async Task<DataWithCount<ICollection<Link>>> GetPaginatedListAsync(LinksFilter filter)
         {
             var query = DbSet.AsNoTracking();
 
-            if (filter.LinkLibraryId.HasValue)
+            if (filter.LinkLibrary?.Id != null)
             {
-                query = query.Where(_ => _.LinkLibraryId == filter.LinkLibraryId.Value);
+                query = query.Where(_ => _.LinkLibraryId == filter.LinkLibrary.Id);
             }
 
             return new DataWithCount<ICollection<Link>>
             {
                 Count = await query.CountAsync(),
                 Data = await query
-                    .OrderByDescending(_ => _.CreatedAt)
+                    .OrderBy(_ => _.Name)
+                    .ThenBy(_ => _.Url)
                     .ApplyPagination(filter)
-                    .ToListAsync()
+                    .ToListAsync(),
             };
         }
     }

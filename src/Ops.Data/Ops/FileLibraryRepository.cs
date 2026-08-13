@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -7,30 +8,41 @@ using Ocuda.Ops.Data.Extensions;
 using Ocuda.Ops.Models.Entities;
 using Ocuda.Ops.Service.Filters;
 using Ocuda.Ops.Service.Interfaces.Ops.Repositories;
+using Ocuda.Utility.Exceptions;
 using Ocuda.Utility.Models;
 
 namespace Ocuda.Ops.Data.Ops
 {
-    public class FileLibraryRepository
-        : OpsRepository<OpsContext, FileLibrary, int>, IFileLibraryRepository
+    public class FileLibraryRepository(
+        ServiceFacade.Repository<OpsContext> repositoryFacade,
+        ILogger<FileLibraryRepository> logger)
+        : OpsRepository<OpsContext, FileLibrary, int>(repositoryFacade, logger),
+        IFileLibraryRepository
     {
-        public FileLibraryRepository(ServiceFacade.Repository<OpsContext> repositoryFacade,
-            ILogger<FileLibraryRepository> logger) : base(repositoryFacade, logger)
-        {
-        }
-
         public async Task AddLibraryFileTypesAsync(List<int> fileTypeIds, int libraryId)
         {
-            foreach (var fileType in fileTypeIds)
+            ArgumentNullException.ThrowIfNull(fileTypeIds);
+
+            foreach (var fileTypeId in fileTypeIds)
             {
-                var fileLibType = new FileLibraryFileType
+                var fileLibraryFileType = new FileLibraryFileType
                 {
                     FileLibraryId = libraryId,
-                    FileTypeId = fileType
+                    FileTypeId = fileTypeId,
                 };
-                await _context.FileLibraryFileTypes.AddAsync(fileLibType);
+                await _context.FileLibraryFileTypes.AddAsync(fileLibraryFileType);
             }
-            await _context.SaveChangesAsync();
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex) when (ex is InvalidOperationException || ex is DbUpdateException)
+            {
+                throw new OcudaException(
+                    $"Could not add file type to library: {ex.Message}",
+                    ex);
+            }
         }
 
         public override async Task<FileLibrary> FindAsync(int id)
@@ -43,13 +55,17 @@ namespace Ocuda.Ops.Data.Ops
                 .SingleOrDefaultAsync();
         }
 
-        public async Task<ICollection<FileLibrary>> GetBySectionIdAsync(int sectionId)
+        public async Task<ICollection<FileLibrary>> GetBySectionAsync(int sectionId,
+            bool? isFeatured)
         {
-            return await DbSet
-                .AsNoTracking()
-                .Where(_ => _.SectionId == sectionId)
-                .OrderBy(_ => _.Name)
-                .ToListAsync();
+            var libraries = DbSet.AsNoTracking().Where(_ => _.SectionId == sectionId);
+
+            if (isFeatured.HasValue)
+            {
+                libraries = libraries.Where(_ => _.IsFeatured == isFeatured.Value);
+            }
+
+            return await libraries.OrderBy(_ => _.Name).ToListAsync();
         }
 
         public async Task<FileLibrary> GetBySectionIdSlugAsync(int sectionId, string slug)
@@ -74,13 +90,18 @@ namespace Ocuda.Ops.Data.Ops
         {
             var query = DbSet.AsNoTracking();
 
+            if (filter.SectionId.HasValue)
+            {
+                query = query.Where(_ => _.SectionId == filter.SectionId.Value);
+            }
+
             return new DataWithCount<ICollection<FileLibrary>>
             {
                 Count = await query.CountAsync(),
                 Data = await query
                     .OrderByDescending(_ => _.Name)
                     .ApplyPagination(filter)
-                    .ToListAsync()
+                    .ToListAsync(),
             };
         }
 
@@ -94,6 +115,8 @@ namespace Ocuda.Ops.Data.Ops
 
         public async Task RemoveLibraryFileTypesAsync(List<int> fileTypeIds, int libraryId)
         {
+            ArgumentNullException.ThrowIfNull(fileTypeIds);
+
             foreach (var fileType in fileTypeIds)
             {
                 var fileLibType = _context.FileLibraryFileTypes
@@ -101,6 +124,7 @@ namespace Ocuda.Ops.Data.Ops
                      .FirstOrDefault();
                 _context.FileLibraryFileTypes.Remove(fileLibType);
             }
+
             await _context.SaveChangesAsync();
         }
     }

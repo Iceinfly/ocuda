@@ -1,12 +1,21 @@
 ﻿@model Ocuda.Ops.Controllers.Areas.SiteManagement.ViewModels.Pages.ContentPermissionsViewModel
 
-<a class="btn btn-outline-dark float-end"   
-   asp-action="@(nameof(PagesController.Index))"
-   asp-route-type="@Model.HeaderType">
-    <span class="fa-solid fa-backward"></span>
-    Back
-</a>
-<h1>Assign content permissions</h1>
+@section header {
+    <div class="d-flex justify-content-between mb-2">
+        <h1>
+            Assign content permissions
+            @if (!string.IsNullOrWhiteSpace(Model?.HeaderName))
+            {
+                <small class="text-muted">@Model.HeaderType / @Model.HeaderName</small>
+            }
+        </h1>
+        <div>
+            <a asp-action="@nameof(PagesController.Index)"
+               asp-route-type="@Model.HeaderType"
+               class="btn btn-outline-dark ms-2">Back</a>
+        </div>
+    </div>
+}
 
 <div class="row pt-1">
     <div class="col-12">
@@ -19,8 +28,8 @@
 <div class="row pt-1">
     <div class="col-12 col-sm-6">
         <div class="card">
-            <div class="card-header">
-                Available Groups
+            <div class="card-header h5">
+                Available Groups <small><em>(@(Model.AvailableGroups?.Count ?? 0))</em></small>
             </div>
             <ul class="list-group list-group-flush">
                 @if (Model.AvailableGroups?.Count > 0)
@@ -28,51 +37,59 @@
                     foreach (var availableGroup in Model.AvailableGroups)
                     {
                         <li class="list-group-item">
-                            <form asp-controller="@PagesController.Name"
-                                  asp-action="@(nameof(PagesController.AddPermissionGroup))"
+                            <form asp-action="@nameof(PagesController.AddPermissionGroup)"
+                                  asp-controller="@PagesController.Name"
                                   asp-route-headerId="@Model.HeaderId"
-                                  asp-route-permissionGroupId="@availableGroup.Key">
-                                @availableGroup.Value
-                                <button class="btn btn-link text-success float-end">
-                                    <span class="fa-solid fa-circle-plus"></span>
-                                </button>
+                                  asp-route-permissionGroupId="@availableGroup.Key"
+                                  class="d-flex align-items-center"
+                                  method="post">
+                                <div class="me-2">
+                                    <button class="btn btn-sm btn-outline-success">
+                                        <span class="fa-solid fa-circle-plus"></span>
+                                    </button>
+                                </div>
+                                <div>@availableGroup.Value</div>
                             </form>
                         </li>
                     }
                 }
                 else
                 {
-                    <li class="list-group-item">No groups available.</li>
+                    <li class="list-group-item text-danger fw-bold">No groups available.</li>
                 }
             </ul>
         </div>
     </div>
     <div class="col-12 col-sm-6">
         <div class="card">
-            <div class="card-header">
-                Assigned Groups
+            <div class="card-header h5">
+                Assigned Groups <small><em>(@(Model.AssignedGroups?.Count ?? 0))</em></small>
             </div>
             <ul class="list-group list-group-flush">
                 @if (Model.AssignedGroups?.Count > 0)
                 {
-                    foreach (var availableGroup in Model.AssignedGroups)
+                    foreach (var assignedGroup in Model.AssignedGroups)
                     {
                         <li class="list-group-item">
-                            <form asp-controller="@PagesController.Name"
-                                  asp-action="@(nameof(PagesController.RemovePermissionGroup))"
+                            <form asp-action="@nameof(PagesController.RemovePermissionGroup)"
+                                  asp-controller="@PagesController.Name"
                                   asp-route-headerId="@Model.HeaderId"
-                                  asp-route-permissionGroupId="@availableGroup.Key">
-                                @availableGroup.Value
-                                <button class="btn btn-link text-danger float-end">
-                                    <span class="fa-solid fa-circle-minus"></span>
-                                </button>
+                                  asp-route-permissionGroupId="@assignedGroup.Key"
+                                  class="d-flex align-items-center"
+                                  method="post">
+                                <div class="me-2">
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <span class="fa-solid fa-circle-minus"></span>
+                                    </button>
+                                </div>
+                                <div>@assignedGroup.Value</div>
                             </form>
                         </li>
                     }
                 }
                 else
                 {
-                    <li class="list-group-item">No groups assigned.</li>
+                    <li class="list-group-item text-danger fw-bold">No groups assigned.</li>
                 }
             </ul>
         </div>

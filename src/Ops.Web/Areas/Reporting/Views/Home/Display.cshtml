@@ -1,0 +1,76 @@
+﻿@model Ocuda.Ops.Controllers.Areas.Reporting.ViewModel.DisplayViewModel
+
+@section header {
+    <partial name="_ReportingPartial" model="Model" />
+}
+
+@if (Model.Reports?.Count() > 0)
+{
+    @foreach (var report in Model.Reports)
+    {
+        @if (Model.Reports?.Count() > 1)
+        {
+            <h2>@report.Title</h2>
+        }
+        <table class="table table-bordered table-hover table-sm table-striped mb-2">
+            @if (report.HeaderRow?.Count() > 0)
+            {
+                <thead>
+                    <tr>
+                        @foreach (var header in report.HeaderRow)
+                        {
+                            <th>@header</th>
+                        }
+                    </tr>
+                </thead>
+            }
+            <tbody>
+                @foreach (var dataRow in report.Data)
+                {
+                    <tr>
+                        @foreach (var dataItem in dataRow)
+                        {
+                            <td>@dataItem</td>
+                        }
+                    </tr>
+                }
+            </tbody>
+            @if (report.FooterRow?.Count() > 0 || report.FooterText?.Count() > 0)
+            {
+                <tfoot>
+                    @if (report.FooterRow?.Count() > 0)
+                    {
+                        <tr>
+                            @foreach (var footer in report.FooterRow)
+                            {
+                                <th>@footer</th>
+                            }
+                        </tr>
+                    }
+                    @if (report.FooterText?.Count() > 0)
+                    {
+                        <tr>
+                            @foreach (var footerText in report.FooterText)
+                            {
+                                <td>@footerText</td>
+                            }
+                        </tr>
+                    }
+                </tfoot>
+            }
+        </table>
+        <div class="col-12">
+            <em>
+                Report data as of @report.Timestamp.
+            </em>
+        </div>
+    }
+}
+else
+{
+    <div class="row">
+        <div class="col-sm-4 offset-sm-4">
+            <div class="alert alert-warning">Report results could not be found.</div>
+        </div>
+    </div>
+}

@@ -1,0 +1,142 @@
+﻿@model Ocuda.Ops.Controllers.Areas.Reporting.ViewModel.IndexViewModel
+
+@section header {
+    <partial name="_ReportingPartial" model="Model" />
+}
+
+<div class="row">
+    @if (!(Model.Reports?.Count() > 0) || !Model.Reports.Any(_ => _.IsPermittedView))
+    {
+        <div class="col-12 col-md-4 offset-md-4">
+            <div class="alert alert-info">No reports are available.</div>
+        </div>
+    }
+    else
+    {
+        @foreach (var report in Model.Reports.Where(_ => _.IsPermittedView))
+        {
+            <div class="col-12 col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-header d-flex">
+                        <div class="flex-grow-1">
+                            <span class="h5">
+                                @if (report.HasResults)
+                                {
+                                    <a asp-action="@nameof(HomeController.Details)"
+                                       asp-route-reportId="@report.Id">@report.Name</a>
+                                }
+                                else
+                                {
+                                    @report.Name
+                                }
+                            </span>
+                        </div>
+                        <div>
+                            <a class="btn btn-link p-0 text-primary"
+                               data-bs-toggle="modal"
+                               data-bs-target="#definitionModal"
+                               data-report-id="@report.Id"
+                               data-report-name="@report.Name">
+                                <span class="fas fa-circle-info"></span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">@report.Description</p>
+                    </div>
+                    @if (Model.CanAdjustPermissions || report.IsPermittedImport)
+                    {
+                        <div class="card-footer d-flex justify-content-end">
+                            @if (Model.CanAdjustPermissions)
+                            {
+                                <a class="btn btn-sm btn-outline-primary ms-2"
+                                   asp-action="@nameof(HomeController.Permissions)"
+                                   asp-route-reportId="@report.Id">
+                                    Permissions
+                                </a>
+                            }
+                            @if (report.IsPermittedImport)
+                            {
+                                <a class="btn btn-sm btn-outline-primary ms-2"
+                                   data-bs-target="#reportingImportModal"
+                                   data-bs-toggle="modal"
+                                   data-report-accept="@string.Join(',', report.ImportFileTypes)"
+                                   data-report-period="@report.Period"
+                                   data-report-id="@report.Id">Import Data</a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<!-- modal to show report definition -->
+<div aria-hidden="true"
+     aria-labelledby="definitionModalLabel"
+     class="modal fade"
+     id="definitionModal"
+     tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="definitionModalLabel">Report definition</h1>
+                <button aria-label="Close"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        type="button"></button>
+            </div>
+            <div class="modal-body" id="definitionModalContent">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary"
+                        data-bs-dismiss="modal"
+                        type="button">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- end modal to show report definition -->
+
+<nav paginate="@Model"></nav>
+
+@if (Model.Reports.Any(_ => _.IsPermittedImport))
+{
+    <partial name="_ReportingImportPartial" model="Model.ImportViewModel" />
+
+    @section Scripts {
+        <script>
+            // code for definition pop-up
+            const definitionDetailsPath = "@Url.Action(nameof(HomeController.Definition))";
+            const definitionModalContent = document.getElementById('definitionModalContent');
+
+            document.getElementById('definitionModal').addEventListener('show.bs.modal', event => {
+                document
+                    .getElementById('definitionModalLabel')
+                    .innerText = event.relatedTarget.dataset.reportName;
+                definitionModalContent.innerHTML = ocudaOpsLoadingHtml;
+                const link = new URL(`${location.origin}${definitionDetailsPath}`);
+                const params = new URLSearchParams(link.search);
+                params.append('reportId', event.relatedTarget.dataset.reportId);
+
+                fetch(new URL(`${link.origin}${link.pathname}?${params}`), { method: 'GET' })
+                    .then(async (response) =>  {
+                        if(response.ok) {
+                            definitionModalContent.innerHTML = await response.text();
+                        }
+                        else {
+                            definitionModalContent.innerText
+                                = `A server error occurred looking up that data: ${response.statusText}`;
+                        }
+                    })
+                    .catch((error) => {
+                        definitionModalContent.innerText
+                            = `An error occurred looking up that data: ${error.message}`;
+                    });
+            });
+        </script>
+    }
+}

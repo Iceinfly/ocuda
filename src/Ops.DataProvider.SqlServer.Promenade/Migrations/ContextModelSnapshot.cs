@@ -17,7 +17,7 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Promenade.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.20")
+                .HasAnnotation("ProductVersion", "8.0.25")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -214,6 +214,11 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Promenade.Migrations
                     b.Property<int>("LanguageId")
                         .HasColumnType("int");
 
+                    b.Property<string>("AltText")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
@@ -362,8 +367,17 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Promenade.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("GroupId")
+                    b.Property<int?>("GroupId")
                         .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsAvailableExternally")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsHttpPost")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -375,11 +389,37 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Promenade.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("GroupId");
 
                     b.ToTable("Emedia");
+                });
+
+            modelBuilder.Entity("Ocuda.Promenade.Models.Entities.EmediaAccess", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AccessDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("EmediaId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmediaId");
+
+                    b.ToTable("EmediaAccesses");
                 });
 
             modelBuilder.Entity("Ocuda.Promenade.Models.Entities.EmediaCategory", b =>
@@ -423,6 +463,21 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Promenade.Migrations
                     b.ToTable("EmediaGroups");
                 });
 
+            modelBuilder.Entity("Ocuda.Promenade.Models.Entities.EmediaSubject", b =>
+                {
+                    b.Property<int>("SubjectId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EmediaId")
+                        .HasColumnType("int");
+
+                    b.HasKey("SubjectId", "EmediaId");
+
+                    b.HasIndex("EmediaId");
+
+                    b.ToTable("EmediaSubjects");
+                });
+
             modelBuilder.Entity("Ocuda.Promenade.Models.Entities.EmediaText", b =>
                 {
                     b.Property<int>("EmediaId")
@@ -445,6 +500,101 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Promenade.Migrations
                     b.HasIndex("LanguageId");
 
                     b.ToTable("EmediaTexts");
+                });
+
+            modelBuilder.Entity("Ocuda.Promenade.Models.Entities.EmployeeCardDepartment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsSelectable")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("EmployeeCardDepartments");
+                });
+
+            modelBuilder.Entity("Ocuda.Promenade.Models.Entities.EmployeeCardRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("BirthDate")
+                        .IsRequired()
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CardNumber")
+                        .HasMaxLength(13)
+                        .HasColumnType("nvarchar(13)");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("DepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("EmployeeNumber")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("LanguageId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("StreetAddress")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ZipCode")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("LanguageId");
+
+                    b.ToTable("EmployeeCardRequests");
                 });
 
             modelBuilder.Entity("Ocuda.Promenade.Models.Entities.ExternalResource", b =>
@@ -1709,6 +1859,53 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Promenade.Migrations
                     b.ToTable("ProductLocationInventories");
                 });
 
+            modelBuilder.Entity("Ocuda.Promenade.Models.Entities.RenewCardRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Barcode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("GuardianBarcode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("GuardianName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDiscarded")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("LanguageId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("SameAddress")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LanguageId");
+
+                    b.ToTable("RenewCardRequests");
+                });
+
             modelBuilder.Entity("Ocuda.Promenade.Models.Entities.ScheduleRequest", b =>
                 {
                     b.Property<int>("Id")
@@ -2017,6 +2214,49 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Promenade.Migrations
                     b.ToTable("SocialCards");
                 });
 
+            modelBuilder.Entity("Ocuda.Promenade.Models.Entities.Subject", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Subjects");
+                });
+
+            modelBuilder.Entity("Ocuda.Promenade.Models.Entities.SubjectText", b =>
+                {
+                    b.Property<int>("LanguageId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SubjectId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("LanguageId", "SubjectId");
+
+                    b.HasIndex("SubjectId");
+
+                    b.ToTable("SubjectTexts");
+                });
+
             modelBuilder.Entity("Ocuda.Promenade.Models.Entities.UrlRedirect", b =>
                 {
                     b.Property<int>("Id")
@@ -2309,10 +2549,20 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Promenade.Migrations
                     b.HasOne("Ocuda.Promenade.Models.Entities.EmediaGroup", "Group")
                         .WithMany("Emedias")
                         .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Group");
+                });
+
+            modelBuilder.Entity("Ocuda.Promenade.Models.Entities.EmediaAccess", b =>
+                {
+                    b.HasOne("Ocuda.Promenade.Models.Entities.Emedia", "Emedia")
+                        .WithMany()
+                        .HasForeignKey("EmediaId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Group");
+                    b.Navigation("Emedia");
                 });
 
             modelBuilder.Entity("Ocuda.Promenade.Models.Entities.EmediaCategory", b =>
@@ -2344,6 +2594,25 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Promenade.Migrations
                     b.Navigation("Segment");
                 });
 
+            modelBuilder.Entity("Ocuda.Promenade.Models.Entities.EmediaSubject", b =>
+                {
+                    b.HasOne("Ocuda.Promenade.Models.Entities.Emedia", "Emedia")
+                        .WithMany()
+                        .HasForeignKey("EmediaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ocuda.Promenade.Models.Entities.Subject", "Subject")
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Emedia");
+
+                    b.Navigation("Subject");
+                });
+
             modelBuilder.Entity("Ocuda.Promenade.Models.Entities.EmediaText", b =>
                 {
                     b.HasOne("Ocuda.Promenade.Models.Entities.Emedia", "Emedia")
@@ -2359,6 +2628,25 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Promenade.Migrations
                         .IsRequired();
 
                     b.Navigation("Emedia");
+
+                    b.Navigation("Language");
+                });
+
+            modelBuilder.Entity("Ocuda.Promenade.Models.Entities.EmployeeCardRequest", b =>
+                {
+                    b.HasOne("Ocuda.Promenade.Models.Entities.EmployeeCardDepartment", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ocuda.Promenade.Models.Entities.Language", "Language")
+                        .WithMany()
+                        .HasForeignKey("LanguageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Department");
 
                     b.Navigation("Language");
                 });
@@ -2797,6 +3085,17 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Promenade.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("Ocuda.Promenade.Models.Entities.RenewCardRequest", b =>
+                {
+                    b.HasOne("Ocuda.Promenade.Models.Entities.Language", "Language")
+                        .WithMany()
+                        .HasForeignKey("LanguageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Language");
+                });
+
             modelBuilder.Entity("Ocuda.Promenade.Models.Entities.ScheduleRequest", b =>
                 {
                     b.HasOne("Ocuda.Promenade.Models.Entities.ScheduleRequestSubject", "ScheduleRequestSubject")
@@ -2843,6 +3142,25 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Promenade.Migrations
                     b.Navigation("Language");
 
                     b.Navigation("Segment");
+                });
+
+            modelBuilder.Entity("Ocuda.Promenade.Models.Entities.SubjectText", b =>
+                {
+                    b.HasOne("Ocuda.Promenade.Models.Entities.Language", "Language")
+                        .WithMany()
+                        .HasForeignKey("LanguageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ocuda.Promenade.Models.Entities.Subject", "Subject")
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Language");
+
+                    b.Navigation("Subject");
                 });
 
             modelBuilder.Entity("Ocuda.Promenade.Models.Entities.UrlRedirectAccess", b =>

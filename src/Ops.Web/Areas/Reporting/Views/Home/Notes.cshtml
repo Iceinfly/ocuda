@@ -1,0 +1,31 @@
+﻿@model Ocuda.Ops.Controllers.Areas.Reporting.ViewModel.NotesViewModel
+
+@section header {
+    <partial name="_ReportingPartial" model="Model" />
+}
+
+<table class="table table-bordered table-hover table-sm table-striped">
+    <thead>
+        <tr>
+            <th>Timestamp</th>
+            <th>User</th>
+            <th>Notes</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var note in Model.Notes.OrderBy(_ => _.CreatedAt))
+        {
+            <tr>
+                <td>@note.CreatedAt.ToString()</td>
+                <td>
+                    <a asp-action="@nameof(Ocuda.Ops.Controllers.ProfileController.Index)"
+                       asp-area=""
+                       asp-controller="@Ocuda.Ops.Controllers.ProfileController.Name"
+                       asp-route-id="@note.CreatedByUser.Username"
+                       target="_blank">@note.CreatedByUser.Name</a>
+                </td>
+                <td>@note.Note</td>
+            </tr>
+        }
+    </tbody>
+</table>

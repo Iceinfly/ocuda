@@ -1,0 +1,45 @@
+﻿@model Ocuda.Ops.Controllers.Areas.Reporting.ViewModel.ReportingViewModelBase
+
+<div class="d-flex justify-content-between mb-2">
+    <h1>
+        @Model.Heading
+        @if (!string.IsNullOrEmpty(Model.SecondaryHeading))
+        {
+            <small class="text-muted">@Model.SecondaryHeading</small>
+        }
+    </h1>
+    <div class="pt-1 d-print-none">
+        @foreach (var navKey in Model.Navigations.Keys)
+        {
+            if (Model.Navigations[navKey] == "import")
+            {
+                @if (Model.Report != null)
+                {
+                    <a class="btn btn-outline-dark ms-2"
+                       data-bs-target="#reportingImportModal"
+                       data-bs-toggle="modal"
+                       data-report-accept="@string.Join(',', Model.Report.ImportFileTypes)"
+                       data-report-period="@Model.Report.Period"
+                       data-report-id="@Model.Report.Id">Import Data</a>
+                }
+            }
+            else
+            {
+                <a class="btn btn-outline-dark ms-2"
+                   href="@Model.Navigations[navKey]">@navKey</a>
+            }
+        }
+        @if (!string.IsNullOrEmpty(Model.BackLink))
+        {
+            <a class="btn btn-outline-dark ms-2"
+               href="@Model.BackLink">Back</a>
+        }
+        else
+        {
+            <a class="btn btn-outline-dark ms-2"
+               asp-area="@(Model.IsIndex ? "" : Ocuda.Ops.Controllers.Areas.Reporting.HomeController.Area)"
+               asp-controller="@Ocuda.Ops.Controllers.HomeController.Name"
+               asp-action="@nameof(Ocuda.Ops.Controllers.HomeController.Index)">Back</a>
+        }
+    </div>
+</div>

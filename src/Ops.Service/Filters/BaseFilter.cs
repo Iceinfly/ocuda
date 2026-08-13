@@ -17,4 +17,9 @@
         public int? Skip { get; set; }
         public int? Take { get; set; }
     }
+
+    public class BaseFilter<T>(int? page = null, int take = 15) : BaseFilter(page, take)
+    {
+        public T Data { get; set; }
+    }
 }

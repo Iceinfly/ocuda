@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.1.32407.343
+# Visual Studio Version 18
+VisualStudioVersion = 18.5.11801.241
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{53256F5C-24FD-48B1-9419-14FBC4C45348}"
 	ProjectSection(SolutionItems) = preProject
@@ -10,6 +10,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 		.gitattributes = .gitattributes
 		.gitignore = .gitignore
+		.sa1201ierrc = .sa1201ierrc
 		build.bash = build.bash
 		CHANGELOG.md = CHANGELOG.md
 		.github\workflows\ci.yml = .github\workflows\ci.yml
@@ -22,7 +23,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Dockerfile_promenade = Dockerfile_promenade
 		.github\workflows\dotnet-outdated.yml = .github\workflows\dotnet-outdated.yml
 		LICENSE = LICENSE
-		OcudaRuleSet.ruleset = OcudaRuleSet.ruleset
 		README.md = README.md
 	EndProjectSection
 EndProject
@@ -52,7 +52,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Promenade.Service", "src\Pr
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Ocuda", "Ocuda", "{FC70E8FE-76E9-4D23-8D85-F219DD8BAC37}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Utility", "src\Utility\Utility.csproj", "{23FF5EAE-E9D1-4CAA-B341-B460F9F7D24D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Utility", "src\Ocuda\Utility\Utility.csproj", "{23FF5EAE-E9D1-4CAA-B341-B460F9F7D24D}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Ops.DataProviders", "Ops.DataProviders", "{F570326D-0833-47E2-B7AB-0813AD74BF8A}"
 EndProject
@@ -79,13 +79,27 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Ops", "Ops", "{3138C719-120
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ops.Data.Test", "test\Ops\Ops.Data.Test\Ops.Data.Test.csproj", "{2D056120-3B32-4188-99FA-6603FD7A7C8A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "i18n", "src\i18n\i18n.csproj", "{E00F5EBE-AB6C-4BE4-A977-A4988CA04A57}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "i18n", "src\Ocuda\i18n\i18n.csproj", "{E00F5EBE-AB6C-4BE4-A977-A4988CA04A57}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "i18n", "i18n", "{1C0384E0-C8AD-46D9-9319-C75D67E6474E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "i18n.Test", "test\i18n\i18n.Test\i18n.Test.csproj", "{28C9B95E-DD9B-458B-86EC-37B265D66181}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SlideUploader", "src\SlideUploader\SlideUploader.csproj", "{0DF031C8-95B2-48D1-ACD9-01E56B10F3D6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SlideUploader", "src\Ocuda\SlideUploader\SlideUploader.csproj", "{0DF031C8-95B2-48D1-ACD9-01E56B10F3D6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Models", "src\Ocuda\Models\Models.csproj", "{C01EBE34-9964-4CED-A775-4D2139443132}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PolarisHelper", "src\Ocuda\PolarisHelper\PolarisHelper.csproj", "{E11E3598-BE6D-C9D8-D480-4EE48E7F4120}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TrestleHelper", "src\Ocuda\TrestleHelper\TrestleHelper.csproj", "{406EDF3E-A118-4C12-9BC3-1C57C2C18CC8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaricopaCountyAssessorHelper", "src\Ocuda\MaricopaCountyAssessorHelper\MaricopaCountyAssessorHelper.csproj", "{37847C78-513E-40FD-B954-1C89FAFAB836}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ops.Service.Test", "test\Ops\Ops.Service.Test\Ops.Service.Test.csproj", "{1E0D60D5-3313-4A71-AA0A-F860C0A9914B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Ocuda", "Ocuda", "{DE93E337-44E9-4D40-BE31-99D5670B3ECC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ocuda.Utility.Test", "test\Ocuda\Ocuda.Utility.Test\Ocuda.Utility.Test.csproj", "{14FED238-C488-4BE3-8927-E608F306F7C5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -165,6 +179,30 @@ Global
 		{0DF031C8-95B2-48D1-ACD9-01E56B10F3D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0DF031C8-95B2-48D1-ACD9-01E56B10F3D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0DF031C8-95B2-48D1-ACD9-01E56B10F3D6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C01EBE34-9964-4CED-A775-4D2139443132}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C01EBE34-9964-4CED-A775-4D2139443132}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C01EBE34-9964-4CED-A775-4D2139443132}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C01EBE34-9964-4CED-A775-4D2139443132}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E11E3598-BE6D-C9D8-D480-4EE48E7F4120}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E11E3598-BE6D-C9D8-D480-4EE48E7F4120}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E11E3598-BE6D-C9D8-D480-4EE48E7F4120}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E11E3598-BE6D-C9D8-D480-4EE48E7F4120}.Release|Any CPU.Build.0 = Release|Any CPU
+		{406EDF3E-A118-4C12-9BC3-1C57C2C18CC8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{406EDF3E-A118-4C12-9BC3-1C57C2C18CC8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{406EDF3E-A118-4C12-9BC3-1C57C2C18CC8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{406EDF3E-A118-4C12-9BC3-1C57C2C18CC8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{37847C78-513E-40FD-B954-1C89FAFAB836}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{37847C78-513E-40FD-B954-1C89FAFAB836}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{37847C78-513E-40FD-B954-1C89FAFAB836}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{37847C78-513E-40FD-B954-1C89FAFAB836}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1E0D60D5-3313-4A71-AA0A-F860C0A9914B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1E0D60D5-3313-4A71-AA0A-F860C0A9914B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1E0D60D5-3313-4A71-AA0A-F860C0A9914B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1E0D60D5-3313-4A71-AA0A-F860C0A9914B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{14FED238-C488-4BE3-8927-E608F306F7C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{14FED238-C488-4BE3-8927-E608F306F7C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{14FED238-C488-4BE3-8927-E608F306F7C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{14FED238-C488-4BE3-8927-E608F306F7C5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -192,6 +230,13 @@ Global
 		{1C0384E0-C8AD-46D9-9319-C75D67E6474E} = {EF2E402F-3D9C-4EAD-93A2-68D759A003A7}
 		{28C9B95E-DD9B-458B-86EC-37B265D66181} = {1C0384E0-C8AD-46D9-9319-C75D67E6474E}
 		{0DF031C8-95B2-48D1-ACD9-01E56B10F3D6} = {FC70E8FE-76E9-4D23-8D85-F219DD8BAC37}
+		{C01EBE34-9964-4CED-A775-4D2139443132} = {FC70E8FE-76E9-4D23-8D85-F219DD8BAC37}
+		{E11E3598-BE6D-C9D8-D480-4EE48E7F4120} = {FC70E8FE-76E9-4D23-8D85-F219DD8BAC37}
+		{406EDF3E-A118-4C12-9BC3-1C57C2C18CC8} = {FC70E8FE-76E9-4D23-8D85-F219DD8BAC37}
+		{37847C78-513E-40FD-B954-1C89FAFAB836} = {FC70E8FE-76E9-4D23-8D85-F219DD8BAC37}
+		{1E0D60D5-3313-4A71-AA0A-F860C0A9914B} = {3138C719-1208-42FE-8D35-B79DA1529219}
+		{DE93E337-44E9-4D40-BE31-99D5670B3ECC} = {EF2E402F-3D9C-4EAD-93A2-68D759A003A7}
+		{14FED238-C488-4BE3-8927-E608F306F7C5} = {DE93E337-44E9-4D40-BE31-99D5670B3ECC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E2592F73-781B-49DC-8020-540473F814F7}

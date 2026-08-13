@@ -1,0 +1,502 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Data.Common;
+using System.Linq;
+using System.Threading.Tasks;
+using Clc.Polaris.Api;
+using Clc.Polaris.Api.Configuration;
+using Clc.Polaris.Api.Models;
+using Clc.Polaris.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Ocuda.Models;
+using Ocuda.PolarisHelper.Models;
+using Ocuda.Utility.Exceptions;
+using Ocuda.Utility.Keys;
+using Ocuda.Utility.Services.Interfaces;
+
+namespace Ocuda.PolarisHelper
+{
+    public class PolarisHelper : IPolarisHelper
+    {
+        private const int CacheCodesHours = 1;
+        private const int PAPIInvalidEmailErrorCode = -3518;
+        private readonly IOcudaCache _cache;
+        private readonly IConfiguration _config;
+        private readonly PolarisContext _context;
+        private readonly ILogger<PolarisHelper> _logger;
+        private readonly IPapiClient _papiClient;
+
+        public PolarisHelper(IOcudaCache cache,
+            IConfiguration config,
+            ILogger<PolarisHelper> logger)
+        {
+            ArgumentNullException.ThrowIfNull(cache);
+            ArgumentNullException.ThrowIfNull(config);
+            ArgumentNullException.ThrowIfNull(logger);
+
+            _cache = cache;
+            _config = config;
+            _logger = logger;
+
+            var settings = new PapiSettings();
+            _config.GetSection(PapiSettings.SECTION_NAME).Bind(settings);
+            _papiClient = new PapiClient(settings)
+            {
+                AllowStaffOverrideRequests = false
+            };
+
+            IsConfigured = ValidateConfiguration();
+        }
+
+        public PolarisHelper(IOcudaCache cache,
+            IConfiguration config,
+            PolarisContext context,
+            ILogger<PolarisHelper> logger)
+        {
+            ArgumentNullException.ThrowIfNull(cache);
+            ArgumentNullException.ThrowIfNull(config);
+            ArgumentNullException.ThrowIfNull(context);
+            ArgumentNullException.ThrowIfNull(logger);
+
+            _cache = cache;
+            _config = config;
+            _context = context;
+            _logger = logger;
+
+            var settings = new PapiSettings();
+            _config.GetSection(PapiSettings.SECTION_NAME).Bind(settings);
+            _papiClient = new PapiClient(settings);
+
+            IsConfigured = ValidateConfiguration();
+        }
+
+        public bool IsConfigured { get; }
+
+        public bool AuthenticateCustomer(string barcode, string password)
+        {
+            var validateResult = _papiClient.PatronValidate(barcode, password);
+
+            if (validateResult.Exception != null)
+            {
+                _logger.LogError(validateResult.Exception,
+                    "Error authenticating Polaris account through PAPI");
+                throw new OcudaException("Error authenticating customer", validateResult.Exception);
+            }
+
+            return validateResult?.Data != null;
+        }
+
+        public CreateRegistrationResult CreateCustomerRegistration(Customer customer)
+        {
+            ArgumentNullException.ThrowIfNull(customer);
+
+            // Set password to last 4 digits of phone number
+            var password = customer.PhoneNumber[^4..];
+
+            var registrationData = new PatronRegistrationData
+            {
+                AddrCheckDate = customer.AddressVerificationDate,
+                Barcode = customer.CustomerIdNumber,
+                Birthdate = customer.BirthDate,
+                // Set delivery to email
+                DeliveryOptionID = 2,
+                EmailAddress = customer.EmailAddress,
+                ExpirationDate = customer.ExpirationDate,
+                LogonBranchID = _papiClient.OrganizationId,
+                LogonUserID = _papiClient.UserId,
+                LogonWorkstationID = _papiClient.WorkstationId,
+                NameFirst = customer.NameFirst,
+                NameLast = customer.NameLast,
+                Password = password,
+                Password2 = password,
+                PatronBranchID = _papiClient.OrganizationId,
+                PatronCode = customer.CustomerCodeId,
+                PhoneVoice1 = customer.PhoneNumber,
+                User1 = customer.UserDefinedField1,
+                User4 = customer.UserDefinedField4,
+                User5 = customer.UserDefinedField5
+            };
+
+            foreach (var address in customer.Addresses)
+            {
+                registrationData.Addresses.Add(
+                    new PatronRegistrationData.PatronRegistrationAddressData
+                    {
+                        City = address.City,
+                        CountryID = address.CountryId,
+                        County = address.County,
+                        PostalCode = address.PostalCode,
+                        State = address.State,
+                        StreetOne = address.StreetAddressOne
+                    });
+            }
+
+            var createResult = new CreateRegistrationResult();
+
+            var registrationResults = _papiClient.PatronRegistrationCreateV2(registrationData);
+
+            if (registrationResults.Exception != null)
+            {
+                _logger.LogError("PatronRegistrationCreate PAPI call was not successful: {ErrorMessage}",
+                    registrationResults.Exception.Message);
+            }
+            else if (!registrationResults.Response.IsSuccessStatusCode)
+            {
+                _logger.LogError("PatronRegistrationCreate PAPI call was not successful after {Elapsed} ms: {StatusCode}",
+                    registrationResults.ResponseTime,
+                    registrationResults.Response.StatusCode);
+            }
+            else
+            {
+                if (registrationResults.Data.PAPIErrorCode != 0)
+                {
+                    _logger.LogError("PAPI error after {Elapsed} ms: {PAPIErrorCode} {PAPIErrorMessage}",
+                        registrationResults.ResponseTime,
+                        registrationResults.Data.PAPIErrorCode,
+                        registrationResults.Data.ErrorMessage);
+
+                    createResult.ErrorMessage = registrationResults.Data.ErrorMessage;
+                }
+                else if (registrationResults.Data.PAPIErrorCode == 0)
+                {
+                    createResult.Success = true;
+                }
+            }
+
+            return createResult;
+        }
+
+        public async Task<List<CustomerBlock>> GetCustomerBlocksAsync(int customerId)
+        {
+            try
+            {
+                var blocks = await _context.Database
+                    .SqlQuery<CustomerBlock>(@$"SELECT PS.PatronStopID AS BlockId, PSD.Description
+                    FROM Polaris.PatronStops as PS (NOLOCK)
+                    INNER JOIN Polaris.PatronStopDescriptions as PSD (NOLOCK)
+                    on PS.PatronStopId = PSD.PatronStopId
+                    WHERE PS.PatronID = {customerId}")
+                    .ToListAsync();
+
+                var freeTextBlocks = await _context.Database
+                    .SqlQuery<CustomerBlock>(@$"SELECT NULL AS BlockId, FreeTextBlock AS Description
+                    FROM Polaris.PatronFreeTextBlocks (NOLOCK)
+                    WHERE PatronID = {customerId}")
+                    .ToListAsync();
+
+                blocks.AddRange(freeTextBlocks);
+
+                return blocks;
+            }
+            catch (Exception ex) when (ex is DbException || ex is InvalidOperationException)
+            {
+                _logger.LogError(ex, "Error querying Polaris blocks for patron {PatronId}",
+                    customerId);
+                throw new OcudaException("Error retrieving customer blocks", ex);
+            }
+        }
+
+        public async Task<string> GetCustomerCodeNameAsync(int customerCodeId)
+        {
+            var patronCodes = await _cache
+                .GetObjectFromCacheAsync<List<PatronCodeRow>>(Cache.PolarisPatronCodes);
+
+            if (patronCodes == null)
+            {
+                var patronCodesResult = _papiClient.PatronCodesGet();
+                if (patronCodesResult?.Exception != null)
+                {
+                    _logger.LogError(patronCodesResult.Exception,
+                        "Error getting Polaris patron codes through PAPI");
+                    throw new OcudaException("Error resolving patron code name",
+                        patronCodesResult.Exception);
+                }
+
+                patronCodes = patronCodesResult.Data.PatronCodesRows;
+                await _cache.SaveToCacheAsync(Cache.PolarisPatronCodes,
+                    patronCodes,
+                    CacheCodesHours);
+            }
+
+            return patronCodes
+                .Where(_ => _.PatronCodeID == customerCodeId)
+                .Select(_ => _.Description)
+                .SingleOrDefault();
+        }
+
+        public Customer GetCustomerData(string barcode, string password)
+        {
+            var patronDataResult = _papiClient
+                .PatronBasicDataGet(barcode, password, addresses: true);
+
+            if (patronDataResult?.Exception != null)
+            {
+                _logger.LogError(patronDataResult.Exception,
+                    "Error getting Polaris account data through PAPI");
+                throw new OcudaException("Error accessing Polaris records",
+                    patronDataResult.Exception);
+            }
+
+            var patronData = patronDataResult?.Data?.PatronBasicData;
+
+            return patronData == null ? null : GetCustomerInfo(patronData);
+        }
+
+        public Customer GetCustomerDataOverride(string barcode)
+        {
+            var patronDataResult = _papiClient
+                .PatronBasicDataGet(barcode, addresses: true, notes: true);
+
+            if (patronDataResult?.Exception != null)
+            {
+                _logger.LogError(patronDataResult.Exception,
+                    "Error getting Polaris account data through PAPI override");
+                throw new OcudaException("Error accessing Polaris records",
+                    patronDataResult.Exception);
+            }
+
+            var patronData = patronDataResult?.Data?.PatronBasicData;
+
+            return patronData == null ? null : GetCustomerInfo(patronData);
+        }
+
+        public async Task<int?> GetOrganizationIdFormerDirect(string formerBarcode)
+        {
+            try
+            {
+                var formerBarcodeQuery = await _context.Database.SqlQuery<BarcodeOrgId>(
+                    @$"SELECT pr.FormerID [Barcode], p.OrganizationID
+                    FROM Polaris.PatronRegistration pr (NOLOCK)
+                    INNER JOIN Polaris.Patrons p (NOLOCK) ON pr.PatronID = p.PatronID
+                    WHERE pr.FormerID = {formerBarcode}")
+                    .ToListAsync();
+
+                return formerBarcodeQuery.FirstOrDefault()?.OrganizationID;
+            }
+            catch (Exception ex) when (ex is DbException || ex is InvalidOperationException)
+            {
+                _logger.LogError(ex, "Error querying Polaris organization for former barcode {FormerBarcode}",
+                    formerBarcode);
+                throw new OcudaException("Error retrieving based on former barcode", ex);
+            }
+        }
+
+        public async Task<IDictionary<string, int>> GetOrganizationIdsBatchDirect(IEnumerable<string> barcodes)
+        {
+            ArgumentNullException.ThrowIfNull(barcodes);
+            try
+            {
+                return await _context.Database
+                    .SqlQuery<BarcodeOrgId>($"SELECT Barcode, OrganizationID FROM Polaris.Patrons (NOLOCK)")
+                    .Where(_ => barcodes.Contains(_.Barcode))
+                    .ToDictionaryAsync(k => k.Barcode, v => v.OrganizationID);
+            }
+            catch (Exception ex) when (ex is DbException || ex is InvalidOperationException)
+            {
+                _logger.LogError(ex, "Error querying Polaris organization id for barcodes {Barcodes}",
+                    barcodes);
+                throw new OcudaException("Error retrieving customer organization id", ex);
+            }
+        }
+
+        public IEnumerable<Organization> GetOrganizations()
+        {
+            var orgGetResult = _papiClient.OrganizationsGet();
+            if (orgGetResult.Exception != null)
+            {
+                _logger.LogError(orgGetResult.Exception,
+                    "Error getting Polaris organizations through PAPI");
+                throw new OcudaException("Error accessing Polaris records",
+                    orgGetResult.Exception);
+            }
+
+            return orgGetResult.Data.OrganizationsGetRows.Select(_ => new Organization
+            {
+                Abbreviation = _.Abbreviation,
+                DisplayName = _.DisplayName,
+                Name = _.Name,
+                OrganizationCodeID = _.OrganizationCodeID,
+                OrganizationID = _.OrganizationID,
+                ParentOrganizationID = _.ParentOrganizationID
+            });
+        }
+
+        public RenewRegistrationResult RenewCustomerRegistration(string barcode, string email)
+        {
+            var date = DateTime.Now.AddYears(1);
+            var updateParams = new PatronUpdateParams
+            {
+                BranchId = _papiClient.OrganizationId,
+                UserId = _papiClient.UserId,
+                LogonWorkstationId = _papiClient.WorkstationId,
+                ExpirationDate = date,
+                AddrCheckDate = date,
+                EmailAddress = email
+            };
+
+            var renewResult = new RenewRegistrationResult();
+
+            var updateResults = _papiClient.PatronUpdate(barcode, updateParams);
+
+            if (updateResults.Exception != null)
+            {
+                _logger.LogError("PAPI call was not successful: {ErrorMessage}",
+                    updateResults.Exception.Message);
+            }
+            else if (!updateResults.Response.IsSuccessStatusCode)
+            {
+                _logger.LogError("PAPI call was not successful after {Elapsed} ms: {StatusCode}",
+                    updateResults.ResponseTime,
+                    updateResults.Response.StatusCode);
+            }
+            else
+            {
+                if (updateResults.Data.PAPIErrorCode == PAPIInvalidEmailErrorCode)
+                {
+                    renewResult.EmailNotUpdated = true;
+                    updateParams.EmailAddress = null;
+
+                    updateResults = _papiClient.PatronUpdate(barcode, updateParams);
+                }
+
+                if (updateResults.Data.PAPIErrorCode != 0)
+                {
+                    _logger.LogError("PAPI error after {Elapsed} ms: {PAPIErrorCode}",
+                        updateResults.ResponseTime,
+                        updateResults.Data.PAPIErrorCode);
+                }
+                else if (updateResults.Data.PAPIErrorCode == 0)
+                {
+                    renewResult.Success = true;
+                    if (renewResult.EmailNotUpdated)
+                    {
+                        _logger.LogWarning("Unable to update email to {EmailAddress} for barcode {Barcode}",
+                            email,
+                            barcode);
+                    }
+                }
+            }
+
+            return renewResult;
+        }
+
+        private static Customer GetCustomerInfo(PatronData patronData)
+        {
+            var customer = new Customer
+            {
+                AddressVerificationDate = patronData.AddrCheckDate,
+                BirthDate = patronData.BirthDate,
+                BlockingNotes = patronData.PatronNotes?.BlockingStatusNotes,
+                ChargeBalance = patronData.ChargeBalance,
+                CustomerCodeId = patronData.PatronCodeID,
+                CustomerIdNumber = patronData.Barcode,
+                EmailAddress = patronData.EmailAddress,
+                ExpirationDate = patronData.ExpirationDate,
+                Id = patronData.PatronID,
+                IsBlocked = patronData.PatronSystemBlocks.Length != 0,
+                NameFirst = patronData.NameFirst,
+                NameLast = patronData.NameLast,
+                Notes = patronData.PatronNotes?.NonBlockingStatusNotes,
+                UserDefinedField1 = patronData.User1,
+                UserDefinedField2 = patronData.User2,
+                UserDefinedField3 = patronData.User3,
+                UserDefinedField4 = patronData.User4,
+                UserDefinedField5 = patronData.User5
+            };
+
+            var addressList = new List<CustomerAddress>();
+            foreach (var address in patronData.PatronAddresses)
+            {
+                addressList.Add(new CustomerAddress
+                {
+                    AddressType = address.FreeTextLabel,
+                    AddressTypeId = address.AddressTypeID,
+                    City = address.City,
+                    Country = address.Country,
+                    CountryId = address.CountryID,
+                    County = address.County,
+                    Id = address.AddressId,
+                    PostalCode = address.PostalCode,
+                    State = address.State,
+                    StreetAddressOne = address.StreetOne,
+                    StreetAddressTwo = address.StreetTwo,
+                    ZipPlusFour = address.ZipPlusFour,
+                });
+            }
+
+            customer.Addresses = addressList;
+
+            return customer;
+        }
+
+        private bool ValidateConfiguration()
+        {
+            var validConfiguration = true;
+
+            if (string.IsNullOrEmpty(_papiClient.AccessID))
+            {
+                _logger.LogError("Polaris Helper is not configured: PapiSetting 'AccessID' is missing");
+                validConfiguration = false;
+            }
+            if (string.IsNullOrWhiteSpace(_papiClient.AccessKey))
+            {
+                _logger.LogError("Polaris Helper is not configured: PapiSetting 'AccessKey' is missing");
+                validConfiguration = false;
+            }
+            if (string.IsNullOrWhiteSpace(_papiClient.Hostname))
+            {
+                _logger.LogError("Polaris Helper is not configured: PapiSetting 'Hostname' is missing");
+                validConfiguration = false;
+            }
+
+            if (_papiClient.AllowStaffOverrideRequests)
+            {
+                if (_papiClient.OrganizationId == 0)
+                {
+                    _logger.LogError("Polaris Helper is not configured: PapiSetting 'OrganizationId' is missing");
+                    validConfiguration = false;
+                }
+                if (_papiClient.UserId == 0)
+                {
+                    _logger.LogError("Polaris Helper is not configured: PapiSetting 'UserId' is missing");
+                    validConfiguration = false;
+                }
+                if (_papiClient.WorkstationId == 0)
+                {
+                    _logger.LogError("Polaris Helper is not configured: PapiSetting 'WorkstationId' is missing");
+                    validConfiguration = false;
+                }
+                if (string.IsNullOrWhiteSpace(_papiClient.StaffOverrideAccount?.Domain))
+                {
+                    _logger.LogError("Polaris Helper is not configured: PapiSetting 'StaffOverrideAccount.Domain' is missing");
+                    validConfiguration = false;
+                }
+                if (string.IsNullOrWhiteSpace(_papiClient.StaffOverrideAccount?.Password))
+                {
+                    _logger.LogError("Polaris Helper is not configured: PapiSetting 'StaffOverrideAccount.Password' is missing");
+                    validConfiguration = false;
+                }
+                if (string.IsNullOrWhiteSpace(_papiClient.StaffOverrideAccount?.Username))
+                {
+                    _logger.LogError("Polaris Helper is not configured: PapiSetting 'StaffOverrideAccount.Username' is missing");
+                    validConfiguration = false;
+                }
+                if (string.IsNullOrWhiteSpace(_context.Database.GetConnectionString()))
+                {
+                    _logger.LogError("Polaris Helper is not configured: ConnectionString 'Polaris' is missing");
+                    validConfiguration = false;
+                }
+            }
+
+            return validConfiguration;
+        }
+
+        private class BarcodeOrgId
+        {
+            public string Barcode { get; set; }
+            public int OrganizationID { get; set; }
+        }
+    }
+}

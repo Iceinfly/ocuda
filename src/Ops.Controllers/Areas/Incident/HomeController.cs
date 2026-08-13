@@ -19,6 +19,7 @@ using Ocuda.Ops.Service.Filters;
 using Ocuda.Ops.Service.Interfaces.Ops.Services;
 using Ocuda.Utility.Abstract;
 using Ocuda.Utility.Exceptions;
+using Ocuda.Utility.Filters;
 using Ocuda.Utility.Keys;
 using Ocuda.Utility.Services.Interfaces;
 
@@ -177,7 +178,7 @@ namespace Ocuda.Ops.Controllers.Areas.Incident
                 else
                 {
                     ShowAlertWarning("There was an issue creating your incident. Please verify it was created correctly.");
-                    return RedirectToAction(nameof(Index));
+                    return RedirectToAction(nameof(Mine));
                 }
             }
             else

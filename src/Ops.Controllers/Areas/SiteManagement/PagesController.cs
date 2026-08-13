@@ -20,6 +20,7 @@ using Ocuda.Ops.Service.Interfaces.Promenade.Services;
 using Ocuda.Promenade.Models.Entities;
 using Ocuda.Utility.Exceptions;
 using Ocuda.Utility.Extensions;
+using Ocuda.Utility.Filters;
 using Ocuda.Utility.Keys;
 using Ocuda.Utility.Models;
 
@@ -1184,6 +1185,7 @@ namespace Ocuda.Ops.Controllers.Areas.SiteManagement
                     nameof(Language.Name),
                     nameof(Language.Description),
                     selectedLanguage.Name),
+                LanguageName = selectedLanguage.Name,
                 PageLayout = pageLayout,
                 PageLayoutId = pageLayout.Id,
                 PreviewLink = await GetPreviewLink(pageHeader)

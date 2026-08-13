@@ -25,9 +25,14 @@ namespace Ocuda.Promenade.Data
         public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
         public DbSet<Deck> Decks { get; }
         public DbSet<Emedia> Emedia { get; set; }
+        public DbSet<EmediaAccess> EmediaAccesses { get; set; }
+
         public DbSet<EmediaCategory> EmediaCategories { get; set; }
         public DbSet<EmediaGroup> EmediaGroups { get; }
+        public DbSet<EmediaSubject> EmediaSubjects { get; set; }
         public DbSet<EmediaText> EmediaTexts { get; }
+        public DbSet<EmployeeCardDepartment> EmployeeCardDepartments { get; }
+        public DbSet<EmployeeCardRequest> EmployeeCardRequests { get; set; }
         public DbSet<ExternalResource> ExternalResources { get; set; }
         public DbSet<Feature> Features { get; }
         public DbSet<Group> Groups { get; }
@@ -62,6 +67,7 @@ namespace Ocuda.Promenade.Data
         public DbSet<Podcast> Podcasts { get; }
         public DbSet<ProductLocationInventory> ProductLocationInventories { get; }
         public DbSet<Product> Products { get; }
+        public DbSet<RenewCardRequest> RenewCardRequests { get; set; }
         public DbSet<ScheduleRequest> ScheduleRequest { get; set; }
         public DbSet<ScheduleRequestLimit> ScheduleRequestLimits { get; }
         public DbSet<ScheduleRequestSubject> ScheduleRequestSubject { get; }
@@ -70,6 +76,8 @@ namespace Ocuda.Promenade.Data
         public DbSet<SegmentText> SegmentTexts { get; }
         public DbSet<SiteSetting> SiteSettings { get; }
         public DbSet<SocialCard> SocialCards { get; }
+        public DbSet<Subject> Subjects { get; set; }
+        public DbSet<SubjectText> SubjectTexts { get; set; }
         public DbSet<UrlRedirectAccess> UrlRedirectAccesses { get; set; }
         public DbSet<UrlRedirect> UrlRedirects { get; }
         public DbSet<VolunteerForm> VolunteerForms { get; }
@@ -98,6 +106,8 @@ namespace Ocuda.Promenade.Data
                 .HasKey(_ => new { _.CategoryId, _.EmediaId });
             modelBuilder.Entity<EmediaText>()
                 .HasKey(_ => new { _.EmediaId, _.LanguageId });
+            modelBuilder.Entity<EmediaSubject>()
+                .HasKey(_ => new { _.SubjectId, _.EmediaId });
             modelBuilder.Entity<LocationInteriorImageAltText>()
                 .HasKey(_ => new { _.LocationInteriorImageId, _.LanguageId });
             modelBuilder.Entity<ImageFeatureItemText>()
@@ -130,6 +140,8 @@ namespace Ocuda.Promenade.Data
                 .HasKey(_ => new { _.LanguageId, _.ScheduleRequestSubjectId });
             modelBuilder.Entity<SegmentText>()
                 .HasKey(_ => new { _.LanguageId, _.SegmentId });
+            modelBuilder.Entity<SubjectText>()
+                .HasKey(_ => new { _.LanguageId, _.SubjectId });
         }
     }
 }

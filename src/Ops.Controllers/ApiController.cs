@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -20,35 +21,46 @@ namespace Ocuda.Ops.Controllers
         private readonly IApiKeyService _apiKeyService;
         private readonly IAuthorizationService _authorizationService;
         private readonly IDigitalDisplayService _digitalDisplayService;
+        private readonly HttpClient _httpClient;
         private readonly ILdapService _ldapService;
         private readonly ILogger _logger;
         private readonly IPermissionGroupService _permissionGroupService;
+        private readonly ISiteSettingService _siteSettingService;
         private readonly IUserService _userService;
 
         public ApiController(IApiKeyService apiKeyService,
             IAuthorizationService authorizationService,
             IDigitalDisplayService digitalDisplayService,
+            HttpClient httpClient,
             ILdapService ldapService,
             ILogger<ApiController> logger,
             IPermissionGroupService permissionGroupService,
+            ISiteSettingService siteSettingService,
             IUserService userService)
         {
             ArgumentNullException.ThrowIfNull(apiKeyService);
             ArgumentNullException.ThrowIfNull(authorizationService);
             ArgumentNullException.ThrowIfNull(digitalDisplayService);
+            ArgumentNullException.ThrowIfNull(httpClient);
             ArgumentNullException.ThrowIfNull(ldapService);
             ArgumentNullException.ThrowIfNull(logger);
             ArgumentNullException.ThrowIfNull(permissionGroupService);
+            ArgumentNullException.ThrowIfNull(siteSettingService);
             ArgumentNullException.ThrowIfNull(userService);
 
             _apiKeyService = apiKeyService;
             _authorizationService = authorizationService;
             _digitalDisplayService = digitalDisplayService;
+            _httpClient = httpClient;
             _ldapService = ldapService;
             _logger = logger;
             _permissionGroupService = permissionGroupService;
+            _siteSettingService = siteSettingService;
             _userService = userService;
         }
+
+        public static string Name
+        { get { return "Api"; } }
 
         private static JsonResponse ErrorJobResult(string message)
         {

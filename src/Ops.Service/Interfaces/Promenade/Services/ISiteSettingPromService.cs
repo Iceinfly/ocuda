@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Ocuda.Promenade.Models.Entities;
 
@@ -9,6 +9,8 @@ namespace Ocuda.Ops.Service.Interfaces.Promenade.Services
         Task EnsureSiteSettingsExistAsync();
 
         Task<ICollection<SiteSetting>> GetAllAsync();
+
+        Task<bool> GetSettingBoolAsync(string key);
 
         Task<double> GetSettingDoubleAsync(string key);
 
