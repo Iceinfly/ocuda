@@ -21,6 +21,8 @@ namespace Ocuda.PolarisHelper
 
         Customer GetCustomerDataOverride(string barcode);
 
+        string GetPatronBarcode(int patronId);
+
         /// <summary>
         /// Provided with a barcode, map it as a "former" id and, if it is found as such, return the
         /// organization of the current user.

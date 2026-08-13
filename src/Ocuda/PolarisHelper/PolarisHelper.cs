@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Clc.Polaris.Api;
 using Clc.Polaris.Api.Configuration;
@@ -262,6 +265,33 @@ namespace Ocuda.PolarisHelper
             return patronData == null ? null : GetCustomerInfo(patronData);
         }
 
+        public string GetPatronBarcode(int patronId)
+        {
+            var data = ExecutePapiMethod(
+                "Patron_GetBarcodeFromID",
+                new[] { "Patron_GetBarcodeFromID", "PatronGetBarcodeFromID" },
+                new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["patronid"] = patronId
+                });
+
+            var rows = GetRows(data, "BarcodeAndPatronIDRows").ToList();
+            var barcode = rows
+                .Where(_ => GetNullableInt(_, "PatronID") == patronId)
+                .Select(_ => GetString(_, "Barcode"))
+                .FirstOrDefault(_ => !string.IsNullOrWhiteSpace(_))
+                ?? GetString(data, "Barcode")
+                ?? rows.Select(_ => GetString(_, "Barcode"))
+                    .FirstOrDefault(_ => !string.IsNullOrWhiteSpace(_));
+
+            if (string.IsNullOrWhiteSpace(barcode))
+            {
+                throw new OcudaException($"Unable to resolve a barcode for Polaris patron {patronId}");
+            }
+
+            return barcode;
+        }
+
         public async Task<int?> GetOrganizationIdFormerDirect(string formerBarcode)
         {
             try
@@ -382,6 +412,250 @@ namespace Ocuda.PolarisHelper
             return renewResult;
         }
 
+        private object ExecutePapiMethod(string operation,
+            IEnumerable<string> methodNames,
+            IReadOnlyDictionary<string, object> values)
+        {
+            object response;
+            try
+            {
+                response = InvokePapiMethod(methodNames, values);
+            }
+            catch (TargetInvocationException ex) when (ex.InnerException != null)
+            {
+                _logger.LogError(ex.InnerException,
+                    "Error executing Polaris {Operation} through PAPI",
+                    operation);
+                throw new OcudaException($"Error executing Polaris {operation}", ex.InnerException);
+            }
+            catch (Exception ex) when (ex is ArgumentException
+                || ex is InvalidOperationException
+                || ex is MissingMethodException)
+            {
+                _logger.LogError(ex,
+                    "Error executing Polaris {Operation} through PAPI",
+                    operation);
+                throw new OcudaException($"Error executing Polaris {operation}", ex);
+            }
+
+            if (response == null)
+            {
+                throw new OcudaException($"Polaris {operation} returned no response");
+            }
+
+            if (GetPropertyValue(response, "Exception") is Exception responseException)
+            {
+                _logger.LogError(responseException,
+                    "Polaris {Operation} PAPI call failed",
+                    operation);
+                throw new OcudaException($"Error executing Polaris {operation}", responseException);
+            }
+
+            var httpResponse = GetPropertyValue(response, "Response");
+            if (GetPropertyValue(httpResponse, "IsSuccessStatusCode") is bool isSuccess
+                && !isSuccess)
+            {
+                throw new OcudaException(
+                    $"Polaris {operation} returned an unsuccessful HTTP response");
+            }
+
+            var data = GetPropertyValue(response, "Data");
+            if (data == null)
+            {
+                throw new OcudaException($"Polaris {operation} returned no data");
+            }
+
+            var papiErrorCode = GetNullableInt(data, "PAPIErrorCode");
+            if (papiErrorCode < 0)
+            {
+                var errorMessage = GetString(data, "ErrorMessage");
+                throw new OcudaException(string.IsNullOrWhiteSpace(errorMessage)
+                    ? $"Polaris {operation} returned PAPI error {papiErrorCode}"
+                    : $"Polaris {operation} returned PAPI error {papiErrorCode}: {errorMessage}");
+            }
+
+            return data;
+        }
+
+        private object InvokePapiMethod(IEnumerable<string> methodNames,
+            IReadOnlyDictionary<string, object> values)
+        {
+            foreach (var methodName in methodNames)
+            {
+                var methods = _papiClient.GetType()
+                    .GetMethods(BindingFlags.Instance | BindingFlags.Public)
+                    .Where(_ => string.Equals(_.Name, methodName, StringComparison.Ordinal))
+                    .OrderBy(_ => _.GetParameters().Length);
+
+                foreach (var method in methods)
+                {
+                    if (TryBuildArguments(method.GetParameters(), values, out var arguments))
+                    {
+                        return method.Invoke(_papiClient, arguments);
+                    }
+                }
+            }
+
+            throw new MissingMethodException(
+                $"No compatible PAPI method was found for {string.Join(" or ", methodNames)}");
+        }
+
+        private static bool TryBuildArguments(ParameterInfo[] parameters,
+            IReadOnlyDictionary<string, object> values,
+            out object[] arguments)
+        {
+            arguments = new object[parameters.Length];
+            for (var index = 0; index < parameters.Length; index++)
+            {
+                var parameter = parameters[index];
+                if (TryGetArgumentValue(parameter.Name, values, out var value))
+                {
+                    if (!TryConvertValue(value, parameter.ParameterType, out var convertedValue))
+                    {
+                        return false;
+                    }
+
+                    arguments[index] = convertedValue;
+                }
+                else if (parameter.HasDefaultValue)
+                {
+                    arguments[index] = parameter.DefaultValue;
+                }
+                else if (parameter.IsOptional)
+                {
+                    arguments[index] = Type.Missing;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TryGetArgumentValue(string parameterName,
+            IReadOnlyDictionary<string, object> values,
+            out object value)
+        {
+            if (values.TryGetValue(parameterName, out value))
+            {
+                return true;
+            }
+
+            var normalizedName = NormalizeName(parameterName);
+            foreach (var item in values)
+            {
+                if (NormalizeName(item.Key) == normalizedName)
+                {
+                    value = item.Value;
+                    return true;
+                }
+            }
+
+            if (normalizedName is "patronbarcode" or "customerbarcode")
+            {
+                return values.TryGetValue("barcode", out value);
+            }
+
+            if (normalizedName is "pagesize" or "rows" or "rowcount")
+            {
+                return values.TryGetValue("rowsperpage", out value);
+            }
+
+            value = null;
+            return false;
+        }
+
+        private static bool TryConvertValue(object value, Type targetType, out object convertedValue)
+        {
+            if (value == null)
+            {
+                convertedValue = null;
+                return !targetType.IsValueType || Nullable.GetUnderlyingType(targetType) != null;
+            }
+
+            var conversionType = Nullable.GetUnderlyingType(targetType) ?? targetType;
+            if (conversionType.IsInstanceOfType(value))
+            {
+                convertedValue = value;
+                return true;
+            }
+
+            if (conversionType.IsEnum && value is string enumValue)
+            {
+                if (Enum.TryParse(conversionType, enumValue, true, out var parsedEnum))
+                {
+                    convertedValue = parsedEnum;
+                    return true;
+                }
+
+                convertedValue = null;
+                return false;
+            }
+
+            try
+            {
+                convertedValue = Convert.ChangeType(value,
+                    conversionType,
+                    CultureInfo.InvariantCulture);
+                return true;
+            }
+            catch (Exception ex) when (ex is FormatException
+                || ex is InvalidCastException
+                || ex is OverflowException)
+            {
+                convertedValue = null;
+                return false;
+            }
+        }
+
+        private static int? GetNullableInt(object source, string propertyName)
+        {
+            var value = GetPropertyValue(source, propertyName);
+            if (value == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return Convert.ToInt32(value, CultureInfo.InvariantCulture);
+            }
+            catch (Exception ex) when (ex is FormatException
+                || ex is InvalidCastException
+                || ex is OverflowException)
+            {
+                return null;
+            }
+        }
+
+        private static object GetPropertyValue(object source, string propertyName)
+        {
+            return source?.GetType()
+                .GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public)
+                ?.GetValue(source);
+        }
+
+        private static IEnumerable<object> GetRows(object data, string propertyName)
+        {
+            return GetPropertyValue(data, propertyName) is IEnumerable rows
+                ? rows.Cast<object>()
+                : Enumerable.Empty<object>();
+        }
+
+        private static string GetString(object source, string propertyName)
+        {
+            return GetPropertyValue(source, propertyName)?.ToString();
+        }
+
+        private static string NormalizeName(string value)
+        {
+            return string.Concat((value ?? string.Empty)
+                .Where(char.IsLetterOrDigit))
+                .ToLowerInvariant();
+        }
+
         private static Customer GetCustomerInfo(PatronData patronData)
         {
             var customer = new Customer
@@ -396,6 +670,7 @@ namespace Ocuda.PolarisHelper
                 ExpirationDate = patronData.ExpirationDate,
                 Id = patronData.PatronID,
                 IsBlocked = patronData.PatronSystemBlocks.Length != 0,
+                LastActivityDate = patronData.LastActivityDate,
                 NameFirst = patronData.NameFirst,
                 NameLast = patronData.NameLast,
                 Notes = patronData.PatronNotes?.NonBlockingStatusNotes,

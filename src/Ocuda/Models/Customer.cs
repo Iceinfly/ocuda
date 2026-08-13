@@ -16,6 +16,7 @@ namespace Ocuda.Models
         public DateTime? ExpirationDate { get; set; }
         public int Id { get; set; }
         public bool IsBlocked { get; set; }
+        public DateTime? LastActivityDate { get; set; }
         public string NameFirst { get; set; }
         public string NameLast { get; set; }
         public string Notes { get; set; }
