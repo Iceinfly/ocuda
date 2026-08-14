@@ -23,6 +23,7 @@ namespace Ocuda.PolarisHelper
 {
     public class PolarisHelper : IPolarisHelper
     {
+        private const int BibGenreElementId = 27;
         private const int CacheCodesHours = 1;
         private const int PAPIInvalidEmailErrorCode = -3518;
         private readonly IOcudaCache _cache;
@@ -265,6 +266,23 @@ namespace Ocuda.PolarisHelper
             return patronData == null ? null : GetCustomerInfo(patronData);
         }
 
+        public string GetBibGenre(int bibId)
+        {
+            var data = ExecutePapiMethod(
+                "BibGet",
+                new[] { "BibGet" },
+                new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["bibid"] = bibId,
+                    ["organizationid"] = _papiClient.OrganizationId
+                });
+
+            return GetRows(data, "BibGetRows")
+                .Where(_ => GetNullableInt(_, "ElementID") == BibGenreElementId)
+                .Select(_ => GetString(_, "Value"))
+                .FirstOrDefault(_ => !string.IsNullOrWhiteSpace(_));
+        }
+
         public string GetPatronBarcode(int patronId)
         {
             var data = ExecutePapiMethod(
@@ -290,6 +308,74 @@ namespace Ocuda.PolarisHelper
             }
 
             return barcode;
+        }
+
+        public IList<PatronHold> GetPatronHolds(string barcode)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(barcode);
+
+            var data = ExecutePapiMethod(
+                "PatronHoldRequestsGet",
+                new[] { "PatronHoldRequestsGet", "PatronHoldRequestsGetOverride" },
+                new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["barcode"] = barcode,
+                    ["endpoint"] = "All",
+                    ["requestid"] = 0,
+                    ["status"] = "All"
+                });
+
+            return GetRows(data, "PatronHoldRequestsGetRows")
+                .Select(_ => new PatronHold
+                {
+                    Author = GetString(_, "Author"),
+                    HoldStatus = GetString(_, "StatusDescription"),
+                    Title = GetString(_, "Title")
+                })
+                .ToList();
+        }
+
+        public IList<PatronCheckout> GetPatronItemsOut(string barcode)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(barcode);
+
+            var data = ExecutePapiMethod(
+                "PatronItemsOutGet",
+                new[] { "PatronItemsOutGet", "PatronItemsOutGetOverride" },
+                new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["barcode"] = barcode,
+                    ["excludeecontent"] = false,
+                    ["id"] = "All",
+                    ["status"] = "All"
+                });
+
+            return GetRows(data, "PatronItemsOutGetRows")
+                .Select(_ => new PatronCheckout
+                {
+                    Author = GetString(_, "Author"),
+                    BibId = GetNullableInt(_, "BibID") ?? 0,
+                    DueDate = GetNullableDateTime(_, "DueDate") ?? default,
+                    Title = GetString(_, "Title")
+                })
+                .ToList();
+        }
+
+        public int GetPatronReadingHistoryCount(string barcode)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(barcode);
+
+            var data = ExecutePapiMethod(
+                "PatronReadingHistoryGet",
+                new[] { "PatronReadingHistoryGet", "PatronReadingHistoryGetOverride" },
+                new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["barcode"] = barcode,
+                    ["page"] = -1,
+                    ["rowsperpage"] = 1
+                });
+
+            return GetNullableInt(data, "PAPIErrorCode") ?? 0;
         }
 
         public async Task<int?> GetOrganizationIdFormerDirect(string formerBarcode)
@@ -608,6 +694,26 @@ namespace Ocuda.PolarisHelper
                 convertedValue = null;
                 return false;
             }
+        }
+
+        private static DateTime? GetNullableDateTime(object source, string propertyName)
+        {
+            var value = GetPropertyValue(source, propertyName);
+            if (value is DateTime dateTime)
+            {
+                return dateTime;
+            }
+
+            if (value != null
+                && DateTime.TryParse(value.ToString(),
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out var parsedDateTime))
+            {
+                return parsedDateTime;
+            }
+
+            return null;
         }
 
         private static int? GetNullableInt(object source, string propertyName)

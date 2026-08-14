@@ -21,7 +21,15 @@ namespace Ocuda.PolarisHelper
 
         Customer GetCustomerDataOverride(string barcode);
 
+        string GetBibGenre(int bibId);
+
         string GetPatronBarcode(int patronId);
+
+        IList<PatronCheckout> GetPatronItemsOut(string barcode);
+
+        int GetPatronReadingHistoryCount(string barcode);
+
+        IList<PatronHold> GetPatronHolds(string barcode);
 
         /// <summary>
         /// Provided with a barcode, map it as a "former" id and, if it is found as such, return the

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Ocuda.Ops.Models;
 using Ocuda.Ops.Service.Filters;
@@ -51,12 +52,30 @@ namespace Ocuda.Ops.Service
 
         public Task<IList<Material>> GetCustomerLookupCheckoutsAsync(int customerLookupID)
         {
-            return _customerRepository.GetCustomerLookupCheckoutsAsync(customerLookupID);
+            var checkouts = _polarisHelper.GetPatronItemsOut(GetBarcode(customerLookupID));
+            var categories = checkouts
+                .Where(_ => _.BibId > 0)
+                .Select(_ => _.BibId)
+                .Distinct()
+                .ToDictionary(_ => _, _ => _polarisHelper.GetBibGenre(_));
+
+            IList<Material> materials = checkouts.Select(_ => new Material
+            {
+                Author = _.Author,
+                Category = _.BibId > 0 && categories.TryGetValue(_.BibId, out var category)
+                    ? category
+                    : null,
+                DueDate = _.DueDate,
+                Title = _.Title
+            }).ToList();
+
+            return Task.FromResult(materials);
         }
 
         public Task<int> GetCustomerLookupHistoryCountAsync(int customerLookupID)
         {
-            return _customerRepository.GetCustomerLookupHistoryCountAsync(customerLookupID);
+            return Task.FromResult(_polarisHelper
+                .GetPatronReadingHistoryCount(GetBarcode(customerLookupID)));
         }
 
         public Task<DataWithCount<IList<Material>>> GetPaginatedCustomerLookupHistoryAsync(
@@ -67,7 +86,17 @@ namespace Ocuda.Ops.Service
 
         public Task<IList<Material>> GetCustomerLookupHoldsAsync(int customerLookupID)
         {
-            return _customerRepository.GetCustomerLookupHoldsAsync(customerLookupID);
+            IList<Material> materials = _polarisHelper
+                .GetPatronHolds(GetBarcode(customerLookupID))
+                .Select(_ => new Material
+                {
+                    Author = _.Author,
+                    HoldStatus = _.HoldStatus,
+                    Title = _.Title
+                })
+                .ToList();
+
+            return Task.FromResult(materials);
         }
 
         private string GetBarcode(int patronId)
