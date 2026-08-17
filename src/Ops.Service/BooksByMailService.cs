@@ -59,9 +59,22 @@ namespace Ocuda.Ops.Service
         public async Task<BooksByMailCustomer> GetAsync(int booksByMailCustomerId)
         {
             var customer = await _booksByMailCustomerRepository.FindAsync(booksByMailCustomerId);
+            if (customer != null)
+            {
+                customer.Comments = await _booksByMailCommentRepository
+                    .GetAllAsync(booksByMailCustomerId);
+            }
 
-            customer.Comments = await _booksByMailCommentRepository
-                .GetAllAsync(booksByMailCustomerId);
+            return customer;
+        }
+
+        public async Task<BooksByMailCustomer> GetByCustomerLookupIdAsync(int customerLookupId)
+        {
+            var customer = await _booksByMailCustomerRepository.GetCustomerAsync(customerLookupId);
+            if (customer != null)
+            {
+                customer.Comments = await _booksByMailCommentRepository.GetAllAsync(customer.Id);
+            }
 
             return customer;
         }

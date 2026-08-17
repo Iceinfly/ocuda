@@ -8,16 +8,10 @@ namespace Ocuda.Ops.Service.Interfaces.Ops.Repositories
 {
     public interface ICustomerRepository
     {
-        Task<DataWithCount<IList<CustomerLookup>>> GetPaginatedCustomerLookupListAsync(CustomerLookupFilter filter);
+        Task<DataWithCount<IList<CustomerLookup>>> GetPaginatedCustomerLookupListAsync(
+            CustomerLookupFilter filter);
 
-        Task<CustomerLookup> GetCustomerLookupInfoAsync(int customerLookupID);
-
-        Task<IList<Material>> GetCustomerLookupCheckoutsAsync(int customerLookupID);
-
-        Task<int> GetCustomerLookupHistoryCountAsync(int customerLookupID);
-
-        Task<DataWithCount<IList<Material>>> GetPaginatedCustomerLookupHistoryAsync(MaterialFilter filter);
-
-        Task<IList<Material>> GetCustomerLookupHoldsAsync(int customerLookupID);
+        Task<DataWithCount<IList<Material>>> GetPaginatedCustomerLookupHistoryAsync(
+            MaterialFilter filter);
     }
 }

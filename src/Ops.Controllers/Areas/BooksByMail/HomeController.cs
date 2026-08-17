@@ -109,7 +109,7 @@ namespace Ocuda.Ops.Controllers.Areas.BooksByMail
                 return RedirectToAction(nameof(Index));
             }
 
-            var booksByMailCustomer = await _booksByMailService.GetAsync(id);
+            var booksByMailCustomer = await _booksByMailService.GetByCustomerLookupIdAsync(id);
             if (booksByMailCustomer == null)
             {
                 booksByMailCustomer = new Models.Entities.BooksByMailCustomer

@@ -11,6 +11,8 @@ namespace Ocuda.Ops.Service.Interfaces.Ops.Services
 
         Task<BooksByMailCustomer> GetAsync(int booksByMailCustomerId);
 
+        Task<BooksByMailCustomer> GetByCustomerLookupIdAsync(int customerLookupId);
+
         Task<BooksByMailCustomer> UpdateCustomerAsync(BooksByMailCustomer customer);
     }
 }

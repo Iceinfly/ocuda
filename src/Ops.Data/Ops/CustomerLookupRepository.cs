@@ -1,262 +1,208 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Common;
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Ocuda.Ops.Data.ServiceFacade;
 using Ocuda.Ops.Models;
 using Ocuda.Ops.Models.Entities;
 using Ocuda.Ops.Service.Filters;
 using Ocuda.Ops.Service.Interfaces.Ops.Repositories;
+using Ocuda.PolarisHelper;
+using Ocuda.Utility.Exceptions;
 using Ocuda.Utility.Models;
 
 namespace Ocuda.Ops.Data.Ops
 {
-    public class CustomerLookupRepository : OpsRepository<OpsContext, BooksByMailCustomer, int>, ICustomerRepository
+    public class CustomerLookupRepository :
+        OpsRepository<OpsContext, BooksByMailCustomer, int>,
+        ICustomerRepository
     {
-        //private const string PolarisDbCSName = "polarisdb";
-        //private static readonly int BooksByMailPatronID = 5;
+        private const int BooksByMailPatronCodeId = 5;
+        private readonly PolarisContext _polarisContext;
 
-        //private static readonly string IdParam = "@id";
-        //private static readonly string SearchParam = "@search";
-        //private static readonly string SkipParam = "@skip";
-        //private static readonly string TakeParam = "@take";
         public CustomerLookupRepository(Repository<OpsContext> repositoryFacade,
+            PolarisContext polarisContext,
             ILogger<CustomerLookupRepository> logger) : base(repositoryFacade, logger)
         {
+            ArgumentNullException.ThrowIfNull(polarisContext);
+            _polarisContext = polarisContext;
         }
 
-        public async Task<DataWithCount<IList<CustomerLookup>>> GetPaginatedCustomerLookupListAsync(CustomerLookupFilter filter)
+        public async Task<DataWithCount<IList<CustomerLookup>>>
+            GetPaginatedCustomerLookupListAsync(CustomerLookupFilter filter)
         {
-            //using IDbConnection db = new SqlConnection(_config.GetConnectionString(PolarisDbCSName));
-            //var dataQuery = $"SELECT PT.PatronID AS {nameof(Customer.PatronID)}," +
-            //                    $" PT.Barcode AS {nameof(Customer.Barcode)}," +
-            //                    $" PT.LastActivityDate AS {nameof(Customer.LastActivityDate)}," +
-            //                    $" PTR.NameFirst AS {nameof(Customer.NameFirst)}," +
-            //                    $" PTR.NameLast AS {nameof(Customer.NameLast)}" +
-            //                    " FROM polarisdb.dbo.Patrons AS PT WITH (NOLOCK)" +
-            //                    " JOIN polarisdb.dbo.PatronRegistration AS PTR WITH (NOLOCK)" +
-            //                    " ON PT.PatronID = PTR.PatronID";
+            ArgumentNullException.ThrowIfNull(filter);
 
-            //var whereClause = $" WHERE PT.PatronCodeID = {BooksByMailPatronID}";
-            //if (!string.IsNullOrWhiteSpace(filter.Search))
-            //{
-            //    whereClause += $" AND (CONCAT(PTR.NameFirst , ' ' , PTR.NameLast) LIKE '%' + {SearchParam} + '%'" +
-            //                        $" OR PT.Barcode LIKE '%' + {SearchParam} + '%')";
-            //}
-
-            //dataQuery += whereClause;
-
-            //var countQuery = $"SELECT COUNT(*) FROM ({dataQuery}) AS count";
-
-            //dataQuery += $" ORDER BY {filter.OrderBy}";
-            //if (filter.OrderDesc)
-            //{
-            //    dataQuery += " DESC";
-            //}
-
-            //dataQuery += $" OFFSET {SkipParam} ROWS FETCH NEXT {TakeParam} ROWS ONLY";
-
-            //var parameters = new DynamicParameters();
-            //parameters.Add(SearchParam, filter.Search);
-            //parameters.Add(SkipParam, filter.Skip);
-            //parameters.Add(TakeParam, filter.Take);
-
-            //return new DataWithCount<List<Customer>>
-            //{
-            //    Count = await db.ExecuteScalarAsync<int>(countQuery, parameters),
-            //    Data = (await db.QueryAsync<Customer>(dataQuery, parameters)).ToList()
-            //};
-            return await Task.FromResult(new DataWithCount<IList<CustomerLookup>>
+            try
             {
-                Count = 1,
-                Data = new List<CustomerLookup>
-            {
-            new CustomerLookup
-            {
-                CustomerLookupID = 101,
-                Barcode = "1234567890",
-                LastActivityDate = DateTime.UtcNow.AddDays(-1),
-                NameFirst = "Jane",
-                NameLast = "Smith"
+                IQueryable<CustomerLookupRow> query = _polarisContext.Database
+                    .SqlQuery<CustomerLookupRow>($@"SELECT PT.PatronID AS CustomerLookupID,
+                        PT.Barcode,
+                        PT.LastActivityDate,
+                        PTR.NameFirst,
+                        PTR.NameLast
+                    FROM Polaris.Patrons AS PT WITH (NOLOCK)
+                    INNER JOIN Polaris.PatronRegistration AS PTR WITH (NOLOCK)
+                        ON PT.PatronID = PTR.PatronID
+                    WHERE PT.PatronCodeID = {BooksByMailPatronCodeId}");
+
+                if (!string.IsNullOrWhiteSpace(filter.Search))
+                {
+                    query = query.Where(_ =>
+                        (((_.NameFirst ?? string.Empty) + " " + (_.NameLast ?? string.Empty))
+                            .Contains(filter.Search))
+                        || (_.Barcode ?? string.Empty).Contains(filter.Search));
+                }
+
+                var count = await query.CountAsync();
+                var orderedQuery = OrderCustomers(query, filter.OrderBy, filter.OrderDesc);
+                var rows = await orderedQuery
+                    .Skip(filter.Skip.GetValueOrDefault())
+                    .Take(filter.Take.GetValueOrDefault(15))
+                    .ToListAsync();
+
+                return new DataWithCount<IList<CustomerLookup>>
+                {
+                    Count = count,
+                    Data = rows.Select(_ => new CustomerLookup
+                    {
+                        Barcode = _.Barcode,
+                        CustomerLookupID = _.CustomerLookupID,
+                        LastActivityDate = _.LastActivityDate,
+                        NameFirst = _.NameFirst,
+                        NameLast = _.NameLast
+                    }).ToList()
+                };
             }
+            catch (Exception ex) when (ex is DbException || ex is InvalidOperationException)
+            {
+                _logger.LogError(ex, "Error querying Books By Mail patrons in Polaris");
+                throw new OcudaException("Error retrieving Books By Mail patrons", ex);
             }
-            });
         }
 
-        public async Task<CustomerLookup> GetCustomerLookupInfoAsync(int customerLookupID)
+        public async Task<DataWithCount<IList<Material>>>
+            GetPaginatedCustomerLookupHistoryAsync(MaterialFilter filter)
         {
-            //using IDbConnection db = new SqlConnection(_config.GetConnectionString(PolarisDbCSName));
-            //var query = $"SELECT PT.PatronID AS {nameof(Customer.PatronID)}," +
-            //    $" PT.Barcode AS {nameof(Customer.Barcode)}," +
-            //    $" PT.LastActivityDate AS {nameof(Customer.LastActivityDate)}," +
-            //    $" PTR.NameFirst AS {nameof(Customer.NameFirst)}," +
-            //    $" PTR.NameLast AS {nameof(Customer.NameLast)}" +
-            //    " FROM polarisdb.dbo.Patrons AS PT WITH (NOLOCK)" +
-            //    " JOIN polarisdb.dbo.PatronRegistration AS PTR WITH (NOLOCK)" +
-            //    " ON PT.PatronID = PTR.PatronID" +
-            //    $" WHERE PT.PatronID = {IdParam}";
+            ArgumentNullException.ThrowIfNull(filter);
 
-            //var parameters = new DynamicParameters();
-            //parameters.Add(IdParam, patronID);
-
-            //return await db.QueryFirstOrDefaultAsync<Customer>(query, parameters);
-            return await Task.FromResult(new CustomerLookup
+            try
             {
-                CustomerLookupID = customerLookupID,
-                Barcode = "1234567890",
-                LastActivityDate = DateTime.UtcNow,
-                NameFirst = "Jane",
-                NameLast = "Smith"
-            });
+                IQueryable<PatronHistoryRow> query = _polarisContext.Database
+                    .SqlQuery<PatronHistoryRow>($@"SELECT BR.BrowseAuthor AS Author,
+                        BR.BrowseTitle AS Title,
+                        COALESCE(IRD.ClassificationNumber, IRD.CutterNumber) AS Category,
+                        PRH.CheckOutDate AS CheckoutDate
+                    FROM Polaris.PatronReadingHistory AS PRH WITH (NOLOCK)
+                    INNER JOIN Polaris.ItemRecordDetails AS IRD WITH (NOLOCK)
+                        ON PRH.ItemRecordID = IRD.ItemRecordID
+                    INNER JOIN Polaris.CircItemRecords AS CIR WITH (NOLOCK)
+                        ON PRH.ItemRecordID = CIR.ItemRecordID
+                    INNER JOIN Polaris.BibliographicRecords AS BR WITH (NOLOCK)
+                        ON CIR.AssociatedBibRecordID = BR.BibliographicRecordID
+                    WHERE PRH.PatronID = {filter.CustomerLookupID}");
+
+                if (!string.IsNullOrWhiteSpace(filter.Search))
+                {
+                    query = query.Where(_ =>
+                        (_.Title ?? string.Empty).Contains(filter.Search)
+                        || (_.Author ?? string.Empty).Contains(filter.Search));
+                }
+
+                var count = await query.CountAsync();
+                var orderedQuery = OrderHistory(query, filter.OrderBy, filter.OrderDesc);
+                var rows = await orderedQuery
+                    .Skip(filter.Skip.GetValueOrDefault())
+                    .Take(filter.Take.GetValueOrDefault(10))
+                    .ToListAsync();
+
+                return new DataWithCount<IList<Material>>
+                {
+                    Count = count,
+                    Data = rows.Select(_ => new Material
+                    {
+                        Author = _.Author,
+                        Category = _.Category,
+                        CheckoutDate = _.CheckoutDate,
+                        Title = _.Title
+                    }).ToList()
+                };
+            }
+            catch (Exception ex) when (ex is DbException || ex is InvalidOperationException)
+            {
+                _logger.LogError(ex,
+                    "Error querying Polaris reading history for patron {PatronId}",
+                    filter.CustomerLookupID);
+                throw new OcudaException("Error retrieving patron reading history", ex);
+            }
         }
 
-        public async Task<IList<Material>> GetCustomerLookupCheckoutsAsync(int customerLookupID)
+        private static IOrderedQueryable<CustomerLookupRow> OrderCustomers(
+            IQueryable<CustomerLookupRow> query,
+            CustomerLookupFilter.OrderType orderBy,
+            bool orderDesc)
         {
-            //using IDbConnection db = new SqlConnection(_config.GetConnectionString(PolarisDbCSName));
-            //var query = $"SELECT BR.BrowseAuthor AS {nameof(Material.Author)}," +
-            //    $" BR.BrowseTitle AS {nameof(Material.Title)}," +
-            //    $" COALESCE(IRD.ClassificationNumber, IRD.CutterNumber) AS {nameof(Material.Category)}," +
-            //    $" IC.DueDate AS {nameof(Material.DueDate)}" +
-            //    " FROM [polarisdb].[dbo].[ItemCheckouts] AS IC WITH (NOLOCK)" +
-            //    " JOIN [polarisdb].[dbo].[ItemRecordDetails] AS IRD WITH (NOLOCK)" +
-            //    " ON IC.ItemRecordID = IRD.ItemRecordID" +
-            //    " JOIN [polarisdb].[dbo].[CircItemRecords] AS CIR WITH (NOLOCK)" +
-            //    " ON IC.ItemRecordID = CIR.ItemRecordID" +
-            //    " JOIN [polarisdb].[dbo].[BibliographicRecords] AS BR WITH (NOLOCK)" +
-            //    " ON CIR.AssociatedBibRecordID = BR.BibliographicRecordID" +
-            //    $" WHERE IC.PatronID = {IdParam}";
-
-            //var parameters = new DynamicParameters();
-            //parameters.Add(IdParam, patronID);
-
-            //return (await db.QueryAsync<Material>(query, parameters)).ToList();
-            return await Task.FromResult(new List<Material>
+            return orderBy switch
             {
-            new Material
-            {
-            Author = "Author One",
-            Title = "Checkout Book One",
-            Category = "FIC",
-            DueDate = DateTime.UtcNow.AddDays(14)
-            }
-            });
+                CustomerLookupFilter.OrderType.NameFirst => orderDesc
+                    ? query.OrderByDescending(_ => _.NameFirst)
+                        .ThenByDescending(_ => _.NameLast)
+                        .ThenByDescending(_ => _.CustomerLookupID)
+                    : query.OrderBy(_ => _.NameFirst)
+                        .ThenBy(_ => _.NameLast)
+                        .ThenBy(_ => _.CustomerLookupID),
+                CustomerLookupFilter.OrderType.LastActivityDate => orderDesc
+                    ? query.OrderByDescending(_ => _.LastActivityDate)
+                        .ThenByDescending(_ => _.CustomerLookupID)
+                    : query.OrderBy(_ => _.LastActivityDate)
+                        .ThenBy(_ => _.CustomerLookupID),
+                _ => orderDesc
+                    ? query.OrderByDescending(_ => _.NameLast)
+                        .ThenByDescending(_ => _.NameFirst)
+                        .ThenByDescending(_ => _.CustomerLookupID)
+                    : query.OrderBy(_ => _.NameLast)
+                        .ThenBy(_ => _.NameFirst)
+                        .ThenBy(_ => _.CustomerLookupID)
+            };
         }
 
-        public async Task<int> GetCustomerLookupHistoryCountAsync(int customerLookupID)
+        private static IOrderedQueryable<PatronHistoryRow> OrderHistory(
+            IQueryable<PatronHistoryRow> query,
+            MaterialFilter.OrderType orderBy,
+            bool orderDesc)
         {
-            //using IDbConnection db = new SqlConnection(_config.GetConnectionString(PolarisDbCSName));
-            //var query = "SELECT COUNT(*)" +
-            //    " FROM [polarisdb].[dbo].[PatronReadingHistory] AS PRH WITH (NOLOCK)" +
-            //    $" WHERE PRH.PatronID = {IdParam}";
-
-            //var parameters = new DynamicParameters();
-            //parameters.Add(IdParam, patronID);
-
-            //return await db.ExecuteScalarAsync<int>(query, parameters);
-            return await Task.FromResult(3);
+            return orderBy switch
+            {
+                MaterialFilter.OrderType.Author => orderDesc
+                    ? query.OrderByDescending(_ => _.Author).ThenByDescending(_ => _.Title)
+                    : query.OrderBy(_ => _.Author).ThenBy(_ => _.Title),
+                MaterialFilter.OrderType.CheckoutDate => orderDesc
+                    ? query.OrderByDescending(_ => _.CheckoutDate).ThenByDescending(_ => _.Title)
+                    : query.OrderBy(_ => _.CheckoutDate).ThenBy(_ => _.Title),
+                _ => orderDesc
+                    ? query.OrderByDescending(_ => _.Title).ThenByDescending(_ => _.Author)
+                    : query.OrderBy(_ => _.Title).ThenBy(_ => _.Author)
+            };
         }
 
-        public async Task<DataWithCount<IList<Material>>> GetPaginatedCustomerLookupHistoryAsync(MaterialFilter filter)
+        private class CustomerLookupRow
         {
-            //using IDbConnection db = new SqlConnection(_config.GetConnectionString(PolarisDbCSName));
-            //var dataQuery = $"SELECT BR.BrowseAuthor AS {nameof(Material.Author)}," +
-            //    $" BR.BrowseTitle AS {nameof(Material.Title)}," +
-            //    $" COALESCE(IRD.ClassificationNumber, IRD.CutterNumber) AS {nameof(Material.Category)}," +
-            //    $" PRH.CheckOutDate AS {nameof(Material.CheckoutDate)}" +
-            //    " FROM [polarisdb].[dbo].[PatronReadingHistory] AS PRH WITH (NOLOCK)" +
-            //    " JOIN [polarisdb].[dbo].[ItemRecordDetails] AS IRD WITH (NOLOCK)" +
-            //    " ON PRH.ItemRecordID = IRD.ItemRecordID" +
-            //    " JOIN [polarisdb].[dbo].[CircItemRecords] AS CIR WITH (NOLOCK)" +
-            //    " ON PRH.ItemRecordID = CIR.ItemRecordID" +
-            //    " JOIN [polarisdb].[dbo].[BibliographicRecords] AS BR WITH (NOLOCK)" +
-            //    " ON CIR.AssociatedBibRecordID = BR.BibliographicRecordID";
-
-            //var whereClause = $" WHERE PRH.PatronID = {IdParam}";
-            //if (!string.IsNullOrWhiteSpace(filter.Search))
-            //{
-            //    whereClause += $" AND (BR.BrowseTitle LIKE '%' + {SearchParam} + '%'" +
-            //                    $" OR BR.BrowseAuthor LIKE '%' + {SearchParam} + '%')";
-            //}
-
-            //dataQuery += whereClause;
-
-            //var countQuery = $"SELECT COUNT(*) FROM ({dataQuery}) AS count";
-
-            //dataQuery += $" ORDER BY {filter.OrderBy}";
-            //if (filter.OrderDesc)
-            //{
-            //    dataQuery += " DESC";
-            //}
-
-            //dataQuery += $" OFFSET {SkipParam} ROWS FETCH NEXT {TakeParam} ROWS ONLY";
-
-            //var parameters = new DynamicParameters();
-            //parameters.Add(IdParam, filter.PatronID);
-            //parameters.Add(SearchParam, filter.Search);
-            //parameters.Add(SkipParam, filter.Skip);
-            //parameters.Add(TakeParam, filter.Take);
-
-            //return new DataWithCount<List<Material>>
-            //{
-            //    Count = await db.ExecuteScalarAsync<int>(countQuery, parameters),
-            //    Data = (await db.QueryAsync<Material>(dataQuery, parameters)).ToList()
-            //};
-            return await Task.FromResult(new DataWithCount<IList<Material>>
-            {
-                Count = 2,
-                Data = new List<Material>
-            {
-            new Material
-            {
-                Author = "Author A",
-                Title = "History Book A",
-                Category = "SCI",
-                CheckoutDate = DateTime.UtcNow.AddDays(-10)
-            },
-            new Material
-            {
-                Author = "Author B",
-                Title = "History Book B",
-                Category = "BIO",
-                CheckoutDate = DateTime.UtcNow.AddDays(-20)
-            }
-            }
-            });
+            public string Barcode { get; set; }
+            public int CustomerLookupID { get; set; }
+            public DateTime? LastActivityDate { get; set; }
+            public string NameFirst { get; set; }
+            public string NameLast { get; set; }
         }
 
-        public async Task<IList<Material>> GetCustomerLookupHoldsAsync(int customerLookupID)
+        private class PatronHistoryRow
         {
-            //    using IDbConnection db = new SqlConnection(_config.GetConnectionString(PolarisDbCSName));
-            //    var query = $"SELECT BR.BrowseAuthor AS {nameof(Material.Author)}," +
-            //        $" BR.BrowseTitle AS {nameof(Material.Title)}," +
-            //        $" SHS.Name AS {nameof(Material.HoldStatus)}" +
-            //        " FROM [polarisdb].[dbo].[SysHoldRequests] AS SHR WITH (NOLOCK)" +
-            //        " JOIN [polarisdb].[dbo].[SysHoldStatuses] AS SHS WITH (NOLOCK)" +
-            //        " ON SHR.SysHoldStatusID = SHS.SysHoldStatusID" +
-            //        " JOIN [polarisdb].[dbo].[BibliographicRecords] AS BR WITH (NOLOCK)" +
-            //        " ON SHR.BibliographicRecordID = BR.BibliographicRecordID" +
-            //        $" WHERE SHR.PatronID = {IdParam}";
-
-            //    var parameters = new DynamicParameters();
-            //    parameters.Add(IdParam, patronID);
-
-            //    return (await db.QueryAsync<Material>(query, parameters)).ToList();
-            //}
-            return await Task.FromResult(new List<Material>
-            {
-            new Material
-            {
-            Author = "Author X",
-            Title = "Hold Book X",
-            HoldStatus = "Pending"
-            },
-            new Material
-            {
-            Author = "Author Y",
-            Title = "Hold Book Y",
-            HoldStatus = "Ready"
-            }
-            });
+            public string Author { get; set; }
+            public string Category { get; set; }
+            public DateTime CheckoutDate { get; set; }
+            public string Title { get; set; }
         }
     }
 }
