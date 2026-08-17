@@ -37,20 +37,7 @@ namespace Ocuda.Ops.Web
     {
         private const string DefaultCulture = "en-US";
 
-        private readonly IConfiguration _config;
-        private readonly bool _isDevelopment;
-
-        public Startup(IConfiguration configuration, IWebHostEnvironment env)
-        {
-            ArgumentNullException.ThrowIfNull(configuration);
-
-            _config = configuration;
-            _isDevelopment = env.IsDevelopment();
-        }
-
-        public void Configure(IApplicationBuilder app,
         public void Configure(
-            IApplicationBuilder app,
             IApplicationBuilder app,
             Utility.Services.Interfaces.IPathResolverService pathResolver)
         {
