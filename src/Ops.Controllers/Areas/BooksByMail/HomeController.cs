@@ -98,10 +98,17 @@ namespace Ocuda.Ops.Controllers.Areas.BooksByMail
         }
 
         [HttpGet("[action]")]
-        public async Task<IActionResult> BooksByMailCustomer(int id, string search)
+        public async Task<IActionResult> BooksByMailCustomer(int id, string barcode, string search)
         {
             search = search?.Trim();
-            var customerLookup = await _customerLookupService.GetCustomerLookupInfoAsync(id);
+            if (string.IsNullOrWhiteSpace(barcode))
+            {
+                _logger.LogInformation("No barcode provided for customer id: {CustomerId}", id);
+                ShowAlertWarning("Please select a customer from the Books by Mail customer list.");
+                return RedirectToAction(nameof(Index));
+            }
+
+            var customerLookup = await _customerLookupService.GetCustomerLookupInfoAsync(id, barcode);
             if (customerLookup == null)
             {
                 _logger.LogInformation("No customer found for id: {CustomerId}", id);

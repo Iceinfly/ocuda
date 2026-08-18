@@ -23,8 +23,6 @@ namespace Ocuda.PolarisHelper
 
         string GetBibGenre(int bibId);
 
-        string GetPatronBarcode(int patronId);
-
         IList<PatronCheckout> GetPatronItemsOut(string barcode);
 
         int GetPatronReadingHistoryCount(string barcode);

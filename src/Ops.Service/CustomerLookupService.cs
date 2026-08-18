@@ -7,6 +7,7 @@ using Ocuda.Ops.Service.Filters;
 using Ocuda.Ops.Service.Interfaces.Ops.Repositories;
 using Ocuda.Ops.Service.Interfaces.Ops.Services;
 using Ocuda.PolarisHelper;
+using Ocuda.Utility.Exceptions;
 using Ocuda.Utility.Models;
 
 namespace Ocuda.Ops.Service
@@ -32,13 +33,17 @@ namespace Ocuda.Ops.Service
             return _customerRepository.GetPaginatedCustomerLookupListAsync(filter);
         }
 
-        public Task<CustomerLookup> GetCustomerLookupInfoAsync(int customerLookupID)
+        public Task<CustomerLookup> GetCustomerLookupInfoAsync(int customerLookupID, string barcode)
         {
-            var customer = _polarisHelper.GetCustomerDataOverride(GetBarcode(customerLookupID));
+            ArgumentException.ThrowIfNullOrWhiteSpace(barcode);
+
+            var customer = _polarisHelper.GetCustomerDataOverride(barcode);
             if (customer == null || customer.Id != customerLookupID)
             {
                 return Task.FromResult<CustomerLookup>(null);
             }
+
+            _patronBarcodes[customerLookupID] = barcode;
 
             return Task.FromResult(new CustomerLookup
             {
@@ -106,9 +111,7 @@ namespace Ocuda.Ops.Service
                 return barcode;
             }
 
-            barcode = _polarisHelper.GetPatronBarcode(patronId);
-            _patronBarcodes[patronId] = barcode;
-            return barcode;
+            throw new OcudaException($"No barcode is available for Polaris patron {patronId}");
         }
     }
 }

@@ -10,7 +10,7 @@ namespace Ocuda.Ops.Service.Interfaces.Ops.Services
     {
         Task<DataWithCount<IList<CustomerLookup>>> GetPaginatedCustomerLookupListAsync(CustomerLookupFilter filter);
 
-        Task<CustomerLookup> GetCustomerLookupInfoAsync(int customerLookupID);
+        Task<CustomerLookup> GetCustomerLookupInfoAsync(int customerLookupID, string barcode);
 
         Task<IList<Material>> GetCustomerLookupCheckoutsAsync(int customerLookupID);
 

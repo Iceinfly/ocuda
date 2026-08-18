@@ -283,33 +283,6 @@ namespace Ocuda.PolarisHelper
                 .FirstOrDefault(_ => !string.IsNullOrWhiteSpace(_));
         }
 
-        public string GetPatronBarcode(int patronId)
-        {
-            var data = ExecutePapiMethod(
-                "Patron_GetBarcodeFromID",
-                new[] { "Patron_GetBarcodeFromID", "PatronGetBarcodeFromID" },
-                new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
-                {
-                    ["patronid"] = patronId
-                });
-
-            var rows = GetRows(data, "BarcodeAndPatronIDRows").ToList();
-            var barcode = rows
-                .Where(_ => GetNullableInt(_, "PatronID") == patronId)
-                .Select(_ => GetString(_, "Barcode"))
-                .FirstOrDefault(_ => !string.IsNullOrWhiteSpace(_))
-                ?? GetString(data, "Barcode")
-                ?? rows.Select(_ => GetString(_, "Barcode"))
-                    .FirstOrDefault(_ => !string.IsNullOrWhiteSpace(_));
-
-            if (string.IsNullOrWhiteSpace(barcode))
-            {
-                throw new OcudaException($"Unable to resolve a barcode for Polaris patron {patronId}");
-            }
-
-            return barcode;
-        }
-
         public IList<PatronHold> GetPatronHolds(string barcode)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(barcode);
