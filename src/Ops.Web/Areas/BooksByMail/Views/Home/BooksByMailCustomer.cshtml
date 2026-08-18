@@ -432,7 +432,7 @@
             </div>
             <div class="card-body p-2">
                 <div id="commentSection">
-                    @if (Model.BooksByMailCustomer.Comments.Any() == true)
+                    @if (Model.BooksByMailCustomer.Comments?.Any() == true)
                     {
                         @foreach (var comment in Model.BooksByMailCustomer.Comments)
                         {
