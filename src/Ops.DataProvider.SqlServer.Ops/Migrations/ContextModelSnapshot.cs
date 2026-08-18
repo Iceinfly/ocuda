@@ -94,6 +94,85 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Ops.Migrations
                     b.ToTable("ApiKeys");
                 });
 
+            modelBuilder.Entity("Ocuda.Ops.Models.Entities.BooksByMailComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BooksByMailCustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BooksByMailCustomerId");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("UpdatedBy");
+
+                    b.ToTable("BooksByMailComments");
+                });
+
+            modelBuilder.Entity("Ocuda.Ops.Models.Entities.BooksByMailCustomer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Dislikes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ExternalCustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Likes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("UpdatedBy");
+
+                    b.ToTable("BooksByMailCustomers");
+                });
+
             modelBuilder.Entity("Ocuda.Ops.Models.Entities.Category", b =>
                 {
                     b.Property<int>("Id")
@@ -2884,6 +2963,48 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Ops.Migrations
                     b.Navigation("UpdatedByUser");
                 });
 
+            modelBuilder.Entity("Ocuda.Ops.Models.Entities.BooksByMailComment", b =>
+                {
+                    b.HasOne("Ocuda.Ops.Models.Entities.BooksByMailCustomer", null)
+                        .WithMany("Comments")
+                        .HasForeignKey("BooksByMailCustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ocuda.Ops.Models.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ocuda.Ops.Models.Entities.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("UpdatedByUser");
+                });
+
+            modelBuilder.Entity("Ocuda.Ops.Models.Entities.BooksByMailCustomer", b =>
+                {
+                    b.HasOne("Ocuda.Ops.Models.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Ocuda.Ops.Models.Entities.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("UpdatedByUser");
+                });
+
             modelBuilder.Entity("Ocuda.Ops.Models.Entities.Category", b =>
                 {
                     b.HasOne("Ocuda.Ops.Models.Entities.User", "CreatedByUser")
@@ -4057,6 +4178,11 @@ namespace Ocuda.Ops.DataProvider.SqlServer.Ops.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Ocuda.Ops.Models.Entities.BooksByMailCustomer", b =>
+                {
+                    b.Navigation("Comments");
                 });
 
             modelBuilder.Entity("Ocuda.Ops.Models.Entities.File", b =>
