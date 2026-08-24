@@ -24,7 +24,14 @@ namespace Ocuda.HappyFoxHelper
         Task<IReadOnlyCollection<Status>> GetStatusesAsync(
             CancellationToken cancellationToken = default);
 
+        Task<Ticket> GetTicketAsync(int ticketNumber,
+            bool includeCustomFieldChanges = false,
+            CancellationToken cancellationToken = default);
+
         Task<IReadOnlyCollection<CustomField>> GetTicketCustomFieldsAsync(
+            CancellationToken cancellationToken = default);
+
+        Task<TicketPage> GetTicketsAsync(TicketQuery query,
             CancellationToken cancellationToken = default);
 
     }

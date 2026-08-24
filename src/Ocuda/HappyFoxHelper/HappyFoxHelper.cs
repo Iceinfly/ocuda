@@ -104,12 +104,111 @@ namespace Ocuda.HappyFoxHelper
                 cancellationToken);
         }
 
+        public Task<Ticket> GetTicketAsync(int ticketNumber,
+            bool includeCustomFieldChanges = false,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateIdentifier(ticketNumber, nameof(ticketNumber));
+            string relativeUri = $"{ApiPrefix}ticket/{ticketNumber}/";
+            if (includeCustomFieldChanges)
+            {
+                relativeUri = $"{relativeUri}?show_cf_changes=true";
+            }
+
+            return GetAsync<Ticket>(relativeUri, cancellationToken);
+        }
+
         public Task<IReadOnlyCollection<CustomField>> GetTicketCustomFieldsAsync(
             CancellationToken cancellationToken = default)
         {
             return GetAsync<IReadOnlyCollection<CustomField>>(
                 $"{ApiPrefix}ticket_custom_fields/",
                 cancellationToken);
+        }
+
+        public Task<TicketPage> GetTicketsAsync(TicketQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(query);
+            ValidatePaging(query.Page, query.PageSize);
+
+            return GetAsync<TicketPage>(BuildTicketQuery(query), cancellationToken);
+        }
+
+        private string BuildTicketQuery(TicketQuery query)
+        {
+            List<KeyValuePair<string, string>> parameters = new()
+            {
+                new("page", query.Page.ToString(CultureInfo.InvariantCulture)),
+                new("size", query.PageSize.ToString(CultureInfo.InvariantCulture)),
+                new("status", query.StatusId.HasValue
+                    ? query.StatusId.Value.ToString(CultureInfo.InvariantCulture)
+                    : "_all"),
+                new("sort", GetSortValue(query.Sort))
+            };
+
+            if (query.CategoryIds != null)
+            {
+                foreach (int categoryId in query.CategoryIds)
+                {
+                    parameters.Add(new("category", categoryId.ToString(CultureInfo.InvariantCulture)));
+                }
+            }
+
+            List<string> filters = new();
+            if (!string.IsNullOrWhiteSpace(query.SearchText))
+            {
+                filters.Add(query.SearchText);
+            }
+            if (query.Unresponded.HasValue)
+            {
+                filters.Add($"unresponded:{query.Unresponded.Value.ToString().ToLowerInvariant()}");
+            }
+            if (query.HasAttachments.HasValue)
+            {
+                filters.Add(
+                    $"has_attachments:{query.HasAttachments.Value.ToString().ToLowerInvariant()}");
+            }
+            if (!string.IsNullOrWhiteSpace(query.Contact))
+            {
+                filters.Add($"contact:\"{query.Contact}\"");
+            }
+            if (query.Tags?.Count > 0)
+            {
+                filters.Add($"tag:{string.Join(",", query.Tags.Select(_ => $"\"{_}\""))}");
+            }
+            if (query.CreatedFrom.HasValue)
+            {
+                filters.Add($"created-on-or-after:\"{FormatSearchDate(query.CreatedFrom.Value)}\"");
+            }
+            if (query.CreatedTo.HasValue)
+            {
+                filters.Add($"created-on-or-before:\"{FormatSearchDate(query.CreatedTo.Value)}\"");
+            }
+            if (query.LastModifiedFrom.HasValue)
+            {
+                filters.Add(
+                    $"last-modified-on-or-after:\"{FormatSearchDate(query.LastModifiedFrom.Value)}\"");
+            }
+            if (query.LastModifiedTo.HasValue)
+            {
+                filters.Add(
+                    $"last-modified-on-or-before:\"{FormatSearchDate(query.LastModifiedTo.Value)}\"");
+            }
+            if (filters.Count > 0)
+            {
+                parameters.Add(new("q", string.Join("+", filters)));
+            }
+
+            return BuildRelativeUri($"{ApiPrefix}tickets/", parameters);
+        }
+
+        private static string BuildRelativeUri(string path,
+            IEnumerable<KeyValuePair<string, string>> parameters)
+        {
+            string query = string.Join("&", parameters.Select(_ =>
+                $"{Uri.EscapeDataString(_.Key)}={Uri.EscapeDataString(_.Value ?? string.Empty)}"));
+            return string.IsNullOrEmpty(query) ? path : $"{path}?{query}";
         }
 
         private void EnsureConfigured()
@@ -119,6 +218,28 @@ namespace Ocuda.HappyFoxHelper
                 throw new OcudaConfigurationException(
                     "HappyFox is not configured. Configure HappyFoxSettings before use.");
             }
+        }
+
+        private static string FormatSearchDate(DateTime value)
+        {
+            return value.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture);
+        }
+
+        private static string GetSortValue(TicketSort sort)
+        {
+            return sort switch
+            {
+                TicketSort.UpdatedAscending => "updatea",
+                TicketSort.CreatedDescending => "created",
+                TicketSort.CreatedAscending => "createa",
+                TicketSort.TicketDescending => "ticketd",
+                TicketSort.TicketAscending => "ticketa",
+                TicketSort.PriorityDescending => "priorityd",
+                TicketSort.PriorityAscending => "prioritya",
+                TicketSort.StatusDescending => "statusd",
+                TicketSort.StatusAscending => "statusa",
+                _ => "updated"
+            };
         }
 
         private async Task<T> GetAsync<T>(string relativeUri,
@@ -265,6 +386,29 @@ namespace Ocuda.HappyFoxHelper
                     request.Method,
                     request.RequestUri);
                 throw new HappyFoxException("Error communicating with HappyFox.", ex);
+            }
+        }
+
+        private static void ValidateIdentifier(int identifier, string parameterName)
+        {
+            if (identifier <= 0)
+            {
+                throw new ArgumentOutOfRangeException(parameterName,
+                    "Identifiers must be greater than zero.");
+            }
+        }
+
+        private static void ValidatePaging(int page, int pageSize)
+        {
+            if (page <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(page),
+                    "Page must be greater than zero.");
+            }
+            if (pageSize <= 0 || pageSize > MaximumPageSize)
+            {
+                throw new ArgumentOutOfRangeException(nameof(pageSize),
+                    $"Page size must be between 1 and {MaximumPageSize}.");
             }
         }
 
