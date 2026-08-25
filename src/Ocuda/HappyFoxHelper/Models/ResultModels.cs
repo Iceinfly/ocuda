@@ -7,4 +7,18 @@ namespace Ocuda.HappyFoxHelper.Models
         public IReadOnlyCollection<string> Errors { get; set; } = new List<string>();
         public string Field { get; set; }
     }
+
+    public class BatchTicketResult
+    {
+        public string DisplayId { get; set; }
+        public IReadOnlyCollection<ValidationError> Error { get; set; }
+            = new List<ValidationError>();
+        public int? Id { get; set; }
+        public bool Success { get; set; }
+    }
+
+    public class InlineAttachmentResult
+    {
+        public string Url { get; set; }
+    }
 }

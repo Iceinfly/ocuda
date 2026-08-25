@@ -64,6 +64,62 @@ namespace Ocuda.HappyFoxHelper
 
         public bool IsConfigured { get; }
 
+        public Task<InlineAttachmentResult> CreateInlineAttachmentAsync(
+            TicketAttachmentUpload attachment,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(attachment);
+            ValidateAttachments(new[] { attachment });
+
+            return PostAsync<InlineAttachmentResult>(
+                $"{ApiPrefix}ticket-inline-attachment",
+                new Dictionary<string, object>(),
+                new[] { attachment },
+                cancellationToken,
+                "file");
+        }
+
+        public Task<Ticket> CreateTicketAsync(CreateTicketRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+            ValidateCreateTicketRequest(request);
+
+            return PostAsync<Ticket>(
+                $"{ApiPrefix}tickets/",
+                BuildCreateTicketPayload(request),
+                request.Attachments,
+                cancellationToken);
+        }
+
+        public Task<IReadOnlyCollection<BatchTicketResult>> CreateTicketsAsync(
+            IReadOnlyCollection<CreateTicketRequest> requests,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(requests);
+            ValidateBatchCount(requests.Count, nameof(requests));
+
+            foreach (CreateTicketRequest request in requests)
+            {
+                ValidateCreateTicketRequest(request);
+                if (request.Attachments.Count > 0)
+                {
+                    throw new ArgumentException(
+                        "HappyFox batch ticket creation does not support attachments.",
+                        nameof(requests));
+                }
+            }
+
+            List<Dictionary<string, object>> payload
+                = requests.Select(BuildCreateTicketPayload).ToList();
+
+            return PostAsync<IReadOnlyCollection<BatchTicketResult>>(
+                $"{ApiPrefix}tickets/",
+                payload,
+                null,
+                cancellationToken);
+        }
+
         public Task<IReadOnlyCollection<Category>> GetCategoriesAsync(
             CancellationToken cancellationToken = default)
         {
@@ -133,6 +189,94 @@ namespace Ocuda.HappyFoxHelper
             ValidatePaging(query.Page, query.PageSize);
 
             return GetAsync<TicketPage>(BuildTicketQuery(query), cancellationToken);
+        }
+
+        private static void AddCustomFields(Dictionary<string, object> payload,
+            string prefix,
+            IReadOnlyDictionary<int, object> customFields)
+        {
+            if (customFields == null)
+            {
+                return;
+            }
+
+            foreach (KeyValuePair<int, object> field in customFields)
+            {
+                if (field.Key <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(customFields),
+                        "Custom field ids must be greater than zero.");
+                }
+                payload[$"{prefix}{field.Key}"] = NormalizePayloadValue(field.Value);
+            }
+        }
+
+        private static void AddIfNotEmpty(Dictionary<string, object> payload,
+            string key,
+            string value)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                payload[key] = value;
+            }
+        }
+
+        private static void AddIfNotNull(Dictionary<string, object> payload,
+            string key,
+            object value)
+        {
+            if (value != null)
+            {
+                payload[key] = value;
+            }
+        }
+
+        private static void AddJoinedIfAny(Dictionary<string, object> payload,
+            string key,
+            IReadOnlyCollection<string> values)
+        {
+            if (values?.Count > 0)
+            {
+                payload[key] = Join(values);
+            }
+        }
+
+        private static Dictionary<string, object> BuildCreateTicketPayload(CreateTicketRequest request)
+        {
+            Dictionary<string, object> payload = new()
+            {
+                ["category"] = request.CategoryId,
+                ["subject"] = request.Subject
+            };
+
+            if (request.ContactId.HasValue)
+            {
+                payload["client"] = request.ContactId.Value;
+            }
+            else
+            {
+                payload["name"] = request.ContactName;
+                payload["email"] = request.ContactEmail;
+                AddIfNotEmpty(payload, "phone", request.ContactPhone);
+            }
+
+            AddIfNotEmpty(payload, "text", request.Text);
+            AddIfNotEmpty(payload, "html", request.Html);
+            AddIfNotNull(payload, "priority", request.PriorityId);
+            AddIfNotNull(payload, "assignee", request.AssigneeId);
+            AddJoinedIfAny(payload, "tags", request.Tags);
+            AddJoinedIfAny(payload, "cc", request.Cc);
+            AddJoinedIfAny(payload, "bcc", request.Bcc);
+            AddIfNotNull(payload, "created_at", FormatDateTime(request.CreatedAt));
+            AddIfNotNull(payload, "due_date", FormatDate(request.DueDate));
+            if (request.IsPrivate)
+            {
+                payload["visible_only_staff"] = true;
+            }
+            AddCustomFields(payload, "c-cf-", request.ContactCustomFields);
+            AddCustomFields(payload, "t-cf-", request.TicketCustomFields);
+            return payload;
         }
 
         private string BuildTicketQuery(TicketQuery query)
@@ -211,6 +355,35 @@ namespace Ocuda.HappyFoxHelper
             return string.IsNullOrEmpty(query) ? path : $"{path}?{query}";
         }
 
+        private static string ConvertFormValue(object value)
+        {
+            if (value == null)
+            {
+                return string.Empty;
+            }
+            if (value is string stringValue)
+            {
+                return stringValue;
+            }
+            if (value is bool boolValue)
+            {
+                return boolValue.ToString().ToLowerInvariant();
+            }
+            if (value is DateTime dateTime)
+            {
+                return dateTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            }
+            if (value is IEnumerable && value is not string)
+            {
+                return JsonSerializer.Serialize(value, JsonOptions);
+            }
+            if (value is IFormattable formattable)
+            {
+                return formattable.ToString(null, CultureInfo.InvariantCulture);
+            }
+            return value.ToString();
+        }
+
         private void EnsureConfigured()
         {
             if (!IsConfigured)
@@ -218,6 +391,16 @@ namespace Ocuda.HappyFoxHelper
                 throw new OcudaConfigurationException(
                     "HappyFox is not configured. Configure HappyFoxSettings before use.");
             }
+        }
+
+        private static string FormatDate(DateTime? value)
+        {
+            return value?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        }
+
+        private static string FormatDateTime(DateTime? value)
+        {
+            return value?.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture);
         }
 
         private static string FormatSearchDate(DateTime value)
@@ -248,6 +431,20 @@ namespace Ocuda.HappyFoxHelper
             EnsureConfigured();
             using HttpRequestMessage request = new(HttpMethod.Get, relativeUri);
             return await SendAsync<T>(request, cancellationToken);
+        }
+
+        private static string Join(IEnumerable<string> values)
+        {
+            return string.Join(",", values.Where(_ => !string.IsNullOrWhiteSpace(_)));
+        }
+
+        private static object NormalizePayloadValue(object value)
+        {
+            if (value is DateTime dateTime)
+            {
+                return dateTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            }
+            return value;
         }
 
         private static IReadOnlyCollection<ValidationError> ParseValidationErrors(string responseBody)
@@ -325,6 +522,61 @@ namespace Ocuda.HappyFoxHelper
             return results;
         }
 
+        private async Task<T> PostAsync<T>(string relativeUri,
+            object payload,
+            IReadOnlyCollection<TicketAttachmentUpload> attachments,
+            CancellationToken cancellationToken,
+            string attachmentFieldName = "attachments")
+        {
+            EnsureConfigured();
+            ValidateAttachments(attachments);
+
+            using HttpRequestMessage request = new(HttpMethod.Post, relativeUri)
+            {
+                Content = BuildHttpContent(payload, attachments, attachmentFieldName)
+            };
+            return await SendAsync<T>(request, cancellationToken);
+        }
+
+        private HttpContent BuildHttpContent(object payload,
+            IReadOnlyCollection<TicketAttachmentUpload> attachments,
+            string attachmentFieldName)
+        {
+            if (attachments == null || attachments.Count == 0)
+            {
+                string json = JsonSerializer.Serialize(payload, JsonOptions);
+                return new StringContent(json, Encoding.UTF8, "application/json");
+            }
+
+            MultipartFormDataContent multipart = new();
+            if (payload is IDictionary<string, object> fields)
+            {
+                foreach (KeyValuePair<string, object> field in fields)
+                {
+                    multipart.Add(new StringContent(ConvertFormValue(field.Value)), field.Key);
+                }
+            }
+            else
+            {
+                throw new ArgumentException(
+                    "Multipart HappyFox requests require a dictionary payload.",
+                    nameof(payload));
+            }
+
+            foreach (TicketAttachmentUpload attachment in attachments)
+            {
+                ByteArrayContent fileContent = new(attachment.Content ?? Array.Empty<byte>());
+                if (!string.IsNullOrWhiteSpace(attachment.ContentType))
+                {
+                    fileContent.Headers.ContentType = new MediaTypeHeaderValue(attachment.ContentType);
+                }
+                multipart.Add(fileContent,
+                    attachmentFieldName,
+                    attachment.FileName ?? "attachment");
+            }
+            return multipart;
+        }
+
         private async Task<T> SendAsync<T>(HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
@@ -387,6 +639,69 @@ namespace Ocuda.HappyFoxHelper
                     request.RequestUri);
                 throw new HappyFoxException("Error communicating with HappyFox.", ex);
             }
+        }
+
+        private static void ValidateAttachments(IReadOnlyCollection<TicketAttachmentUpload> attachments)
+        {
+            if (attachments == null || attachments.Count == 0)
+            {
+                return;
+            }
+
+            long totalBytes = 0;
+            foreach (TicketAttachmentUpload attachment in attachments)
+            {
+                if (attachment == null)
+                {
+                    throw new ArgumentException("Attachment collections cannot contain null values.",
+                        nameof(attachments));
+                }
+                if (string.IsNullOrWhiteSpace(attachment.FileName))
+                {
+                    throw new ArgumentException("Every attachment requires a file name.",
+                        nameof(attachments));
+                }
+                totalBytes += attachment.Content?.LongLength ?? 0;
+            }
+
+            if (totalBytes > AttachmentLimitBytes)
+            {
+                throw new ArgumentException(
+                    "HappyFox limits total attachments for a request to 25 MB.",
+                    nameof(attachments));
+            }
+        }
+
+        private static void ValidateBatchCount(int count, string parameterName)
+        {
+            if (count <= 0 || count > MaximumBatchSize)
+            {
+                throw new ArgumentOutOfRangeException(parameterName,
+                    $"HappyFox batch operations require between 1 and {MaximumBatchSize} items.");
+            }
+        }
+
+        private static void ValidateCreateTicketRequest(CreateTicketRequest request)
+        {
+            ValidateIdentifier(request.CategoryId, nameof(request.CategoryId));
+            if (string.IsNullOrWhiteSpace(request.Subject))
+            {
+                throw new ArgumentException("A ticket subject is required.", nameof(request));
+            }
+            if (string.IsNullOrWhiteSpace(request.Text) && string.IsNullOrWhiteSpace(request.Html))
+            {
+                throw new ArgumentException("A ticket requires either text or HTML content.",
+                    nameof(request));
+            }
+            if (!request.ContactId.HasValue
+                && (string.IsNullOrWhiteSpace(request.ContactName)
+                    || string.IsNullOrWhiteSpace(request.ContactEmail)))
+            {
+                throw new ArgumentException(
+                    "A new ticket contact requires a name and email address.",
+                    nameof(request));
+            }
+            ValidateAttachments(request.Attachments);
         }
 
         private static void ValidateIdentifier(int identifier, string parameterName)

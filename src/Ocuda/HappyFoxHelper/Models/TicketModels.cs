@@ -113,4 +113,11 @@ namespace Ocuda.HappyFoxHelper.Models
         public int Id { get; set; }
         public Uri Url { get; set; }
     }
+
+    public class TicketAttachmentUpload
+    {
+        public byte[] Content { get; set; } = Array.Empty<byte>();
+        public string ContentType { get; set; } = "application/octet-stream";
+        public string FileName { get; set; }
+    }
 }

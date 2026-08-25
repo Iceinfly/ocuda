@@ -9,6 +9,17 @@ namespace Ocuda.HappyFoxHelper
     {
         bool IsConfigured { get; }
 
+        Task<InlineAttachmentResult> CreateInlineAttachmentAsync(
+            TicketAttachmentUpload attachment,
+            CancellationToken cancellationToken = default);
+
+        Task<Ticket> CreateTicketAsync(CreateTicketRequest request,
+            CancellationToken cancellationToken = default);
+
+        Task<IReadOnlyCollection<BatchTicketResult>> CreateTicketsAsync(
+            IReadOnlyCollection<CreateTicketRequest> requests,
+            CancellationToken cancellationToken = default);
+
         Task<IReadOnlyCollection<Category>> GetCategoriesAsync(
             CancellationToken cancellationToken = default);
 
