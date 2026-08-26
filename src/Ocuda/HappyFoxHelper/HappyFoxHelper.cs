@@ -64,6 +64,100 @@ namespace Ocuda.HappyFoxHelper
 
         public bool IsConfigured { get; }
 
+        public Task<Ticket> AddContactReplyAsync(int ticketNumber,
+            ContactReplyRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateIdentifier(ticketNumber, nameof(ticketNumber));
+            ArgumentNullException.ThrowIfNull(request);
+            ValidateIdentifier(request.ContactId, nameof(request.ContactId));
+
+            if (string.IsNullOrWhiteSpace(request.Text))
+            {
+                throw new ArgumentException("A contact reply requires text.", nameof(request));
+            }
+
+            Dictionary<string, object> payload = new()
+            {
+                ["user"] = request.ContactId,
+                ["text"] = request.Text
+            };
+            AddJoinedIfAny(payload, "cc", request.Cc);
+            AddJoinedIfAny(payload, "bcc", request.Bcc);
+
+            return PostAsync<Ticket>(
+                $"{ApiPrefix}ticket/{ticketNumber}/user_reply/",
+                payload,
+                request.Attachments,
+                cancellationToken);
+        }
+
+        public Task<Ticket> AddPrivateNoteAsync(int ticketNumber,
+            PrivateNoteRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateIdentifier(ticketNumber, nameof(ticketNumber));
+            ArgumentNullException.ThrowIfNull(request);
+
+            Dictionary<string, object> payload = new()
+            {
+                ["staff"] = _settings.StaffId
+            };
+            AddIfNotEmpty(payload, "alert", request.Alert);
+            AddIfNotNull(payload, "status", request.StatusId);
+            AddIfNotNull(payload, "priority", request.PriorityId);
+            AddAssignee(payload, request.AssigneeId, request.ClearAssignee);
+            AddIfNotNull(payload, "time_spent", request.TimeSpentMinutes);
+            AddIfNotNull(payload, "due_date", FormatDate(request.DueDate));
+            AddJoinedIfAny(payload, "tags", request.Tags);
+            AddIfNotEmpty(payload, "html", request.Html);
+            AddIfNotEmpty(payload, "plaintext", request.PlainText);
+            AddCustomFields(payload, "ccf-", request.ContactCustomFields);
+            AddCustomFields(payload, "t-cf-", request.TicketCustomFields);
+
+            return PostAsync<Ticket>(
+                $"{ApiPrefix}ticket/{ticketNumber}/staff_pvtnote/",
+                payload,
+                request.Attachments,
+                cancellationToken);
+        }
+
+        public Task<Ticket> AddStaffUpdateAsync(int ticketNumber,
+            StaffUpdateRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateIdentifier(ticketNumber, nameof(ticketNumber));
+            ArgumentNullException.ThrowIfNull(request);
+
+            Dictionary<string, object> payload = new()
+            {
+                ["staff"] = _settings.StaffId,
+                ["update_customer"] = request.UpdateCustomer,
+                ["send_survey"] = request.SendSurvey
+            };
+            AddJoinedIfAny(payload, "cc", request.Cc);
+            AddJoinedIfAny(payload, "bcc", request.Bcc);
+            AddIfNotEmpty(payload, "subject", request.Subject);
+            AddIfNotNull(payload, "parent_update", request.ParentUpdateId);
+            AddIfNotNull(payload, "last_staff_message", request.LastStaffMessageId);
+            AddIfNotNull(payload, "status", request.StatusId);
+            AddIfNotNull(payload, "priority", request.PriorityId);
+            AddAssignee(payload, request.AssigneeId, request.ClearAssignee);
+            AddIfNotNull(payload, "time_spent", request.TimeSpentMinutes);
+            AddIfNotNull(payload, "due_date", FormatDate(request.DueDate));
+            AddJoinedIfAny(payload, "tags", request.Tags);
+            AddIfNotEmpty(payload, "html", request.Html);
+            AddIfNotEmpty(payload, "plaintext", request.PlainText);
+            AddCustomFields(payload, "ccf-", request.ContactCustomFields);
+            AddCustomFields(payload, "t-cf-", request.TicketCustomFields);
+
+            return PostAsync<Ticket>(
+                $"{ApiPrefix}ticket/{ticketNumber}/staff_update/",
+                payload,
+                request.Attachments,
+                cancellationToken);
+        }
+
         public Task<InlineAttachmentResult> CreateInlineAttachmentAsync(
             TicketAttachmentUpload attachment,
             CancellationToken cancellationToken = default)
@@ -189,6 +283,61 @@ namespace Ocuda.HappyFoxHelper
             ValidatePaging(query.Page, query.PageSize);
 
             return GetAsync<TicketPage>(BuildTicketQuery(query), cancellationToken);
+        }
+
+        public Task<Ticket> UpdateTicketCustomFieldsAsync(int ticketNumber,
+            TicketCustomFieldUpdateRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateIdentifier(ticketNumber, nameof(ticketNumber));
+            ArgumentNullException.ThrowIfNull(request);
+
+            Dictionary<string, object> payload = new()
+            {
+                ["staff"] = _settings.StaffId
+            };
+            AddCustomFields(payload, "t-cf-", request.TicketCustomFields);
+
+            return PostAsync<Ticket>(
+                $"{ApiPrefix}ticket/{ticketNumber}/update_custom_fields/",
+                payload,
+                null,
+                cancellationToken);
+        }
+
+        public Task<Ticket> UpdateTicketTagsAsync(int ticketNumber,
+            TicketTagUpdateRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateIdentifier(ticketNumber, nameof(ticketNumber));
+            ArgumentNullException.ThrowIfNull(request);
+
+            Dictionary<string, object> payload = new()
+            {
+                ["staff_id"] = _settings.StaffId
+            };
+            AddJoinedIfAny(payload, "add", request.Add);
+            AddJoinedIfAny(payload, "remove", request.Remove);
+
+            return PostAsync<Ticket>(
+                $"{ApiPrefix}ticket/{ticketNumber}/update_tags/",
+                payload,
+                null,
+                cancellationToken);
+        }
+
+        private static void AddAssignee(Dictionary<string, object> payload,
+            int? assigneeId,
+            bool clearAssignee)
+        {
+            if (clearAssignee)
+            {
+                payload["assignee"] = null;
+            }
+            else if (assigneeId.HasValue)
+            {
+                payload["assignee"] = assigneeId.Value;
+            }
         }
 
         private static void AddCustomFields(Dictionary<string, object> payload,

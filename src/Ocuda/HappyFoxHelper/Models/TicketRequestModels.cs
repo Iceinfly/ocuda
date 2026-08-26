@@ -60,4 +60,72 @@ namespace Ocuda.HappyFoxHelper.Models
             = new Dictionary<int, object>();
         public string Text { get; set; }
     }
+
+    public class StaffUpdateRequest
+    {
+        public int? AssigneeId { get; set; }
+        public bool ClearAssignee { get; set; }
+        public IReadOnlyCollection<TicketAttachmentUpload> Attachments { get; set; }
+            = new List<TicketAttachmentUpload>();
+        public IReadOnlyCollection<string> Bcc { get; set; } = new List<string>();
+        public IReadOnlyCollection<string> Cc { get; set; } = new List<string>();
+        public IReadOnlyDictionary<int, object> ContactCustomFields { get; set; }
+            = new Dictionary<int, object>();
+        public DateTime? DueDate { get; set; }
+        public string Html { get; set; }
+        public int? LastStaffMessageId { get; set; }
+        public int? ParentUpdateId { get; set; }
+        public string PlainText { get; set; }
+        public int? PriorityId { get; set; }
+        public bool SendSurvey { get; set; }
+        public int? StatusId { get; set; }
+        public string Subject { get; set; }
+        public IReadOnlyCollection<string> Tags { get; set; } = new List<string>();
+        public IReadOnlyDictionary<int, object> TicketCustomFields { get; set; }
+            = new Dictionary<int, object>();
+        public int? TimeSpentMinutes { get; set; }
+        public bool UpdateCustomer { get; set; }
+    }
+
+    public class PrivateNoteRequest
+    {
+        public string Alert { get; set; }
+        public int? AssigneeId { get; set; }
+        public bool ClearAssignee { get; set; }
+        public IReadOnlyCollection<TicketAttachmentUpload> Attachments { get; set; }
+            = new List<TicketAttachmentUpload>();
+        public IReadOnlyDictionary<int, object> ContactCustomFields { get; set; }
+            = new Dictionary<int, object>();
+        public DateTime? DueDate { get; set; }
+        public string Html { get; set; }
+        public string PlainText { get; set; }
+        public int? PriorityId { get; set; }
+        public int? StatusId { get; set; }
+        public IReadOnlyCollection<string> Tags { get; set; } = new List<string>();
+        public IReadOnlyDictionary<int, object> TicketCustomFields { get; set; }
+            = new Dictionary<int, object>();
+        public int? TimeSpentMinutes { get; set; }
+    }
+
+    public class ContactReplyRequest
+    {
+        public IReadOnlyCollection<TicketAttachmentUpload> Attachments { get; set; }
+            = new List<TicketAttachmentUpload>();
+        public IReadOnlyCollection<string> Bcc { get; set; } = new List<string>();
+        public IReadOnlyCollection<string> Cc { get; set; } = new List<string>();
+        public int ContactId { get; set; }
+        public string Text { get; set; }
+    }
+
+    public class TicketCustomFieldUpdateRequest
+    {
+        public IReadOnlyDictionary<int, object> TicketCustomFields { get; set; }
+            = new Dictionary<int, object>();
+    }
+
+    public class TicketTagUpdateRequest
+    {
+        public IReadOnlyCollection<string> Add { get; set; } = new List<string>();
+        public IReadOnlyCollection<string> Remove { get; set; } = new List<string>();
+    }
 }

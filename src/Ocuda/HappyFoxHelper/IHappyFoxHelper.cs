@@ -9,6 +9,18 @@ namespace Ocuda.HappyFoxHelper
     {
         bool IsConfigured { get; }
 
+        Task<Ticket> AddContactReplyAsync(int ticketNumber,
+            ContactReplyRequest request,
+            CancellationToken cancellationToken = default);
+
+        Task<Ticket> AddPrivateNoteAsync(int ticketNumber,
+            PrivateNoteRequest request,
+            CancellationToken cancellationToken = default);
+
+        Task<Ticket> AddStaffUpdateAsync(int ticketNumber,
+            StaffUpdateRequest request,
+            CancellationToken cancellationToken = default);
+
         Task<InlineAttachmentResult> CreateInlineAttachmentAsync(
             TicketAttachmentUpload attachment,
             CancellationToken cancellationToken = default);
@@ -43,6 +55,14 @@ namespace Ocuda.HappyFoxHelper
             CancellationToken cancellationToken = default);
 
         Task<TicketPage> GetTicketsAsync(TicketQuery query,
+            CancellationToken cancellationToken = default);
+
+        Task<Ticket> UpdateTicketCustomFieldsAsync(int ticketNumber,
+            TicketCustomFieldUpdateRequest request,
+            CancellationToken cancellationToken = default);
+
+        Task<Ticket> UpdateTicketTagsAsync(int ticketNumber,
+            TicketTagUpdateRequest request,
             CancellationToken cancellationToken = default);
 
     }
