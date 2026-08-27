@@ -32,6 +32,13 @@ namespace Ocuda.HappyFoxHelper
             IReadOnlyCollection<CreateTicketRequest> requests,
             CancellationToken cancellationToken = default);
 
+        Task<DeleteTicketResult> DeleteTicketAsync(int ticketNumber,
+            CancellationToken cancellationToken = default);
+
+        Task<TicketOperationResult> ForwardTicketAsync(int ticketNumber,
+            ForwardTicketRequest request,
+            CancellationToken cancellationToken = default);
+
         Task<IReadOnlyCollection<Category>> GetCategoriesAsync(
             CancellationToken cancellationToken = default);
 
@@ -55,6 +62,18 @@ namespace Ocuda.HappyFoxHelper
             CancellationToken cancellationToken = default);
 
         Task<TicketPage> GetTicketsAsync(TicketQuery query,
+            CancellationToken cancellationToken = default);
+
+        Task<TicketOperationResult> MoveTicketAsync(int ticketNumber,
+            MoveTicketRequest request,
+            CancellationToken cancellationToken = default);
+
+        Task<TicketOperationResult> SubscribeAsync(int ticketNumber,
+            TicketSubscriptionRequest request,
+            CancellationToken cancellationToken = default);
+
+        Task<TicketOperationResult> UnsubscribeAsync(int ticketNumber,
+            int staffId,
             CancellationToken cancellationToken = default);
 
         Task<Ticket> UpdateTicketCustomFieldsAsync(int ticketNumber,

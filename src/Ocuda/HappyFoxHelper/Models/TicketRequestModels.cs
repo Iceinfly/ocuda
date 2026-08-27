@@ -128,4 +128,34 @@ namespace Ocuda.HappyFoxHelper.Models
         public IReadOnlyCollection<string> Add { get; set; } = new List<string>();
         public IReadOnlyCollection<string> Remove { get; set; } = new List<string>();
     }
+
+    public class TicketSubscriptionRequest
+    {
+        public IReadOnlyCollection<int> StaffIds { get; set; } = new List<int>();
+    }
+
+    public class ForwardTicketRequest
+    {
+        public IReadOnlyCollection<TicketAttachmentUpload> Attachments { get; set; }
+            = new List<TicketAttachmentUpload>();
+        public IReadOnlyCollection<string> Bcc { get; set; } = new List<string>();
+        public IReadOnlyCollection<string> Cc { get; set; } = new List<string>();
+        public bool CcIncludeTicketContact { get; set; }
+        public bool ConvertRepliesAsNewTicket { get; set; } = true;
+        public bool IncludePrivateNotes { get; set; }
+        public string Message { get; set; }
+        public bool SendAllMessages { get; set; } = true;
+        public string Subject { get; set; }
+        public IReadOnlyCollection<int> TicketAttachmentIds { get; set; }
+            = new List<int>();
+        public IReadOnlyCollection<string> To { get; set; } = new List<string>();
+        public bool ToIncludeTicketContact { get; set; }
+    }
+
+    public class MoveTicketRequest
+    {
+        public int? AssigneeId { get; set; }
+        public string MoveNote { get; set; }
+        public int TargetCategoryId { get; set; }
+    }
 }

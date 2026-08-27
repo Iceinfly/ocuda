@@ -21,4 +21,15 @@ namespace Ocuda.HappyFoxHelper.Models
     {
         public string Url { get; set; }
     }
+
+    public class TicketOperationResult
+    {
+        public string Message { get; set; }
+        public int? StatusCode { get; set; }
+    }
+
+    public class DeleteTicketResult
+    {
+        public string DeletedTicket { get; set; }
+    }
 }

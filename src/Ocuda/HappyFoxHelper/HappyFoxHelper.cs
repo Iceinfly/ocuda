@@ -214,6 +214,62 @@ namespace Ocuda.HappyFoxHelper
                 cancellationToken);
         }
 
+        public Task<DeleteTicketResult> DeleteTicketAsync(int ticketNumber,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateIdentifier(ticketNumber, nameof(ticketNumber));
+            Dictionary<string, object> payload = new()
+            {
+                ["staff_id"] = _settings.StaffId
+            };
+
+            return PostAsync<DeleteTicketResult>(
+                $"{ApiPrefix}ticket/{ticketNumber}/delete/",
+                payload,
+                null,
+                cancellationToken);
+        }
+
+        public Task<TicketOperationResult> ForwardTicketAsync(int ticketNumber,
+            ForwardTicketRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateIdentifier(ticketNumber, nameof(ticketNumber));
+            ArgumentNullException.ThrowIfNull(request);
+            if (request.To.Count == 0 || string.IsNullOrWhiteSpace(request.Subject)
+                || string.IsNullOrWhiteSpace(request.Message))
+            {
+                throw new ArgumentException(
+                    "Forwarding requires at least one recipient, a subject, and a message.",
+                    nameof(request));
+            }
+
+            Dictionary<string, object> payload = new()
+            {
+                ["staff_id"] = _settings.StaffId,
+                ["to"] = Join(request.To),
+                ["subject"] = request.Subject,
+                ["message"] = request.Message,
+                ["to_include_ticket_contact"] = request.ToIncludeTicketContact,
+                ["cc_include_ticket_contact"] = request.CcIncludeTicketContact,
+                ["send_all_messages"] = request.SendAllMessages,
+                ["include_pvt_notes"] = request.IncludePrivateNotes,
+                ["convert_replies_as_new_ticket"] = request.ConvertRepliesAsNewTicket
+            };
+            AddJoinedIfAny(payload, "cc", request.Cc);
+            AddJoinedIfAny(payload, "bcc", request.Bcc);
+            if (request.TicketAttachmentIds.Count > 0)
+            {
+                payload["ticket_attachments"] = request.TicketAttachmentIds;
+            }
+
+            return PostAsync<TicketOperationResult>(
+                $"{ApiPrefix}ticket/{ticketNumber}/forward/",
+                payload,
+                request.Attachments,
+                cancellationToken);
+        }
+
         public Task<IReadOnlyCollection<Category>> GetCategoriesAsync(
             CancellationToken cancellationToken = default)
         {
@@ -283,6 +339,76 @@ namespace Ocuda.HappyFoxHelper
             ValidatePaging(query.Page, query.PageSize);
 
             return GetAsync<TicketPage>(BuildTicketQuery(query), cancellationToken);
+        }
+
+        public Task<TicketOperationResult> MoveTicketAsync(int ticketNumber,
+            MoveTicketRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateIdentifier(ticketNumber, nameof(ticketNumber));
+            ArgumentNullException.ThrowIfNull(request);
+            ValidateIdentifier(request.TargetCategoryId, nameof(request.TargetCategoryId));
+
+            Dictionary<string, object> payload = new()
+            {
+                ["staff_id"] = _settings.StaffId,
+                ["target_category_id"] = request.TargetCategoryId
+            };
+            AddIfNotEmpty(payload, "move_note", request.MoveNote);
+            AddIfNotNull(payload, "assign_to", request.AssigneeId);
+
+            return PostAsync<TicketOperationResult>(
+                $"{ApiPrefix}ticket/{ticketNumber}/move/",
+                payload,
+                null,
+                cancellationToken);
+        }
+
+        public Task<TicketOperationResult> SubscribeAsync(int ticketNumber,
+            TicketSubscriptionRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateIdentifier(ticketNumber, nameof(ticketNumber));
+            ArgumentNullException.ThrowIfNull(request);
+            if (request.StaffIds.Count == 0)
+            {
+                throw new ArgumentException("At least one staff id is required.", nameof(request));
+            }
+
+            int firstStaffId = request.StaffIds.First();
+            ValidateIdentifier(firstStaffId, nameof(request.StaffIds));
+            Dictionary<string, object> payload = new()
+            {
+                ["staff_id"] = firstStaffId
+            };
+            if (request.StaffIds.Count > 1)
+            {
+                payload["data"] = request.StaffIds.Skip(1).ToList();
+            }
+
+            return PostAsync<TicketOperationResult>(
+                $"{ApiPrefix}ticket/{ticketNumber}/subscribe/",
+                payload,
+                null,
+                cancellationToken);
+        }
+
+        public Task<TicketOperationResult> UnsubscribeAsync(int ticketNumber,
+            int staffId,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateIdentifier(ticketNumber, nameof(ticketNumber));
+            ValidateIdentifier(staffId, nameof(staffId));
+            Dictionary<string, object> payload = new()
+            {
+                ["staff_id"] = staffId
+            };
+
+            return PostAsync<TicketOperationResult>(
+                $"{ApiPrefix}ticket/{ticketNumber}/unsubscribe/",
+                payload,
+                null,
+                cancellationToken);
         }
 
         public Task<Ticket> UpdateTicketCustomFieldsAsync(int ticketNumber,
