@@ -17,8 +17,19 @@ namespace Ocuda.HappyFoxHelper
             PrivateNoteRequest request,
             CancellationToken cancellationToken = default);
 
+        Task<IReadOnlyCollection<ContactGroupMemberResult>> AddContactsToGroupAsync(
+            int contactGroupId,
+            IReadOnlyCollection<ContactGroupMemberRequest> contacts,
+            CancellationToken cancellationToken = default);
+
         Task<Ticket> AddStaffUpdateAsync(int ticketNumber,
             StaffUpdateRequest request,
+            CancellationToken cancellationToken = default);
+
+        Task<Contact> CreateContactAsync(ContactRequest request,
+            CancellationToken cancellationToken = default);
+
+        Task<ContactGroup> CreateContactGroupAsync(ContactGroupRequest request,
             CancellationToken cancellationToken = default);
 
         Task<InlineAttachmentResult> CreateInlineAttachmentAsync(
@@ -42,7 +53,22 @@ namespace Ocuda.HappyFoxHelper
         Task<IReadOnlyCollection<Category>> GetCategoriesAsync(
             CancellationToken cancellationToken = default);
 
+        Task<Contact> GetContactAsync(int contactId,
+            CancellationToken cancellationToken = default);
+
+        Task<Contact> GetContactAsync(string email,
+            CancellationToken cancellationToken = default);
+
         Task<IReadOnlyCollection<CustomField>> GetContactCustomFieldsAsync(
+            CancellationToken cancellationToken = default);
+
+        Task<ContactGroup> GetContactGroupAsync(int contactGroupId,
+            CancellationToken cancellationToken = default);
+
+        Task<IReadOnlyCollection<ContactGroup>> GetContactGroupsAsync(
+            CancellationToken cancellationToken = default);
+
+        Task<ContactPage> GetContactsAsync(ContactQuery query,
             CancellationToken cancellationToken = default);
 
         Task<IReadOnlyCollection<Priority>> GetPrioritiesAsync(
@@ -68,12 +94,25 @@ namespace Ocuda.HappyFoxHelper
             MoveTicketRequest request,
             CancellationToken cancellationToken = default);
 
+        Task<IReadOnlyCollection<ContactGroupMemberResult>> RemoveContactsFromGroupAsync(
+            int contactGroupId,
+            IReadOnlyCollection<int> contactIds,
+            CancellationToken cancellationToken = default);
+
         Task<TicketOperationResult> SubscribeAsync(int ticketNumber,
             TicketSubscriptionRequest request,
             CancellationToken cancellationToken = default);
 
         Task<TicketOperationResult> UnsubscribeAsync(int ticketNumber,
             int staffId,
+            CancellationToken cancellationToken = default);
+
+        Task<Contact> UpdateContactAsync(int contactId,
+            ContactRequest request,
+            CancellationToken cancellationToken = default);
+
+        Task<ContactGroup> UpdateContactGroupAsync(int contactGroupId,
+            ContactGroupRequest request,
             CancellationToken cancellationToken = default);
 
         Task<Ticket> UpdateTicketCustomFieldsAsync(int ticketNumber,
@@ -84,5 +123,8 @@ namespace Ocuda.HappyFoxHelper
             TicketTagUpdateRequest request,
             CancellationToken cancellationToken = default);
 
+        Task<IReadOnlyCollection<BatchContactResult>> UpsertContactsAsync(
+            IReadOnlyCollection<ContactRequest> requests,
+            CancellationToken cancellationToken = default);
     }
 }

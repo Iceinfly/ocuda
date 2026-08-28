@@ -122,6 +122,29 @@ namespace Ocuda.HappyFoxHelper
                 cancellationToken);
         }
 
+        public Task<IReadOnlyCollection<ContactGroupMemberResult>> AddContactsToGroupAsync(
+            int contactGroupId,
+            IReadOnlyCollection<ContactGroupMemberRequest> contacts,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateIdentifier(contactGroupId, nameof(contactGroupId));
+            ArgumentNullException.ThrowIfNull(contacts);
+            ValidateBatchCount(contacts.Count, nameof(contacts));
+
+            List<Dictionary<string, object>> payload = contacts.Select(_ =>
+                new Dictionary<string, object>
+                {
+                    ["contact"] = _.ContactId,
+                    ["access_tickets"] = _.AccessTickets
+                }).ToList();
+
+            return PostAsync<IReadOnlyCollection<ContactGroupMemberResult>>(
+                $"{ApiPrefix}contact_group/{contactGroupId}/update_contacts/",
+                payload,
+                null,
+                cancellationToken);
+        }
+
         public Task<Ticket> AddStaffUpdateAsync(int ticketNumber,
             StaffUpdateRequest request,
             CancellationToken cancellationToken = default)
@@ -155,6 +178,35 @@ namespace Ocuda.HappyFoxHelper
                 $"{ApiPrefix}ticket/{ticketNumber}/staff_update/",
                 payload,
                 request.Attachments,
+                cancellationToken);
+        }
+
+        public Task<Contact> CreateContactAsync(ContactRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+            ValidateContactRequest(request, true);
+
+            return PostAsync<Contact>(
+                $"{ApiPrefix}users/",
+                BuildContactPayload(request),
+                null,
+                cancellationToken);
+        }
+
+        public Task<ContactGroup> CreateContactGroupAsync(ContactGroupRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+            if (string.IsNullOrWhiteSpace(request.Name))
+            {
+                throw new ArgumentException("A contact group name is required.", nameof(request));
+            }
+
+            return PostAsync<ContactGroup>(
+                $"{ApiPrefix}contact_groups/",
+                BuildContactGroupPayload(request, true),
+                null,
                 cancellationToken);
         }
 
@@ -278,11 +330,69 @@ namespace Ocuda.HappyFoxHelper
                 cancellationToken);
         }
 
+        public Task<Contact> GetContactAsync(int contactId,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateIdentifier(contactId, nameof(contactId));
+            return GetAsync<Contact>($"{ApiPrefix}user/{contactId}/", cancellationToken);
+        }
+
+        public Task<Contact> GetContactAsync(string email,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                throw new ArgumentException("Email is required.", nameof(email));
+            }
+
+            return GetAsync<Contact>(
+                $"{ApiPrefix}user/{Uri.EscapeDataString(email)}/",
+                cancellationToken);
+        }
+
         public Task<IReadOnlyCollection<CustomField>> GetContactCustomFieldsAsync(
             CancellationToken cancellationToken = default)
         {
             return GetAsync<IReadOnlyCollection<CustomField>>(
                 $"{ApiPrefix}user_custom_fields/",
+                cancellationToken);
+        }
+
+        public Task<ContactGroup> GetContactGroupAsync(int contactGroupId,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateIdentifier(contactGroupId, nameof(contactGroupId));
+            return GetAsync<ContactGroup>(
+                $"{ApiPrefix}contact_group/{contactGroupId}/",
+                cancellationToken);
+        }
+
+        public Task<IReadOnlyCollection<ContactGroup>> GetContactGroupsAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return GetAsync<IReadOnlyCollection<ContactGroup>>(
+                $"{ApiPrefix}contact_groups/",
+                cancellationToken);
+        }
+
+        public Task<ContactPage> GetContactsAsync(ContactQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(query);
+            ValidatePaging(query.Page, query.PageSize);
+
+            List<KeyValuePair<string, string>> parameters = new()
+            {
+                new("page", query.Page.ToString(CultureInfo.InvariantCulture)),
+                new("size", query.PageSize.ToString(CultureInfo.InvariantCulture))
+            };
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                parameters.Add(new("q", query.Search));
+            }
+
+            return GetAsync<ContactPage>(
+                BuildRelativeUri($"{ApiPrefix}users/", parameters),
                 cancellationToken);
         }
 
@@ -364,6 +474,27 @@ namespace Ocuda.HappyFoxHelper
                 cancellationToken);
         }
 
+        public Task<IReadOnlyCollection<ContactGroupMemberResult>> RemoveContactsFromGroupAsync(
+            int contactGroupId,
+            IReadOnlyCollection<int> contactIds,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateIdentifier(contactGroupId, nameof(contactGroupId));
+            ArgumentNullException.ThrowIfNull(contactIds);
+            ValidateBatchCount(contactIds.Count, nameof(contactIds));
+
+            Dictionary<string, object> payload = new()
+            {
+                ["contacts"] = contactIds
+            };
+
+            return PostAsync<IReadOnlyCollection<ContactGroupMemberResult>>(
+                $"{ApiPrefix}contact_group/{contactGroupId}/delete_contacts/",
+                payload,
+                null,
+                cancellationToken);
+        }
+
         public Task<TicketOperationResult> SubscribeAsync(int ticketNumber,
             TicketSubscriptionRequest request,
             CancellationToken cancellationToken = default)
@@ -411,6 +542,35 @@ namespace Ocuda.HappyFoxHelper
                 cancellationToken);
         }
 
+        public Task<Contact> UpdateContactAsync(int contactId,
+            ContactRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateIdentifier(contactId, nameof(contactId));
+            ArgumentNullException.ThrowIfNull(request);
+            ValidateContactRequest(request, false);
+
+            return PostAsync<Contact>(
+                $"{ApiPrefix}user/{contactId}/",
+                BuildContactPayload(request),
+                null,
+                cancellationToken);
+        }
+
+        public Task<ContactGroup> UpdateContactGroupAsync(int contactGroupId,
+            ContactGroupRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateIdentifier(contactGroupId, nameof(contactGroupId));
+            ArgumentNullException.ThrowIfNull(request);
+
+            return PostAsync<ContactGroup>(
+                $"{ApiPrefix}contact_group/{contactGroupId}/",
+                BuildContactGroupPayload(request, false),
+                null,
+                cancellationToken);
+        }
+
         public Task<Ticket> UpdateTicketCustomFieldsAsync(int ticketNumber,
             TicketCustomFieldUpdateRequest request,
             CancellationToken cancellationToken = default)
@@ -447,6 +607,27 @@ namespace Ocuda.HappyFoxHelper
 
             return PostAsync<Ticket>(
                 $"{ApiPrefix}ticket/{ticketNumber}/update_tags/",
+                payload,
+                null,
+                cancellationToken);
+        }
+
+        public Task<IReadOnlyCollection<BatchContactResult>> UpsertContactsAsync(
+            IReadOnlyCollection<ContactRequest> requests,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(requests);
+            ValidateBatchCount(requests.Count, nameof(requests));
+            foreach (ContactRequest request in requests)
+            {
+                ValidateContactRequest(request, true);
+            }
+
+            List<Dictionary<string, object>> payload
+                = requests.Select(BuildContactPayload).ToList();
+
+            return PostAsync<IReadOnlyCollection<BatchContactResult>>(
+                $"{ApiPrefix}users/",
                 payload,
                 null,
                 cancellationToken);
@@ -515,6 +696,36 @@ namespace Ocuda.HappyFoxHelper
             {
                 payload[key] = Join(values);
             }
+        }
+
+        private static Dictionary<string, object> BuildContactGroupPayload(
+            ContactGroupRequest request,
+            bool includeName)
+        {
+            Dictionary<string, object> payload = new();
+            if (includeName)
+            {
+                AddIfNotEmpty(payload, "name", request.Name);
+            }
+            AddIfNotEmpty(payload, "description", request.Description);
+            AddJoinedIfAny(payload, "tagged_domains", request.TaggedDomains);
+            return payload;
+        }
+
+        private static Dictionary<string, object> BuildContactPayload(ContactRequest request)
+        {
+            Dictionary<string, object> payload = new();
+            AddIfNotEmpty(payload, "name", request.Name);
+            AddIfNotEmpty(payload, "email", request.Email);
+            AddIfNotNull(payload, "is_login_enabled", request.IsLoginEnabled);
+
+            if (request.Phones?.Count > 0)
+            {
+                payload["phones"] = request.Phones;
+            }
+
+            AddCustomFields(payload, "c-cf-", request.CustomFields);
+            return payload;
         }
 
         private static Dictionary<string, object> BuildCreateTicketPayload(CreateTicketRequest request)
@@ -953,6 +1164,21 @@ namespace Ocuda.HappyFoxHelper
             {
                 throw new ArgumentOutOfRangeException(parameterName,
                     $"HappyFox batch operations require between 1 and {MaximumBatchSize} items.");
+            }
+        }
+
+        private static void ValidateContactRequest(ContactRequest request, bool requireName)
+        {
+            if (requireName && string.IsNullOrWhiteSpace(request.Name))
+            {
+                throw new ArgumentException("A contact name is required.", nameof(request));
+            }
+            if (requireName && string.IsNullOrWhiteSpace(request.Email)
+                && (request.Phones == null || request.Phones.Count == 0))
+            {
+                throw new ArgumentException(
+                    "A contact requires an email address or phone number.",
+                    nameof(request));
             }
         }
 
