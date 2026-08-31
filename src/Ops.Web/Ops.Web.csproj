@@ -76,6 +76,7 @@
     <ProjectReference Include="..\Promenade.Models\Promenade.Models.csproj" />
     <ProjectReference Include="..\Ocuda\TrestleHelper\TrestleHelper.csproj" />
     <ProjectReference Include="..\Ocuda\Utility\Utility.csproj" />
+    <ProjectReference Include="..\Ocuda\HappyFoxHelper\HappyFoxHelper.csproj" />
   </ItemGroup>
 
   <ItemGroup>
