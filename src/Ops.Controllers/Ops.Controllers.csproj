@@ -45,6 +45,7 @@
     <ProjectReference Include="..\Ocuda\MaricopaCountyAssessorHelper\MaricopaCountyAssessorHelper.csproj" />
     <ProjectReference Include="..\Ocuda\Models\Models.csproj" />
     <ProjectReference Include="..\Ops.Service\Ops.Service.csproj" />
+    <ProjectReference Include="..\Ocuda\HappyFoxHelper\HappyFoxHelper.csproj" />
     <ProjectReference Include="..\Ocuda\PolarisHelper\PolarisHelper.csproj" />
     <ProjectReference Include="..\Ocuda\TrestleHelper\TrestleHelper.csproj" />
     <ProjectReference Include="..\Ocuda\Utility\Utility.csproj" />

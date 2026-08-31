@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Ocuda.HappyFoxHelper;
 using Ocuda.MaricopaCountyAssessorHelper;
 using Ocuda.Ops.Models;
 using Ocuda.PolarisHelper;
@@ -31,6 +32,9 @@ namespace Ocuda.Ops.Web.StartupHelper
 
             var mcLookup = scope.ServiceProvider.GetRequiredService<MaricopaCountyAssessorClient>();
             features.Value.AddressLookupMaricopaCountyConfigured = mcLookup.IsConfigured;
+
+            var happyFoxHelper = scope.ServiceProvider.GetRequiredService<IHappyFoxHelper>();
+            features.Value.HappyFoxHelperConfigured = happyFoxHelper.IsConfigured;
 
             var polarisHelper = scope.ServiceProvider.GetRequiredService<IPolarisHelper>();
             features.Value.PolarisHelperConfigured = polarisHelper.IsConfigured;

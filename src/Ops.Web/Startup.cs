@@ -14,6 +14,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Ocuda.HappyFoxHelper;
 using Ocuda.MaricopaCountyAssessorHelper;
 using Ocuda.Ops.Controllers;
 using Ocuda.Ops.Data;
@@ -363,6 +364,12 @@ namespace Ocuda.Ops.Web
             // helpers
             services.AddScoped<Utility.Helpers.WebHelper>();
             services.AddScoped<Utility.Email.Sender>();
+            services.AddHttpClient<IHappyFoxHelper, HappyFoxHelper.HappyFoxHelper>()
+                .ConfigureHttpClient(_ =>
+                {
+                    _.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(nameof(Ocuda),
+                        Utility.Helpers.VersionHelper.GetVersion()));
+                });
             services.AddScoped<IPolarisHelper, PolarisHelper.PolarisHelper>();
 
             // repositories

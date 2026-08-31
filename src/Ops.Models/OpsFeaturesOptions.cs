@@ -12,6 +12,7 @@
 
         public bool AddressLookupMaricopaCountyConfigured { get; set; }
         public bool AddressLookupTrestleConfigured { get; set; }
+        public bool HappyFoxHelperConfigured { get; set; }
         public bool PolarisHelperConfigured { get; set; }
     }
 }
