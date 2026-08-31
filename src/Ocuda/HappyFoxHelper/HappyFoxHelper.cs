@@ -98,6 +98,7 @@ namespace Ocuda.HappyFoxHelper
         {
             ValidateIdentifier(ticketNumber, nameof(ticketNumber));
             ArgumentNullException.ThrowIfNull(request);
+            EnsureStaffConfigured();
 
             Dictionary<string, object> payload = new()
             {
@@ -151,6 +152,7 @@ namespace Ocuda.HappyFoxHelper
         {
             ValidateIdentifier(ticketNumber, nameof(ticketNumber));
             ArgumentNullException.ThrowIfNull(request);
+            EnsureStaffConfigured();
 
             Dictionary<string, object> payload = new()
             {
@@ -216,6 +218,13 @@ namespace Ocuda.HappyFoxHelper
         {
             ArgumentNullException.ThrowIfNull(attachment);
             ValidateAttachments(new[] { attachment });
+            if (string.IsNullOrWhiteSpace(attachment.ContentType)
+                || !attachment.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException(
+                    "HappyFox inline attachments must be image files.",
+                    nameof(attachment));
+            }
 
             return PostAsync<InlineAttachmentResult>(
                 $"{ApiPrefix}ticket-inline-attachment",
@@ -270,6 +279,7 @@ namespace Ocuda.HappyFoxHelper
             CancellationToken cancellationToken = default)
         {
             ValidateIdentifier(ticketNumber, nameof(ticketNumber));
+            EnsureStaffConfigured();
             Dictionary<string, object> payload = new()
             {
                 ["staff_id"] = _settings.StaffId
@@ -288,6 +298,7 @@ namespace Ocuda.HappyFoxHelper
         {
             ValidateIdentifier(ticketNumber, nameof(ticketNumber));
             ArgumentNullException.ThrowIfNull(request);
+            EnsureStaffConfigured();
             if (request.To.Count == 0 || string.IsNullOrWhiteSpace(request.Subject)
                 || string.IsNullOrWhiteSpace(request.Message))
             {
@@ -458,6 +469,7 @@ namespace Ocuda.HappyFoxHelper
             ValidateIdentifier(ticketNumber, nameof(ticketNumber));
             ArgumentNullException.ThrowIfNull(request);
             ValidateIdentifier(request.TargetCategoryId, nameof(request.TargetCategoryId));
+            EnsureStaffConfigured();
 
             Dictionary<string, object> payload = new()
             {
@@ -577,6 +589,7 @@ namespace Ocuda.HappyFoxHelper
         {
             ValidateIdentifier(ticketNumber, nameof(ticketNumber));
             ArgumentNullException.ThrowIfNull(request);
+            EnsureStaffConfigured();
 
             Dictionary<string, object> payload = new()
             {
@@ -597,6 +610,7 @@ namespace Ocuda.HappyFoxHelper
         {
             ValidateIdentifier(ticketNumber, nameof(ticketNumber));
             ArgumentNullException.ThrowIfNull(request);
+            EnsureStaffConfigured();
 
             Dictionary<string, object> payload = new()
             {
@@ -876,6 +890,16 @@ namespace Ocuda.HappyFoxHelper
             {
                 throw new OcudaConfigurationException(
                     "HappyFox is not configured. Configure HappyFoxSettings before use.");
+            }
+        }
+
+        private void EnsureStaffConfigured()
+        {
+            EnsureConfigured();
+            if (_settings.StaffId <= 0)
+            {
+                throw new OcudaConfigurationException(
+                    "HappyFox staff operations require HappyFoxSettings:StaffId.");
             }
         }
 
@@ -1252,13 +1276,6 @@ namespace Ocuda.HappyFoxHelper
             {
                 _logger.LogWarning("Setting {SettingName} in {SectionName} is not configured.",
                     nameof(_settings.AuthCode),
-                    HappyFoxSettings.SectionName);
-                configured = false;
-            }
-            if (_settings.StaffId <= 0)
-            {
-                _logger.LogWarning("Setting {SettingName} in {SectionName} is not configured.",
-                    nameof(_settings.StaffId),
                     HappyFoxSettings.SectionName);
                 configured = false;
             }
