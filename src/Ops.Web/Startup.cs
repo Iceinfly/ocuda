@@ -465,6 +465,10 @@ namespace Ocuda.Ops.Web
                 Data.Ops.PermissionGroupRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IPermissionGroupSectionManagerRepository,
                 Data.Ops.PermissionGroupSectionManagerRepository>();
+            services.AddScoped<Service.Interfaces.Ops.Repositories.IPrRequestRepository,
+                Data.Ops.PrRequestRepository>();
+            services.AddScoped<Service.Interfaces.Ops.Repositories.IPrTemplateRepository,
+                Data.Ops.PrTemplateRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IPostRepository,
                 Data.Ops.PostRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IRenewCardResponseRepository,
@@ -501,6 +505,8 @@ namespace Ocuda.Ops.Web
                 Data.Ops.SectionRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.ISiteSettingRepository,
                 Data.Ops.SiteSettingRepository>();
+            services.AddScoped<Service.Interfaces.Ops.Repositories.ISwagRequestRepository,
+                Data.Ops.SwagRequestRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.ITitleClassRepository,
                 Data.Ops.TitleClassRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IUserMetadataTypeRepository,

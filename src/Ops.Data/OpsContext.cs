@@ -111,6 +111,10 @@ namespace Ocuda.Ops.Data
 
         public DbSet<PostCategory> PostCategories { get; set; }
 
+        public DbSet<PrRequest> PrRequests { get; set; }
+
+        public DbSet<PrTemplate> PrTemplates { get; set; }
+
         public DbSet<Post> Posts { get; set; }
 
         public DbSet<RenewCardResponse> RenewCardResponses { get; set; }
@@ -148,6 +152,8 @@ namespace Ocuda.Ops.Data
         public DbSet<Section> Sections { get; set; }
 
         public DbSet<SiteSetting> SiteSettings { get; set; }
+
+        public DbSet<SwagRequest> SwagRequests { get; set; }
 
         public DbSet<TitleClass> TitleClasses { get; set; }
 

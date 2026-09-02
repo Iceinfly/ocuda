@@ -64,6 +64,303 @@ namespace Ocuda.Ops.Models.Defaults
             },
             new SiteSetting
             {
+                Id = Keys.SiteSetting.Communications.BookBikeEmailAddresses,
+                Name = "Book Bike notification addresses",
+                Description = "Comma-separated addresses that receive Book Bike requests",
+                Category = "Communications",
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.EmailSetupId,
+                Name = "Communications email setup id",
+                Description = "Existing Ops Email Setup used for Outreach and Swag notifications",
+                Category = "Communications",
+                Value = "0",
+                Type = SiteSettingType.Int,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.HappyFoxBranchFieldId,
+                Name = "HappyFox branch custom field id",
+                Description = "HappyFox ticket custom field used for the branch/location",
+                Category = "Communications",
+                Value = "46",
+                Type = SiteSettingType.Int,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.HappyFoxBranchMappings,
+                Name = "HappyFox branch mappings",
+                Description = "JSON object mapping Ops location ids to HappyFox branch custom-field values",
+                Category = "Communications",
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.HappyFoxCategoryId,
+                Name = "HappyFox PR category id",
+                Description = "HappyFox category used for Program and General PR tickets",
+                Category = "Communications",
+                Value = "7",
+                Type = SiteSettingType.Int,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.HappyFoxEventDateFieldId,
+                Name = "HappyFox event date custom field id",
+                Description = "HappyFox custom field used for the Program PR event date",
+                Category = "Communications",
+                Value = "63",
+                Type = SiteSettingType.Int,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.HappyFoxEventTitleFieldId,
+                Name = "HappyFox event title custom field id",
+                Description = "HappyFox custom field used for the Program PR event title",
+                Category = "Communications",
+                Value = "62",
+                Type = SiteSettingType.Int,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.HappyFoxMediaAssigneeId,
+                Name = "HappyFox Media assignee id",
+                Description = "Optional HappyFox staff id assigned to Program PR Media tickets",
+                Category = "Communications",
+                Value = "0",
+                Type = SiteSettingType.Int,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.HappyFoxMediaDaysDueBeforeEvent,
+                Name = "Media days due before event",
+                Description = "Days before the event that a Program PR Media ticket is due",
+                Category = "Communications",
+                Value = "0",
+                Type = SiteSettingType.Int,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.HappyFoxMediaRouteOverrides,
+                Name = "HappyFox Media route overrides",
+                Description = "Optional JSON mapping Ops location ids to Media AssigneeId and DaysDueBeforeEvent overrides",
+                Category = "Communications",
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.HappyFoxMediaTypeValue,
+                Name = "HappyFox Program PR type value",
+                Description = "HappyFox PR type custom-field value for Media requests",
+                Category = "Communications",
+                Value = "872",
+                Type = SiteSettingType.Int,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.HappyFoxPriorityId,
+                Name = "HappyFox PR priority id",
+                Description = "HappyFox priority used for Program and General PR tickets",
+                Category = "Communications",
+                Value = "1",
+                Type = SiteSettingType.Int,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.HappyFoxPrTypeFieldId,
+                Name = "HappyFox PR type custom field id",
+                Description = "HappyFox ticket custom field used for PR request type",
+                Category = "Communications",
+                Value = "61",
+                Type = SiteSettingType.Int,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.HappyFoxSignageAssigneeId,
+                Name = "HappyFox Signage assignee id",
+                Description = "Optional HappyFox staff id assigned to General PR tickets",
+                Category = "Communications",
+                Value = "0",
+                Type = SiteSettingType.Int,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.HappyFoxSignageDaysDueBeforeEvent,
+                Name = "Signage days due before deadline",
+                Description = "Days before the in-hand deadline that a General PR ticket is due",
+                Category = "Communications",
+                Value = "0",
+                Type = SiteSettingType.Int,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.HappyFoxSignageRouteOverrides,
+                Name = "HappyFox Signage route overrides",
+                Description = "Optional JSON mapping Ops location ids to Signage AssigneeId and DaysDueBeforeEvent overrides",
+                Category = "Communications",
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.HappyFoxSignageTypeValue,
+                Name = "HappyFox General PR type value",
+                Description = "HappyFox PR type custom-field value for Signage requests",
+                Category = "Communications",
+                Value = "935",
+                Type = SiteSettingType.Int,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.MediaNotificationAddresses,
+                Name = "Program PR notification addresses",
+                Description = "Comma-separated addresses added as CC recipients to Program PR HappyFox tickets",
+                Category = "Communications",
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.OutreachEmailAddresses,
+                Name = "Outreach notification addresses",
+                Description = "Comma-separated addresses that receive Canopy and Prize Wheel requests",
+                Category = "Communications",
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.OutreachLocationIds,
+                Name = "Outreach location ids",
+                Description = "Comma-separated existing Ops location ids allowed on Outreach and Swag forms",
+                Category = "Communications",
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.PrLocationIds,
+                Name = "PR location ids",
+                Description = "Comma-separated existing Ops location ids allowed on Program and General PR forms",
+                Category = "Communications",
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.PrNameOverrides,
+                Name = "PR location name overrides",
+                Description = "Optional JSON object mapping Ops location ids to Communications display names",
+                Category = "Communications",
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.ShowInfoBoxLocationIds,
+                Name = "PR Show Info Box location ids",
+                Description = "Comma-separated Ops location ids that set ShowInfoBox in generated IDML",
+                Category = "Communications",
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.ShowSwagColorChangingPencils,
+                Name = "Show color changing pencils",
+                Description = "Controls whether color changing pencils appear on the Swag form",
+                Category = "Communications",
+                Value = "true",
+                Type = SiteSettingType.Bool,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.ShowSwagCups,
+                Name = "Show color changing cups",
+                Description = "Controls whether color changing cups appear on the Swag form",
+                Category = "Communications",
+                Value = "true",
+                Type = SiteSettingType.Bool,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.ShowSwagFans,
+                Name = "Show twist up fans",
+                Description = "Controls whether twist up fans appear on the Swag form",
+                Category = "Communications",
+                Value = "true",
+                Type = SiteSettingType.Bool,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.ShowSwagPencils,
+                Name = "Show branded pencils",
+                Description = "Controls whether branded pencils appear on the Swag form",
+                Category = "Communications",
+                Value = "true",
+                Type = SiteSettingType.Bool,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.ShowSwagStickyPads,
+                Name = "Show branded sticky pads",
+                Description = "Controls whether branded sticky pads appear on the Swag form",
+                Category = "Communications",
+                Value = "true",
+                Type = SiteSettingType.Bool,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.ShowSwagStickers,
+                Name = "Show I Love My Library stickers",
+                Description = "Controls whether I Love My Library stickers appear on the Swag form",
+                Category = "Communications",
+                Value = "true",
+                Type = SiteSettingType.Bool,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.ShowSwagTotes,
+                Name = "Show tote bags",
+                Description = "Controls whether tote bags appear on the Swag form",
+                Category = "Communications",
+                Value = "true",
+                Type = SiteSettingType.Bool,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.ShowSwagYambStickers,
+                Name = "Show Yo Amo Mi Biblioteca stickers",
+                Description = "Controls whether Yo Amo Mi Biblioteca stickers appear on the Swag form",
+                Category = "Communications",
+                Value = "true",
+                Type = SiteSettingType.Bool,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.SignageNotificationAddresses,
+                Name = "General PR notification addresses",
+                Description = "Comma-separated addresses added as CC recipients to General PR HappyFox tickets",
+                Category = "Communications",
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
+            },
+            new SiteSetting
+            {
+                Id = Keys.SiteSetting.Communications.SwagEmailAddresses,
+                Name = "Swag notification addresses",
+                Description = "Comma-separated addresses that receive Swag requests",
+                Category = "Communications",
+                Value = string.Empty,
+                Type = SiteSettingType.StringNullable,
+            },
+            new SiteSetting
+            {
                 Id = Keys.SiteSetting.CoverIssueReporting.LeapBibUrl,
                 Name = "Leap bib records url",
                 Description = "Leap bib records url with scheme, host and path",

@@ -40,6 +40,11 @@ namespace Ocuda.Ops.Models.Definitions
                 Name="Feature Management"
             },
             new() {
+                Id = ApplicationPermission.FormManagement,
+                Info = "Manage form configuration and generated form output.",
+                Name = "Form Management"
+            },
+            new() {
                 Id = ApplicationPermission.ImageOptimizer,
                 Info = "Ability to directly access the image optimizer.",
                 Name = "Image Optimizer access"
