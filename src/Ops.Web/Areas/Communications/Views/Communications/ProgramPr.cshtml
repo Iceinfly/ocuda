@@ -1,0 +1,193 @@
+@model ProgramPrViewModel
+@{
+    ViewData["Title"] = "Program PR";
+}
+
+<h1>Request Program PR</h1>
+<p class="text-muted">Enter the program information and select every format needed.</p>
+
+<form asp-action="ProgramPr" method="post" enctype="multipart/form-data">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <h2 class="h4 mt-4">1. Event details</h2>
+    <div class="row g-3">
+        <div class="col-12">
+            <label asp-for="Link" class="form-label"></label>
+            <input asp-for="Link" class="form-control" />
+            <span asp-validation-for="Link" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Title" class="form-label"></label>
+            <input asp-for="Title" class="form-control" maxlength="50" />
+            <span asp-validation-for="Title" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="LocationId" class="form-label"></label>
+            <select asp-for="LocationId" asp-items="Model.Locations" class="form-select">
+                <option value="">Select a branch</option>
+            </select>
+            <span asp-validation-for="LocationId" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="EventDate" class="form-label"></label>
+            <input asp-for="EventDate" class="form-control" type="date" id="eventDate" />
+            <span asp-validation-for="EventDate" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="StartTime" class="form-label"></label>
+            <input asp-for="StartTime" class="form-control" type="time" />
+            <span asp-validation-for="StartTime" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="EndTime" class="form-label"></label>
+            <input asp-for="EndTime" class="form-control" type="time" />
+            <span asp-validation-for="EndTime" class="text-danger"></span>
+        </div>
+        <div class="col-12">
+            <label asp-for="Description" class="form-label"></label>
+            <textarea asp-for="Description" class="form-control" rows="4" maxlength="375"></textarea>
+            <span asp-validation-for="Description" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="EventLocationOption" class="form-label"></label>
+            <select asp-for="EventLocationOption" class="form-select" id="eventLocationOption">
+                <option value="0">Same as branch</option>
+                <option value="1">Online @ mcldaz.org/now</option>
+                <option value="2">Online @ mcldaz.org/events</option>
+                <option value="3">Custom location</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="EventLocation" class="form-label"></label>
+            <input asp-for="EventLocation" class="form-control" id="eventLocation" />
+            <span asp-validation-for="EventLocation" class="text-danger"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="RegistrationType" class="form-label"></label>
+            <select asp-for="RegistrationType" class="form-select" id="registrationType">
+                <option value="">None</option>
+                <option value="1">Registration Required</option>
+                <option value="2">Free Ticketed Event</option>
+            </select>
+        </div>
+        <div class="col-md-4" id="ticketLimitGroup">
+            <label asp-for="TicketLimit" class="form-label"></label>
+            <select asp-for="TicketLimit" class="form-select">
+                <option value="">No limit</option>
+                @for (var i = 1; i <= 6; i++)
+                {
+                    <option value="@i">@i</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-4 form-check mt-md-5 ms-2" id="ticketPickupGroup">
+            <input asp-for="TicketPickUpDayOfEvent" class="form-check-input" />
+            <label asp-for="TicketPickUpDayOfEvent" class="form-check-label"></label>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Sponsor" class="form-label"></label>
+            <input asp-for="Sponsor" class="form-control" />
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Studio" class="form-label"></label>
+            <input asp-for="Studio" class="form-control" />
+        </div>
+        <div class="col-md-6">
+            <label asp-for="Image" class="form-label">Image to use</label>
+            <input asp-for="Image" class="form-control" accept=".jpg,.jpeg,.png,image/jpeg,image/png" />
+            <div class="form-text">Use a JPG or PNG, preferably at least 1000 × 1000 pixels. Avoid very wide/short or narrow/tall images and avoid embedded text when possible.</div>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="ImageSource" class="form-label"></label>
+            <input asp-for="ImageSource" class="form-control" />
+            <div class="form-text">Required when an image is attached.</div>
+            <span asp-validation-for="ImageSource" class="text-danger"></span>
+        </div>
+        <div class="col-md-3 form-check ms-2">
+            <input asp-for="IsKid" class="form-check-input" />
+            <label asp-for="IsKid" class="form-check-label">Kids program</label>
+        </div>
+        <div class="col-md-3 form-check ms-2">
+            <input asp-for="IsTeen" class="form-check-input" />
+            <label asp-for="IsTeen" class="form-check-label">Teen program</label>
+        </div>
+    </div>
+
+    <h2 class="h4 mt-4">2. Requested materials</h2>
+    <div class="row g-3">
+        <div class="col-md-3"><label asp-for="HalfSheet" class="form-label"></label><input asp-for="HalfSheet" class="form-control" min="0" /></div>
+        <div class="col-md-3"><label asp-for="QuarterSheet" class="form-label"></label><input asp-for="QuarterSheet" class="form-control" min="0" /></div>
+        <div class="col-md-3"><label asp-for="Poster85x11" class="form-label"></label><input asp-for="Poster85x11" class="form-control" min="0" /></div>
+        <div class="col-md-3"><label asp-for="Poster11x17" class="form-label"></label><input asp-for="Poster11x17" class="form-control" min="0" /></div>
+        <div class="col-md-3"><label asp-for="Poster13x19" class="form-label"></label><input asp-for="Poster13x19" class="form-control" min="0" /></div>
+        <div class="col-md-3"><label asp-for="Poster18x24" class="form-label"></label><input asp-for="Poster18x24" class="form-control" min="0" /></div>
+        <div class="col-md-3"><label asp-for="Poster22x28" class="form-label"></label><input asp-for="Poster22x28" class="form-control" min="0" /></div>
+    </div>
+    <div class="row g-3 mt-1">
+        <div class="col-md-4 form-check ms-2"><input asp-for="HalfSheetImage" class="form-check-input" /><label asp-for="HalfSheetImage" class="form-check-label"></label></div>
+        <div class="col-md-4 form-check ms-2"><input asp-for="FullSheetImage" class="form-check-input" /><label asp-for="FullSheetImage" class="form-check-label"></label></div>
+        <div class="col-md-4 form-check ms-2"><input asp-for="FacebookImage" class="form-check-input" /><label asp-for="FacebookImage" class="form-check-label"></label></div>
+        <div class="col-12 form-check ms-2"><input asp-for="FlatScreen" class="form-check-input" /><label asp-for="FlatScreen" class="form-check-label"></label></div>
+        <div class="col-md-6"><label asp-for="FlatScreenStart" class="form-label"></label><input asp-for="FlatScreenStart" type="date" class="form-control" /><span asp-validation-for="FlatScreenStart" class="text-danger"></span></div>
+        <div class="col-md-6"><label asp-for="FlatScreenEnd" class="form-label"></label><input asp-for="FlatScreenEnd" type="date" class="form-control" /><span asp-validation-for="FlatScreenEnd" class="text-danger"></span></div>
+        <div class="col-12"><label asp-for="SpecialRequests" class="form-label"></label><textarea asp-for="SpecialRequests" class="form-control" rows="3"></textarea></div>
+    </div>
+
+    <h2 class="h4 mt-4">3. Template</h2>
+    <div class="row">
+        <div class="col-md-6">
+            <label asp-for="TemplateId" class="form-label"></label>
+            <select asp-for="TemplateId" asp-items="Model.Templates" class="form-select" id="templateId"></select>
+            <span asp-validation-for="TemplateId" class="text-danger"></span>
+        </div>
+    </div>
+
+    <button class="btn btn-primary btn-lg mt-4" type="submit">Submit Program PR request</button>
+</form>
+
+@section scripts {
+<script>
+(() => {
+    const eventDate = document.getElementById('eventDate');
+    const template = document.getElementById('templateId');
+    const eventLocationOption = document.getElementById('eventLocationOption');
+    const eventLocation = document.getElementById('eventLocation');
+    const registrationType = document.getElementById('registrationType');
+    const ticketLimitGroup = document.getElementById('ticketLimitGroup');
+    const ticketPickupGroup = document.getElementById('ticketPickupGroup');
+
+    const updateConditionalFields = () => {
+        if (eventLocation && eventLocationOption) {
+            eventLocation.disabled = eventLocationOption.value !== '3';
+        }
+        const ticketed = registrationType && registrationType.value === '2';
+        if (ticketLimitGroup) ticketLimitGroup.hidden = !ticketed;
+        if (ticketPickupGroup) ticketPickupGroup.hidden = !ticketed;
+    };
+
+    const updateTemplates = async () => {
+        if (!eventDate?.value || !template) return;
+        const url = new URL('@Url.Action("Templates", "Communications", new { area = "Communications" })', window.location.origin);
+        url.searchParams.set('date', eventDate.value);
+        const response = await fetch(url, { credentials: 'same-origin' });
+        if (!response.ok) return;
+        const values = await response.json();
+        const prior = template.value;
+        template.replaceChildren();
+        for (const value of values) {
+            const option = document.createElement('option');
+            option.value = value.id;
+            option.textContent = value.name;
+            option.selected = value.id.toString() === prior || (!prior && value.isDefault);
+            template.appendChild(option);
+        }
+        if (!template.value && template.options.length) template.options[0].selected = true;
+    };
+
+    eventLocationOption?.addEventListener('change', updateConditionalFields);
+    registrationType?.addEventListener('change', updateConditionalFields);
+    eventDate?.addEventListener('change', updateTemplates);
+    updateConditionalFields();
+})();
+</script>
+}
