@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Ocuda.Ops.Controllers.Abstract;
 using Ocuda.Ops.Controllers.Areas.Communications.ViewModels;
 using Ocuda.Ops.Models.Entities;
+using Ocuda.Ops.Models.Keys;
 using Ocuda.Ops.Service.Interfaces.Ops.Services;
 using Ocuda.Utility.Abstract;
 using Ocuda.Utility.Exceptions;
@@ -20,6 +21,7 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
         private readonly ICommunicationsService _communicationsService;
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly ILocationService _locationService;
+        private readonly IPermissionGroupService _permissionGroupService;
         private readonly IUserService _userService;
 
         public CommunicationsController(
@@ -27,6 +29,7 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
             ICommunicationsService communicationsService,
             IDateTimeProvider dateTimeProvider,
             ILocationService locationService,
+            IPermissionGroupService permissionGroupService,
             IUserService userService)
             : base(context)
         {
@@ -36,6 +39,8 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
                 ?? throw new ArgumentNullException(nameof(dateTimeProvider));
             _locationService = locationService
                 ?? throw new ArgumentNullException(nameof(locationService));
+            _permissionGroupService = permissionGroupService
+                ?? throw new ArgumentNullException(nameof(permissionGroupService));
             _userService = userService
                 ?? throw new ArgumentNullException(nameof(userService));
             SetPageTitle("Communications Requests");
@@ -147,6 +152,22 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
                 await PopulateProgramPrAsync(model);
                 return View(model);
             }
+        }
+
+        [HttpGet]
+        [Route("idml/{id:int}")]
+        public async Task<IActionResult> Idml(int id)
+        {
+            if (!await HasAppPermissionAsync(_permissionGroupService,
+                ApplicationPermission.FormManagement))
+            {
+                return Forbid();
+            }
+
+            var generated = await _communicationsService.GeneratePrIdmlAsync(id);
+            return generated == null
+                ? NotFound()
+                : File(generated.FileData, generated.FileType, generated.Filename);
         }
 
         [HttpGet]
