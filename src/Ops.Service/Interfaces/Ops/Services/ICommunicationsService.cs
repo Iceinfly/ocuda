@@ -12,6 +12,8 @@ namespace Ocuda.Ops.Service.Interfaces.Ops.Services
     {
         Task<PrRequest> CreatePrRequestAsync(PrRequest request, IFormFile image);
 
+        Task<int> CreateMediaTicketAsync(int requestId, Uri idmlUri);
+
         Task<FileDownload> GeneratePrIdmlAsync(int requestId);
 
         Task<ICollection<Location>> GetPrLocationsAsync();

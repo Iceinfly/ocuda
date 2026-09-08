@@ -142,7 +142,20 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
                 };
 
                 request = await _communicationsService.CreatePrRequestAsync(request, model.Image);
-                ShowAlertSuccess($"Program PR request {request.Id} has been saved.");
+                var idmlUrlValue = Url.Action(nameof(Idml),
+                    Name,
+                    new { id = request.Id },
+                    Request.Scheme);
+                if (!Uri.TryCreate(idmlUrlValue, UriKind.Absolute, out var idmlUrl))
+                {
+                    throw new OcudaException(
+                        "Unable to generate the IDML download link for the PR request.");
+                }
+
+                var ticketId = await _communicationsService.CreateMediaTicketAsync(request.Id,
+                    idmlUrl);
+                ShowAlertSuccess(
+                    $"Your Program PR request has been submitted as HappyFox ticket {ticketId}.");
                 return RedirectToAction(nameof(ProgramPr));
             }
             catch (OcudaException ex)
