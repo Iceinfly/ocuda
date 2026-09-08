@@ -88,6 +88,12 @@
                         {
                             <div class="alert alert-info"><p>@Html.Raw(Model.ShowMessage)</p></div>
                         }
+                        @if (!string.IsNullOrEmpty(Model.PostFeatureSegmentText))
+                        {
+                            <div class="d-flex align-items-end prom-post-hours-text">
+                                @Html.Raw(Model.PostFeatureSegmentText)
+                            </div>
+                        }
                     </div>
                     <div class="col-12 col-sm-6 bg-white px-0 py-4 px-sm-4 location-feature-link">
                         <h2>@Localizer[Promenade.AtThisLocation]</h2>
@@ -325,8 +331,8 @@
             <div class="mx-auto" style="max-width: 740px;">
                 <div class="row">
                     @if (!string.IsNullOrEmpty(Model.SocialLink) &&
-                                        !string.IsNullOrEmpty(Model.SocialName) &&
-                                        !string.IsNullOrEmpty(Model.SocialIcon))
+                        !string.IsNullOrEmpty(Model.SocialName) &&
+                        !string.IsNullOrEmpty(Model.SocialIcon))
                     {
                         <div class="col-12 col-sm-6 mb-4 location-feature-link">
                             <a href="@Model.SocialLink"
@@ -356,18 +362,6 @@
             </div>
         </div>
     </div>
-    @if (!string.IsNullOrEmpty(Model.PostFeatureSegmentText))
-    {
-        <div class="row prom-feature-segment">
-            <div class="col-12">
-                @if (!string.IsNullOrEmpty(Model.PostFeatureSegmentHeader))
-                {
-                    <h2>@Model.PostFeatureSegmentHeader</h2>
-                }
-                @Html.Raw(Model.PostFeatureSegmentText)
-            </div>
-        </div>
-    }
     @if (Model.NearbyCount > 1)
     {
         <div class="row g-0 col-lg-10 offset-lg-1">
@@ -427,7 +421,7 @@
 
 @section Scripts {
     <script>
-        $("#featureModal").on("show.bs.modal", function (event) {
+        $("#featureModal").on("show.bs.modal", function(event) {
             var button = $(event.relatedTarget);
             var featureUrl = button.data("featureurl");
             var name = button.data("name");
@@ -439,10 +433,10 @@
             modalBody.html("<div class=\"text-center\"><span class=\"fa-solid fa-spinner fa-2x fa-pulse\"></span></div>")
 
             $.getJSON(featureUrl,
-                function (response) {
+                function(response) {
                     modalBody.html(response.bodyText).append(response.text);
                 })
-                .fail(function () {
+                .fail(function() {
                     window.location.href = button.attr("href");
                 });
         });

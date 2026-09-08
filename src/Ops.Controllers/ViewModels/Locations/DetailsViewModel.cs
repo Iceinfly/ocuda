@@ -13,6 +13,8 @@ namespace Ocuda.Ops.Controllers.ViewModels.Locations
             AllLanguages = new Dictionary<int, string>();
             DescriptionLanguages = [];
             LocationNoticeLanguages = [];
+            HoursReplacementNoticeLanguages = [];
+            PostHoursNoticeLanguages = [];
             VolunteerForms = [];
         }
 
@@ -28,9 +30,11 @@ namespace Ocuda.Ops.Controllers.ViewModels.Locations
         {
             get
             {
-                return !LocationNoticeSegment.IsActive || IsBeforeStart || IsAfterEnd
-                    ? "border-danger"
-                    : "border-success";
+                return !LocationNoticeSegment.IsActive
+                    || LocationNoticeIsBeforeStart
+                    || LocationNoticeIsAfterEnd
+                        ? "border-danger"
+                        : "border-success";
             }
         }
 
@@ -38,9 +42,59 @@ namespace Ocuda.Ops.Controllers.ViewModels.Locations
         {
             get
             {
-                return !LocationNoticeSegment.IsActive || IsBeforeStart || IsAfterEnd
-                    ? "text-danger"
-                    : "text-success";
+                return !LocationNoticeSegment.IsActive
+                    || LocationNoticeIsBeforeStart
+                    || LocationNoticeIsAfterEnd
+                        ? "text-danger"
+                        : "text-success";
+            }
+        }
+
+        public string ActiveHoursReplacementNoticeBorderCssClass
+        {
+            get
+            {
+                return !HoursReplacementNoticeSegment.IsActive
+                    || HoursReplacementNoticeIsBeforeStart
+                    || HoursReplacementNoticeIsAfterEnd
+                        ? "border-danger"
+                        : "border-success";
+            }
+        }
+
+        public string ActiveHoursReplacementNoticeCssClass
+        {
+            get
+            {
+                return !HoursReplacementNoticeSegment.IsActive
+                    || HoursReplacementNoticeIsBeforeStart
+                    || HoursReplacementNoticeIsAfterEnd
+                        ? "text-danger"
+                        : "text-success";
+            }
+        }
+
+        public string ActivePostHoursNoticeBorderCssClass
+        {
+            get
+            {
+                return !PostHoursNoticeSegment.IsActive
+                    || PostHoursNoticeIsBeforeStart
+                    || PostHoursNoticeIsAfterEnd
+                        ? "border-danger"
+                        : "border-success";
+            }
+        }
+
+        public string ActivePostHoursNoticeCssClass
+        {
+            get
+            {
+                return !PostHoursNoticeSegment.IsActive
+                    || PostHoursNoticeIsBeforeStart
+                    || PostHoursNoticeIsAfterEnd
+                        ? "text-danger"
+                        : "text-success";
             }
         }
 
@@ -62,15 +116,51 @@ namespace Ocuda.Ops.Controllers.ViewModels.Locations
 
         public Segment LocationNoticeSegment { get; set; }
 
+        public ICollection<string> PostHoursNoticeLanguages { get; }
+
+        public Segment PostHoursNoticeSegment { get; set; }
+
+        public ICollection<string> HoursReplacementNoticeLanguages { get; }
+
+        public Segment HoursReplacementNoticeSegment { get; set; }
+
+        public string HoursReplacementNoticeStatus
+        {
+            get
+            {
+                return !HoursReplacementNoticeSegment.IsActive
+                    ? "Disabled"
+                        : HoursReplacementNoticeIsBeforeStart
+                        ? $"Starts {HoursReplacementNoticeSegment.StartDate}"
+                        : HoursReplacementNoticeIsAfterEnd
+                            ? $"Ended {HoursReplacementNoticeSegment.EndDate}"
+                            : "Live";
+            }
+        }
+
+        public string PostHoursNoticeStatus
+        {
+            get
+            {
+                return !PostHoursNoticeSegment.IsActive
+                    ? "Disabled"
+                        : LocationNoticeIsBeforeStart
+                        ? $"Starts {PostHoursNoticeSegment.StartDate}"
+                        : LocationNoticeIsAfterEnd
+                            ? $"Ended {PostHoursNoticeSegment.EndDate}"
+                            : "Live";
+            }
+        }
+
         public string LocationNoticeStatus
         {
             get
             {
                 return !LocationNoticeSegment.IsActive
                     ? "Disabled"
-                        : IsBeforeStart
+                        : LocationNoticeIsBeforeStart
                         ? $"Starts {LocationNoticeSegment.StartDate}"
-                        : IsAfterEnd
+                        : LocationNoticeIsAfterEnd
                             ? $"Ended {LocationNoticeSegment.EndDate}"
                             : "Live";
             }
@@ -82,28 +172,65 @@ namespace Ocuda.Ops.Controllers.ViewModels.Locations
 
         public ICollection<LocationVolunteerFormViewModel> VolunteerForms { get; }
 
-        private bool IsAfterEnd
+        private bool HoursReplacementNoticeIsAfterEnd
         {
             get
             {
-                return LocationNoticeSegment.EndDate.HasValue
+                return HoursReplacementNoticeSegment?.EndDate.HasValue == true
+                    && HoursReplacementNoticeSegment.EndDate <= DateTime.Now;
+            }
+        }
+
+        private bool HoursReplacementNoticeIsBeforeStart
+        {
+            get
+            {
+                return HoursReplacementNoticeSegment?.StartDate.HasValue == true
+                    && HoursReplacementNoticeSegment.StartDate >= DateTime.Now;
+            }
+        }
+
+        private bool LocationNoticeIsAfterEnd
+        {
+            get
+            {
+                return LocationNoticeSegment?.EndDate.HasValue == true
                     && LocationNoticeSegment.EndDate <= DateTime.Now;
             }
         }
 
-        private bool IsBeforeStart
+        private bool LocationNoticeIsBeforeStart
         {
             get
             {
-                return LocationNoticeSegment.StartDate.HasValue
+                return LocationNoticeSegment?.StartDate.HasValue == true
                     && LocationNoticeSegment.StartDate >= DateTime.Now;
+            }
+        }
+
+        private bool PostHoursNoticeIsAfterEnd
+        {
+            get
+            {
+                return PostHoursNoticeSegment?.EndDate.HasValue == true
+                    && PostHoursNoticeSegment.EndDate <= DateTime.Now;
+            }
+        }
+
+        private bool PostHoursNoticeIsBeforeStart
+        {
+            get
+            {
+                return PostHoursNoticeSegment?.StartDate.HasValue == true
+                    && PostHoursNoticeSegment.StartDate >= DateTime.Now;
             }
         }
 
         public static string LanguagesTitle(ICollection<string> languages)
         {
-            if (languages == null) { return "Not available in any languages."; }
-            return languages.Count == 0
+            return languages == null
+                ? "Not available in any languages."
+                : languages.Count == 0
                 ? $"Available in {languages.Count} languages."
                 : languages.Count == 1
                     ? $"Available in {languages.Count} language: {string.Join(", ", languages)}"

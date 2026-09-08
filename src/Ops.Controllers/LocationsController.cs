@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -28,67 +28,40 @@ using Ocuda.Utility.Keys;
 namespace Ocuda.Ops.Controllers
 {
     [Route("[controller]")]
-    public class LocationsController : BaseController<LocationsController>
+    public class LocationsController(Controller<LocationsController> context,
+        IConfiguration configuration,
+        IDigitalDisplayService digitalDisplayService,
+        IFeatureService featureService,
+        IImageService imageService,
+        ILanguageService languageService,
+        ILocationFeatureService locationFeatureService,
+        ILocationService locationService,
+        IPermissionGroupService permissionGroupService,
+        ISegmentService segmentService,
+        IVolunteerFormService volunteerFormService)
+        : BaseController<LocationsController>(context)
     {
-        private readonly IConfiguration _configuration;
-        private readonly IDigitalDisplayService _digitalDisplayService;
-        private readonly IFeatureService _featureService;
-        private readonly IImageService _imageService;
-        private readonly ILanguageService _languageService;
-        private readonly ILocationFeatureService _locationFeatureService;
-        private readonly ILocationService _locationService;
-        private readonly IPermissionGroupService _permissionGroupService;
-        private readonly ISegmentService _segmentService;
-        private readonly IVolunteerFormService _volunteerFormService;
-
-        public LocationsController(Controller<LocationsController> context,
-            IConfiguration configuration,
-            IDigitalDisplayService digitalDisplayService,
-            IFeatureService featureService,
-            IImageService imageService,
-            ILanguageService languageService,
-            ILocationFeatureService locationFeatureService,
-            ILocationService locationService,
-            IPermissionGroupService permissionGroupService,
-            ISegmentService segmentService,
-            IVolunteerFormService volunteerFormService) : base(context)
-        {
-            ArgumentNullException.ThrowIfNull(configuration);
-            ArgumentNullException.ThrowIfNull(digitalDisplayService);
-            ArgumentNullException.ThrowIfNull(featureService);
-            ArgumentNullException.ThrowIfNull(imageService);
-            ArgumentNullException.ThrowIfNull(languageService);
-            ArgumentNullException.ThrowIfNull(locationFeatureService);
-            ArgumentNullException.ThrowIfNull(locationService);
-            ArgumentNullException.ThrowIfNull(permissionGroupService);
-            ArgumentNullException.ThrowIfNull(segmentService);
-            ArgumentNullException.ThrowIfNull(volunteerFormService);
-
-            _configuration = configuration;
-            _digitalDisplayService = digitalDisplayService;
-            _featureService = featureService;
-            _imageService = imageService;
-            _languageService = languageService;
-            _locationFeatureService = locationFeatureService;
-            _locationService = locationService;
-            _permissionGroupService = permissionGroupService;
-            _segmentService = segmentService;
-            _volunteerFormService = volunteerFormService;
-        }
-
         public static string Name
-        { get { return "Locations"; } }
+        {
+            get { return "Locations"; }
+        }
 
         [HttpGet("[action]/{slug}/{featureId}")]
         public async Task<IActionResult> AddDescription(string slug, int featureId)
         {
-            if (string.IsNullOrEmpty(slug)) { return BadRequest(); }
+            if (string.IsNullOrEmpty(slug))
+            {
+                return BadRequest();
+            }
 
-            var hasPermission = await HasAppPermissionAsync(_permissionGroupService,
+            var hasPermission = await HasAppPermissionAsync(permissionGroupService,
                 ApplicationPermission.LocationManagement)
-                && await HasAppPermissionAsync(_permissionGroupService,
+                && await HasAppPermissionAsync(permissionGroupService,
                     ApplicationPermission.WebPageContentManagement);
-            if (!hasPermission) { return RedirectToUnauthorized(); }
+            if (!hasPermission)
+            {
+                return RedirectToUnauthorized();
+            }
 
             Location location;
             Feature feature;
@@ -101,24 +74,28 @@ namespace Ocuda.Ops.Controllers
                 return NotFound();
             }
 
-            var locationFeature = await _locationFeatureService
+            var locationFeature = await locationFeatureService
                 .GetByFeatureIdLocationIdAsync(featureId, location.Id);
-            if (locationFeature == null) { return NotFound(); }
+            if (locationFeature == null)
+            {
+                return NotFound();
+            }
 
             if (locationFeature.SegmentId != null)
             {
-                return RedirectToAction(nameof(SegmentsController.Detail), SegmentsController.Name,
+                return RedirectToAction(nameof(SegmentsController.Detail),
+                    SegmentsController.Name,
                     new
                     {
                         area = SegmentsController.Area,
-                        id = locationFeature.SegmentId
+                        id = locationFeature.SegmentId,
                     });
             }
 
-            var segment = await _segmentService.CreateAsync(new Segment
+            var segment = await segmentService.CreateAsync(new Segment
             {
                 IsActive = true,
-                Name = $"Location {location.Name} feature {feature.Name} custom text"
+                Name = $"Location {location.Name} feature {feature.Name} custom text",
             });
 
             if (segment == null)
@@ -132,21 +109,21 @@ namespace Ocuda.Ops.Controllers
             }
 
             locationFeature.SegmentId = segment.Id;
-            await _locationFeatureService.EditAsync(locationFeature);
+            await locationFeatureService.EditAsync(locationFeature);
 
-            return RedirectToAction(nameof(Areas.SiteManagement.SegmentsController.Detail),
-                Areas.SiteManagement.SegmentsController.Name,
+            return RedirectToAction(nameof(SegmentsController.Detail),
+                SegmentsController.Name,
                 new
                 {
                     area = Areas.SiteManagement.SegmentsController.Area,
-                    id = segment.Id
+                    id = segment.Id,
                 });
         }
 
         [HttpPost("[action]")]
         public async Task<IActionResult> AddDescription(string stub)
         {
-            var location = await _locationService.GetLocationByStubAsync(stub);
+            var location = await locationService.GetLocationByStubAsync(stub);
             if (location != null)
             {
                 if (location.DescriptionSegmentId == default)
@@ -155,9 +132,9 @@ namespace Ocuda.Ops.Controllers
                     {
                         Name = $"{location.Name} description",
                     };
-                    segment = await _segmentService.CreateAsync(segment);
+                    segment = await segmentService.CreateAsync(segment);
                     location.DescriptionSegmentId = segment.Id;
-                    await _locationService.EditAsync(location);
+                    await locationService.EditAsync(location);
                     return RedirectToAction(nameof(SegmentsController.Detail),
                         SegmentsController.Name,
                         new { area = SegmentsController.Area, id = segment.Id });
@@ -166,6 +143,7 @@ namespace Ocuda.Ops.Controllers
                 {
                     ShowAlertDanger("There is already a location description segment attached to this location.");
                 }
+
                 return RedirectToAction(nameof(Details), new { slug = location.Stub });
             }
             else
@@ -178,24 +156,33 @@ namespace Ocuda.Ops.Controllers
         [HttpPost("[action]/{slug}")]
         public async Task<IActionResult> AddFeature(string slug, int featureId)
         {
-            if (string.IsNullOrEmpty(slug)) { return BadRequest(); }
+            if (string.IsNullOrEmpty(slug))
+            {
+                return BadRequest();
+            }
 
-            var hasPermission = await HasAppPermissionAsync(_permissionGroupService,
+            var hasPermission = await HasAppPermissionAsync(permissionGroupService,
                 ApplicationPermission.LocationManagement);
-            if (!hasPermission) { return RedirectToUnauthorized(); }
+            if (!hasPermission)
+            {
+                return RedirectToUnauthorized();
+            }
 
-            var location = await _locationService.GetLocationByStubAsync(slug);
-            if (location == null) { return NotFound(); }
+            var location = await locationService.GetLocationByStubAsync(slug);
+            if (location == null)
+            {
+                return NotFound();
+            }
 
-            var locationFeature = await _locationFeatureService
+            var locationFeature = await locationFeatureService
                 .GetByFeatureIdLocationIdAsync(featureId, location.Id);
 
             if (locationFeature == null)
             {
-                await _locationFeatureService.AddLocationFeatureAsync(new LocationFeature
+                await locationFeatureService.AddLocationFeatureAsync(new LocationFeature
                 {
                     FeatureId = featureId,
-                    LocationId = location.Id
+                    LocationId = location.Id,
                 });
             }
             else
@@ -209,30 +196,38 @@ namespace Ocuda.Ops.Controllers
         [HttpGet("[action]/{slug}")]
         public async Task<IActionResult> AddFeature(string slug)
         {
-            if (string.IsNullOrEmpty(slug)) { return BadRequest(); }
+            if (string.IsNullOrEmpty(slug))
+            {
+                return BadRequest();
+            }
 
-            var hasPermission = await HasAppPermissionAsync(_permissionGroupService,
+            var hasPermission = await HasAppPermissionAsync(permissionGroupService,
                 ApplicationPermission.LocationManagement);
-            if (!hasPermission) { return RedirectToUnauthorized(); }
+            if (!hasPermission)
+            {
+                return RedirectToUnauthorized();
+            }
 
-            var location = await _locationService.GetLocationByStubAsync(slug);
-            if (location == null) { return NotFound(); }
+            var location = await locationService.GetLocationByStubAsync(slug);
+            if (location == null)
+            {
+                return NotFound();
+            }
 
-            var features = await _featureService.GetAllFeaturesAsync();
+            var features = await featureService.GetAllFeaturesAsync();
 
-            var locationFeatures = await _locationFeatureService
+            var locationFeatures = await locationFeatureService
                 .GetLocationFeaturesByLocationAsync(location.Id);
 
             var locationHasFeatureIds = locationFeatures.Select(_ => _.FeatureId);
 
             var viewModel = new AddFeatureViewModel
             {
-                Location = location
+                Location = location,
             };
 
-            viewModel.AvailableFeatures.AddRange(features
-                .Where(_ => !locationHasFeatureIds.Contains(_.Id))
-                .ToList());
+            viewModel.AvailableFeatures
+                .AddRange([.. features.Where(_ => !locationHasFeatureIds.Contains(_.Id))]);
 
             return View(viewModel);
         }
@@ -241,24 +236,33 @@ namespace Ocuda.Ops.Controllers
         [RestoreModelState]
         public async Task<IActionResult> AddInteriorImage(string slug)
         {
-            if (string.IsNullOrEmpty(slug)) { return BadRequest(); }
+            if (string.IsNullOrEmpty(slug))
+            {
+                return BadRequest();
+            }
 
-            var hasPermission = await HasAppPermissionAsync(_permissionGroupService,
+            var hasPermission = await HasAppPermissionAsync(permissionGroupService,
                 ApplicationPermission.LocationManagement);
-            if (!hasPermission) { return RedirectToUnauthorized(); }
+            if (!hasPermission)
+            {
+                return RedirectToUnauthorized();
+            }
 
-            var location = await _locationService.GetLocationByStubAsync(slug);
-            if (location == null) { return NotFound(); }
+            var location = await locationService.GetLocationByStubAsync(slug);
+            if (location == null)
+            {
+                return NotFound();
+            }
 
             var viewModel = new InteriorImageViewModel
             {
-                CropHeight = _locationService.InteriorImageHeight,
-                CropWidth = _locationService.InteriorImageWidth,
+                CropHeight = locationService.InteriorImageHeight,
+                CropWidth = locationService.InteriorImageWidth,
                 LocationName = location.Name,
-                Slug = location.Stub
+                Slug = location.Stub,
             };
 
-            foreach (var languageItem in await _languageService.GetActiveAsync())
+            foreach (var languageItem in await languageService.GetActiveAsync())
             {
                 viewModel.Languages.Add(languageItem.Id, languageItem.Description);
                 viewModel.AltTexts.Add(languageItem.Id, string.Empty);
@@ -273,17 +277,30 @@ namespace Ocuda.Ops.Controllers
             InteriorImageViewModel interiorImageViewModel,
             string slug)
         {
-            var hasPermission = await HasAppPermissionAsync(_permissionGroupService,
+            var hasPermission = await HasAppPermissionAsync(permissionGroupService,
                 ApplicationPermission.LocationManagement);
-            if (!hasPermission) { return RedirectToUnauthorized(); }
+            if (!hasPermission)
+            {
+                return RedirectToUnauthorized();
+            }
 
-            if (interiorImageViewModel == null) { return BadRequest(); }
-            if (string.IsNullOrEmpty(slug)) { return BadRequest(); }
+            if (interiorImageViewModel == null)
+            {
+                return BadRequest();
+            }
 
-            var location = await _locationService.GetLocationByStubAsync(slug);
-            if (location == null) { return NotFound(); }
+            if (string.IsNullOrEmpty(slug))
+            {
+                return BadRequest();
+            }
 
-            var languages = await _languageService.GetActiveAsync();
+            var location = await locationService.GetLocationByStubAsync(slug);
+            if (location == null)
+            {
+                return NotFound();
+            }
+
+            var languages = await languageService.GetActiveAsync();
 
             foreach (var language in languages)
             {
@@ -297,7 +314,7 @@ namespace Ocuda.Ops.Controllers
 
             try
             {
-                await _locationService.UploadAddInteriorImageAsync(location.Id,
+                await locationService.UploadAddInteriorImageAsync(location.Id,
                     interiorImageViewModel.Filename,
                     interiorImageViewModel.Image,
                     interiorImageViewModel.AltTexts);
@@ -314,7 +331,7 @@ namespace Ocuda.Ops.Controllers
         [HttpPost("[action]")]
         public async Task<IActionResult> AddLocationNotice(string stub)
         {
-            var location = await _locationService.GetLocationByStubAsync(stub);
+            var location = await locationService.GetLocationByStubAsync(stub);
             if (location != null)
             {
                 if (!location.PreFeatureSegmentId.HasValue)
@@ -324,9 +341,9 @@ namespace Ocuda.Ops.Controllers
                         IsActive = false,
                         Name = $"{location.Name} location notice",
                     };
-                    segment = await _segmentService.CreateAsync(segment);
+                    segment = await segmentService.CreateAsync(segment);
                     location.PreFeatureSegmentId = segment.Id;
-                    await _locationService.EditAsync(location);
+                    await locationService.EditAsync(location);
                     return RedirectToAction(nameof(SegmentsController.Detail),
                         SegmentsController.Name,
                         new { area = SegmentsController.Area, id = segment.Id });
@@ -335,6 +352,75 @@ namespace Ocuda.Ops.Controllers
                 {
                     ShowAlertDanger("There is already a location notice segment attached to this location.");
                 }
+
+                return RedirectToAction(nameof(Details), new { slug = location.Stub });
+            }
+            else
+            {
+                ShowAlertDanger("Location not found.");
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        [HttpPost("[action]")]
+        public async Task<IActionResult> AddPostHoursNotice(string stub)
+        {
+            var location = await locationService.GetLocationByStubAsync(stub);
+            if (location != null)
+            {
+                if (!location.PostFeatureSegmentId.HasValue)
+                {
+                    var segment = new Segment
+                    {
+                        IsActive = false,
+                        Name = $"{location.Name} below-hours notice",
+                    };
+                    segment = await segmentService.CreateAsync(segment);
+                    location.PostFeatureSegmentId = segment.Id;
+                    await locationService.EditAsync(location);
+                    return RedirectToAction(nameof(SegmentsController.Detail),
+                        SegmentsController.Name,
+                        new { area = SegmentsController.Area, id = segment.Id });
+                }
+                else
+                {
+                    ShowAlertDanger("There is already a below-hours notice segment attached to this location.");
+                }
+
+                return RedirectToAction(nameof(Details), new { slug = location.Stub });
+            }
+            else
+            {
+                ShowAlertDanger("Location not found.");
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        [HttpPost("[action]")]
+        public async Task<IActionResult> AddReplaceHoursNotice(string stub)
+        {
+            var location = await locationService.GetLocationByStubAsync(stub);
+            if (location != null)
+            {
+                if (!location.HoursSegmentId.HasValue)
+                {
+                    var segment = new Segment
+                    {
+                        IsActive = false,
+                        Name = $"{location.Name} hours replacement notice",
+                    };
+                    segment = await segmentService.CreateAsync(segment);
+                    location.HoursSegmentId = segment.Id;
+                    await locationService.EditAsync(location);
+                    return RedirectToAction(nameof(SegmentsController.Detail),
+                        SegmentsController.Name,
+                        new { area = SegmentsController.Area, id = segment.Id });
+                }
+                else
+                {
+                    ShowAlertDanger("There is already a hours replacement notice segment attached to this location.");
+                }
+
                 return RedirectToAction(nameof(Details), new { slug = location.Stub });
             }
             else
@@ -349,13 +435,19 @@ namespace Ocuda.Ops.Controllers
             int increment,
             string slug)
         {
-            if (string.IsNullOrEmpty(slug)) { return BadRequest(); }
+            if (string.IsNullOrEmpty(slug))
+            {
+                return BadRequest();
+            }
 
-            var hasPermission = await HasAppPermissionAsync(_permissionGroupService,
+            var hasPermission = await HasAppPermissionAsync(permissionGroupService,
                 ApplicationPermission.LocationManagement);
-            if (!hasPermission) { return RedirectToUnauthorized(); }
+            if (!hasPermission)
+            {
+                return RedirectToUnauthorized();
+            }
 
-            await _locationService.UpdateInteriorImageSortAsync(slug, interiorImageId, increment);
+            await locationService.UpdateInteriorImageSortAsync(slug, interiorImageId, increment);
 
             return RedirectToAction(nameof(UpdateInteriorImages), new { slug });
         }
@@ -363,145 +455,185 @@ namespace Ocuda.Ops.Controllers
         [HttpPost("[action]")]
         public async Task<IActionResult> ClearLink(string slug, int featureId)
         {
-            if (string.IsNullOrEmpty(slug)) { return BadRequest(); }
+            if (string.IsNullOrEmpty(slug))
+            {
+                return BadRequest();
+            }
 
-            var hasPermission = await HasAppPermissionAsync(_permissionGroupService,
+            var hasPermission = await HasAppPermissionAsync(permissionGroupService,
                 ApplicationPermission.LocationManagement);
-            if (!hasPermission) { return RedirectToUnauthorized(); }
+            if (!hasPermission)
+            {
+                return RedirectToUnauthorized();
+            }
 
-            var location = await _locationService.GetLocationByStubAsync(slug);
-            if (location == null) { return NotFound(); }
+            var location = await locationService.GetLocationByStubAsync(slug);
+            if (location == null)
+            {
+                return NotFound();
+            }
 
-            var locationFeature = await _locationFeatureService
+            var locationFeature = await locationFeatureService
                 .GetByFeatureIdLocationIdAsync(featureId, location.Id);
-            if (locationFeature == null) { return NotFound(); }
+            if (locationFeature == null)
+            {
+                return NotFound();
+            }
 
             locationFeature.RedirectUrl = null;
 
-            await _locationFeatureService.EditAsync(locationFeature);
+            await locationFeatureService.EditAsync(locationFeature);
 
             return RedirectToAction(nameof(LocationFeature), new
             {
                 slug = location.Stub,
-                featureId
+                featureId,
             });
         }
 
         [HttpPost("[action]")]
         public async Task<IActionResult> ClearSegment(string slug, int featureId)
         {
-            if (string.IsNullOrEmpty(slug)) { return BadRequest(); }
+            if (string.IsNullOrEmpty(slug))
+            {
+                return BadRequest();
+            }
 
-            var hasPermission = await HasAppPermissionAsync(_permissionGroupService,
+            var hasPermission = await HasAppPermissionAsync(permissionGroupService,
                 ApplicationPermission.LocationManagement)
-                && await HasAppPermissionAsync(_permissionGroupService,
+                && await HasAppPermissionAsync(permissionGroupService,
                     ApplicationPermission.WebPageContentManagement);
-            if (!hasPermission) { return RedirectToUnauthorized(); }
+            if (!hasPermission)
+            {
+                return RedirectToUnauthorized();
+            }
 
-            var location = await _locationService.GetLocationByStubAsync(slug);
-            if (location == null) { return NotFound(); }
+            var location = await locationService.GetLocationByStubAsync(slug);
+            if (location == null)
+            {
+                return NotFound();
+            }
 
-            var locationFeature = await _locationFeatureService
+            var locationFeature = await locationFeatureService
                 .GetByFeatureIdLocationIdAsync(featureId, location.Id);
-            if (locationFeature?.SegmentId == null) { return NotFound(); }
+            if (locationFeature?.SegmentId == null)
+            {
+                return NotFound();
+            }
 
-            await _segmentService.DeleteAsync(locationFeature.SegmentId.Value);
+            await segmentService.DeleteAsync(locationFeature.SegmentId.Value);
 
             locationFeature.SegmentId = null;
-            await _locationFeatureService.EditAsync(locationFeature);
+            await locationFeatureService.EditAsync(locationFeature);
 
             return RedirectToAction(nameof(LocationFeature), new
             {
                 slug = location.Stub,
-                featureId
+                featureId,
             });
         }
 
         [HttpGet("{slug}")]
         public async Task<IActionResult> Details(string slug)
         {
-            if (string.IsNullOrEmpty(slug)) { return BadRequest(); }
+            if (string.IsNullOrEmpty(slug))
+            {
+                return BadRequest();
+            }
 
-            var location = await _locationService.GetLocationByStubAsync(slug);
+            var location = await locationService.GetLocationByStubAsync(slug);
             if (location == null)
             {
                 return NotFound();
             }
 
-            var defaultLanguageId = await _languageService.GetDefaultLanguageId();
+            var defaultLanguageId = await languageService.GetDefaultLanguageId();
 
             if (location.DescriptionSegmentId != default)
             {
-                location.DescriptionSegment = await _segmentService
+                location.DescriptionSegment = await segmentService
                     .GetBySegmentAndLanguageAsync(location.DescriptionSegmentId, defaultLanguageId);
+            }
+
+            if (location.PostFeatureSegmentId.HasValue)
+            {
+                location.PostFeatureSegmentText = await segmentService
+                    .GetBySegmentAndLanguageAsync(location.PostFeatureSegmentId.Value,
+                        defaultLanguageId);
             }
 
             if (location.PreFeatureSegmentId.HasValue)
             {
-                location.PreFeatureSegmentText = await _segmentService
+                location.PreFeatureSegmentText = await segmentService
                     .GetBySegmentAndLanguageAsync(location.PreFeatureSegmentId.Value,
                         defaultLanguageId);
             }
 
-            var features = await _featureService.GetAllFeaturesAsync();
+            if (location.HoursSegmentId.HasValue)
+            {
+                location.HoursSegmentText = await segmentService
+                    .GetBySegmentAndLanguageAsync(location.HoursSegmentId.Value,
+                        defaultLanguageId);
+            }
 
-            var locationFeatures = await _locationFeatureService
+            var features = await featureService.GetAllFeaturesAsync();
+
+            var locationFeatures = await locationFeatureService
                 .GetLocationFeaturesByLocationAsync(location.Id);
 
             var featuresHere = features
                 .Where(_ => locationFeatures.Select(_ => _.FeatureId).Contains(_.Id));
 
-            var languages = await _languageService.GetActiveAsync();
+            var languages = await languageService.GetActiveAsync();
 
-            location.InteriorImages = await _locationService
+            location.InteriorImages = await locationService
                 .GetLocationInteriorImagesAsync(location.Id);
 
             var viewModel = new DetailsViewModel
             {
-                AtThisLocation = featuresHere.Where(_ => _.IsAtThisLocation)
-                    .OrderBy(_ => _.SortOrder)
-                    .ToList(),
-                Displays = await _digitalDisplayService.GetByLocationAsync(location.Id),
+                AtThisLocation
+                    = [.. featuresHere.Where(_ => _.IsAtThisLocation).OrderBy(_ => _.SortOrder)],
+                Displays = await digitalDisplayService.GetByLocationAsync(location.Id),
                 IsSiteManager = !string.IsNullOrEmpty(UserClaim(ClaimType.SiteManager)),
                 Location = location,
-                LocationManager = await HasAppPermissionAsync(_permissionGroupService,
+                LocationManager = await HasAppPermissionAsync(permissionGroupService,
                     ApplicationPermission.LocationManagement),
-                SegmentEditor = await HasAppPermissionAsync(_permissionGroupService,
+                SegmentEditor = await HasAppPermissionAsync(permissionGroupService,
                     ApplicationPermission.WebPageContentManagement),
-                ServicesAvailable = featuresHere.Where(_ => !_.IsAtThisLocation)
-                    .OrderBy(_ => _.SortOrder)
-                    .ToList(),
+                ServicesAvailable
+                    = [.. featuresHere.Where(_ => !_.IsAtThisLocation).OrderBy(_ => _.SortOrder)],
             };
 
-            var volunteerFeature = await _featureService
+            var volunteerFeature = await featureService
                 .GetFeatureBySlugAsync("volunteer");
             if (volunteerFeature != null)
             {
-                var forms = await _volunteerFormService.GetVolunteerFormsAsync();
+                var forms = await volunteerFormService.GetVolunteerFormsAsync();
                 if (forms.Count != 0)
                 {
                     var formsViewModel = new List<LocationVolunteerFormViewModel>();
                     foreach (var form in forms)
                     {
-                        var mappings = await _volunteerFormService
+                        var mappings = await volunteerFormService
                             .GetFormUserMappingsAsync(form.Id, location.Id);
                         var newForm = new LocationVolunteerFormViewModel
                         {
                             TypeId = (int)form.VolunteerFormType,
                             TypeName = form.VolunteerFormType.ToString(),
                             FormMappings = mappings
-                                .ToList(
-                                ).ConvertAll(_ => new LocationVolunteerMappingViewModel(_)),
-                            IsDisabled = form.IsDisabled
+                                .ToList()
+                                .ConvertAll(_ => new LocationVolunteerMappingViewModel(_)),
+                            IsDisabled = form.IsDisabled,
                         };
                         if (form.IsDisabled)
                         {
                             newForm.AlertWarning = $"The {form.VolunteerFormType} volunteer form is not active.";
                         }
+
                         formsViewModel.Add(newForm);
                     }
 
-                    var locationFeature = await _locationFeatureService
+                    var locationFeature = await locationFeatureService
                         .GetByFeatureIdLocationIdAsync(volunteerFeature.Id, location.Id);
                     var hasForms = formsViewModel
                         .Any(_ => _.FormMappings.Count != 0 && !_.IsDisabled);
@@ -509,16 +641,17 @@ namespace Ocuda.Ops.Controllers
 
                     if (hasForms && !hasLocationFeature)
                     {
-                        await _volunteerFormService
+                        await volunteerFormService
                             .AddVolunteerLocationFeature(volunteerFeature.Id,
                                 location.Id,
                                 location.Stub);
                     }
                     else if (!hasForms && hasLocationFeature)
                     {
-                        await _locationFeatureService
+                        await locationFeatureService
                             .DeleteAsync(volunteerFeature.Id, location.Id);
                     }
+
                     viewModel.VolunteerForms.AddRange(formsViewModel);
                 }
 
@@ -532,23 +665,39 @@ namespace Ocuda.Ops.Controllers
 
             foreach (var display in viewModel.Displays)
             {
-                var assets = await _digitalDisplayService.GetNonExpiredAssetsAsync(display.Id);
+                var assets = await digitalDisplayService.GetNonExpiredAssetsAsync(display.Id);
                 display.SlideCount = assets.Count();
             }
 
             if (location.PreFeatureSegmentId.HasValue)
             {
                 viewModel.LocationNoticeSegment
-                    = await _segmentService.GetByIdAsync(location.PreFeatureSegmentId.Value);
-                viewModel.LocationNoticeLanguages.AddRange(await _segmentService
+                    = await segmentService.GetByIdAsync(location.PreFeatureSegmentId.Value);
+                viewModel.LocationNoticeLanguages.AddRange(await segmentService
                     .GetSegmentLanguagesByIdAsync(location.PreFeatureSegmentId.Value));
+            }
+
+            if (location.PostFeatureSegmentId.HasValue)
+            {
+                viewModel.PostHoursNoticeSegment
+                    = await segmentService.GetByIdAsync(location.PostFeatureSegmentId.Value);
+                viewModel.PostHoursNoticeLanguages.AddRange(await segmentService
+                    .GetSegmentLanguagesByIdAsync(location.PostFeatureSegmentId.Value));
+            }
+
+            if (location.HoursSegmentId.HasValue)
+            {
+                viewModel.HoursReplacementNoticeSegment
+                    = await segmentService.GetByIdAsync(location.HoursSegmentId.Value);
+                viewModel.HoursReplacementNoticeLanguages.AddRange(await segmentService
+                    .GetSegmentLanguagesByIdAsync(location.HoursSegmentId.Value));
             }
 
             if (location.ImageAltTextSegmentId.HasValue)
             {
-                foreach (var language in await _languageService.GetActiveAsync())
+                foreach (var language in await languageService.GetActiveAsync())
                 {
-                    location.ImageAltTextSegmentTexts.Add(await _segmentService
+                    location.ImageAltTextSegmentTexts.Add(await segmentService
                         .GetBySegmentAndLanguageAsync(location.ImageAltTextSegmentId.Value,
                             language.Id));
                 }
@@ -556,17 +705,17 @@ namespace Ocuda.Ops.Controllers
 
             if (location.MapAltTextSegmentId.HasValue)
             {
-                foreach (var language in await _languageService.GetActiveAsync())
+                foreach (var language in await languageService.GetActiveAsync())
                 {
-                    location.MapAltTextSegmentTexts.Add(await _segmentService
+                    location.MapAltTextSegmentTexts.Add(await segmentService
                         .GetBySegmentAndLanguageAsync(location.MapAltTextSegmentId.Value,
                             language.Id));
                 }
             }
 
-            viewModel.DescriptionLanguages.AddRange(await _segmentService
+            viewModel.DescriptionLanguages.AddRange(await segmentService
                 .GetSegmentLanguagesByIdAsync(location.DescriptionSegmentId));
-            viewModel.AllLanguages.AddRange(await _languageService.GetActiveNamesAsync());
+            viewModel.AllLanguages.AddRange(await languageService.GetActiveNamesAsync());
 
             return View(viewModel);
         }
@@ -574,15 +723,18 @@ namespace Ocuda.Ops.Controllers
         [HttpGet("[action]/{slug}")]
         public async Task<IActionResult> ExteriorImage(string slug)
         {
-            if (string.IsNullOrEmpty(slug)) { return BadRequest(); }
+            if (string.IsNullOrEmpty(slug))
+            {
+                return BadRequest();
+            }
 
-            var location = await _locationService.GetLocationByStubAsync(slug);
+            var location = await locationService.GetLocationByStubAsync(slug);
             if (string.IsNullOrEmpty(location?.ImagePath))
             {
                 return NotFound();
             }
 
-            var fullImagePath = await _locationService
+            var fullImagePath = await locationService
                 .GetExteriorImageFilePathAsync(location.ImagePath);
 
             if (!System.IO.File.Exists(fullImagePath))
@@ -593,8 +745,8 @@ namespace Ocuda.Ops.Controllers
             new FileExtensionContentTypeProvider()
                 .TryGetContentType(fullImagePath, out string fileType);
 
-            return PhysicalFile(fullImagePath, fileType
-                ?? System.Net.Mime.MediaTypeNames.Application.Octet);
+            return PhysicalFile(fullImagePath,
+                fileType ?? System.Net.Mime.MediaTypeNames.Application.Octet);
         }
 
         [HttpGet("")]
@@ -602,35 +754,30 @@ namespace Ocuda.Ops.Controllers
         {
             var filter = new LocationFilter(page == 0 ? 1 : page, 60);
 
-            var locationList = await _locationService.GetPaginatedListAsync(filter);
+            var locationList = await locationService.GetPaginatedListAsync(filter);
 
             var viewModel = new IndexViewModel
             {
                 CurrentPage = filter.Page,
                 ItemCount = locationList.Count,
                 ItemsPerPage = filter.Take.Value,
-                Locations = locationList.Data
+                Locations = locationList.Data,
             };
 
-            if (viewModel.PastMaxPage)
-            {
-                return RedirectToRoute(new { page = viewModel.LastPage ?? 1 });
-            }
-
-            return View(viewModel);
+            return viewModel.PastMaxPage ? RedirectToRoute(new { page = viewModel.LastPage ?? 1 }) : View(viewModel);
         }
 
         [HttpGet("[action]/{id}")]
         public async Task<IActionResult> InteriorImage(int id)
         {
-            var interiorImage = await _locationService.GetInteriorImageByIdAsync(id);
+            var interiorImage = await locationService.GetInteriorImageByIdAsync(id);
 
             if (string.IsNullOrEmpty(interiorImage?.ImagePath))
             {
                 return NotFound();
             }
 
-            var fullImagePath = await _locationService
+            var fullImagePath = await locationService
                 .GetInteriorImageFilePathAsync(interiorImage.ImagePath);
 
             if (!System.IO.File.Exists(fullImagePath))
@@ -641,14 +788,17 @@ namespace Ocuda.Ops.Controllers
             new FileExtensionContentTypeProvider()
                 .TryGetContentType(fullImagePath, out string fileType);
 
-            return PhysicalFile(fullImagePath, fileType
-                ?? System.Net.Mime.MediaTypeNames.Application.Octet);
+            return PhysicalFile(fullImagePath,
+                fileType ?? System.Net.Mime.MediaTypeNames.Application.Octet);
         }
 
         [HttpGet("[action]/{slug}/{featureId}")]
         public async Task<IActionResult> LocationFeature(string slug, int featureId)
         {
-            if (string.IsNullOrEmpty(slug)) { return BadRequest(); }
+            if (string.IsNullOrEmpty(slug))
+            {
+                return BadRequest();
+            }
 
             Location location;
             Feature feature;
@@ -661,7 +811,7 @@ namespace Ocuda.Ops.Controllers
                 return NotFound();
             }
 
-            var locationFeature = await _locationFeatureService
+            var locationFeature = await locationFeatureService
                 .GetByFeatureIdLocationIdAsync(featureId, location.Id);
 
             if (locationFeature == null)
@@ -674,40 +824,40 @@ namespace Ocuda.Ops.Controllers
                 Feature = feature,
                 Location = location,
                 LocationFeature = locationFeature,
-                CanManageLocations = await HasAppPermissionAsync(_permissionGroupService,
+                CanManageLocations = await HasAppPermissionAsync(permissionGroupService,
                     ApplicationPermission.LocationManagement),
-                CanEditSegments = await HasAppPermissionAsync(_permissionGroupService,
-                    ApplicationPermission.WebPageContentManagement)
+                CanEditSegments = await HasAppPermissionAsync(permissionGroupService,
+                    ApplicationPermission.WebPageContentManagement),
             };
 
-            viewModel.AllLanguages.AddRange(await _languageService.GetActiveNamesAsync());
+            viewModel.AllLanguages.AddRange(await languageService.GetActiveNamesAsync());
 
-            var defaultLanguageId = await _languageService.GetDefaultLanguageId();
+            var defaultLanguageId = await languageService.GetDefaultLanguageId();
 
-            var nameSegment = await _segmentService
+            var nameSegment = await segmentService
                 .GetBySegmentAndLanguageAsync(feature.NameSegmentId, defaultLanguageId);
             feature.DisplayName = nameSegment.Text;
-            viewModel.FeatureNameLanguages.AddRange(await _segmentService
+            viewModel.FeatureNameLanguages.AddRange(await segmentService
                 .GetSegmentLanguagesByIdAsync(feature.NameSegmentId));
 
             if (feature.TextSegmentId.HasValue)
             {
-                var featureText = await _segmentService
+                var featureText = await segmentService
                     .GetBySegmentAndLanguageAsync(feature.TextSegmentId.Value, defaultLanguageId);
                 feature.BodyText = CommonMark.CommonMarkConverter.Convert(featureText?.Text);
-                viewModel.FeatureTextLanguages.AddRange(await _segmentService
+                viewModel.FeatureTextLanguages.AddRange(await segmentService
                     .GetSegmentLanguagesByIdAsync(feature.TextSegmentId.Value));
             }
 
             if (locationFeature.SegmentId.HasValue)
             {
-                var locationFeatureText = await _segmentService
+                var locationFeatureText = await segmentService
                     .GetBySegmentAndLanguageAsync(locationFeature.SegmentId.Value,
                         defaultLanguageId);
                 locationFeature.Text = CommonMark
                     .CommonMarkConverter
                     .Convert(locationFeatureText?.Text);
-                viewModel.LocationFeatureLanguages.AddRange(await _segmentService
+                viewModel.LocationFeatureLanguages.AddRange(await segmentService
                     .GetSegmentLanguagesByIdAsync(locationFeature.SegmentId.Value));
             }
 
@@ -717,15 +867,18 @@ namespace Ocuda.Ops.Controllers
         [HttpGet("[action]/{slug}")]
         public async Task<IActionResult> MapImage(string slug)
         {
-            if (string.IsNullOrEmpty(slug)) { return BadRequest(); }
+            if (string.IsNullOrEmpty(slug))
+            {
+                return BadRequest();
+            }
 
-            var location = await _locationService.GetLocationByStubAsync(slug);
+            var location = await locationService.GetLocationByStubAsync(slug);
             if (string.IsNullOrEmpty(location?.MapImagePath))
             {
                 return NotFound();
             }
 
-            var fullImagePath = await _locationService
+            var fullImagePath = await locationService
                 .GetMapImageFilePathAsync(location.MapImagePath);
 
             if (!System.IO.File.Exists(fullImagePath))
@@ -736,18 +889,18 @@ namespace Ocuda.Ops.Controllers
             new FileExtensionContentTypeProvider()
                 .TryGetContentType(fullImagePath, out string fileType);
 
-            return PhysicalFile(fullImagePath, fileType
-                ?? System.Net.Mime.MediaTypeNames.Application.Octet);
+            return PhysicalFile(fullImagePath,
+                fileType ?? System.Net.Mime.MediaTypeNames.Application.Octet);
         }
 
         [HttpPost]
         [Route("{slug}/[action]")]
         public async Task<IActionResult> MapVolunteerCoordinator(string slug, int type, int userId)
         {
-            var location = await _locationService.GetLocationByStubAsync(slug);
+            var location = await locationService.GetLocationByStubAsync(slug);
             try
             {
-                await _volunteerFormService
+                await volunteerFormService
                     .AddFormUserMapping(location.Id, (VolunteerFormType)type, userId);
                 ShowAlertSuccess($"Added staff member to receive {(VolunteerFormType)type} Volunteer form submissions.");
             }
@@ -755,32 +908,45 @@ namespace Ocuda.Ops.Controllers
             {
                 ShowAlertDanger($"Unable to add staff member for for {location.Name}: {oex.Message}");
             }
+
             return RedirectToAction(nameof(Details), new { slug });
         }
 
         [HttpPost("[action]")]
         public async Task<IActionResult> RemoveFeature(string slug, int featureId)
         {
-            if (string.IsNullOrEmpty(slug)) { return BadRequest(); }
+            if (string.IsNullOrEmpty(slug))
+            {
+                return BadRequest();
+            }
 
-            var hasPermission = await HasAppPermissionAsync(_permissionGroupService,
+            var hasPermission = await HasAppPermissionAsync(permissionGroupService,
                 ApplicationPermission.LocationManagement);
-            if (!hasPermission) { return RedirectToUnauthorized(); }
+            if (!hasPermission)
+            {
+                return RedirectToUnauthorized();
+            }
 
-            var location = await _locationService.GetLocationByStubAsync(slug);
-            if (location == null) { return NotFound(); }
+            var location = await locationService.GetLocationByStubAsync(slug);
+            if (location == null)
+            {
+                return NotFound();
+            }
 
-            var locationFeature = await _locationFeatureService
+            var locationFeature = await locationFeatureService
                 .GetByFeatureIdLocationIdAsync(featureId, location.Id);
-            if (locationFeature == null) { return NotFound(); }
+            if (locationFeature == null)
+            {
+                return NotFound();
+            }
 
             if (locationFeature.SegmentId.HasValue)
             {
-                await _segmentService
+                await segmentService
                     .DeleteWithTextsAlreadyVerifiedAsync(locationFeature.SegmentId.Value);
             }
 
-            await _locationFeatureService.DeleteAsync(featureId, location.Id);
+            await locationFeatureService.DeleteAsync(featureId, location.Id);
 
             return RedirectToAction(nameof(Details), new { slug });
         }
@@ -789,10 +955,10 @@ namespace Ocuda.Ops.Controllers
         [Route("{slug}/[action]")]
         public async Task<IActionResult> RemoveFormUserMapping(string slug, int userId, int type)
         {
-            var location = await _locationService.GetLocationByStubAsync(slug);
+            var location = await locationService.GetLocationByStubAsync(slug);
             try
             {
-                await _volunteerFormService
+                await volunteerFormService
                     .RemoveFormUserMapping(location.Id, userId, (VolunteerFormType)type);
                 ShowAlertSuccess($"Removed staff member from receiving {(VolunteerFormType)type} Volunteer form submissions.");
             }
@@ -800,19 +966,54 @@ namespace Ocuda.Ops.Controllers
             {
                 ShowAlertDanger($"Unable to remove staff member for {location.Name}: {oex.Message}");
             }
+
             return RedirectToAction(nameof(Details), new { slug });
+        }
+
+        [HttpPost("[action]")]
+        public async Task<IActionResult> RemoveHoursReplacementNotice(int id)
+        {
+            var location = await locationService.GetLocationByIdAsync(id);
+            if (location != null)
+            {
+                if (location.HoursSegmentId.HasValue)
+                {
+                    var segmentId = location.HoursSegmentId.Value;
+                    location.HoursSegmentId = null;
+                    await locationService.EditAsync(location);
+                    await segmentService.DeleteAsync(segmentId);
+                    ShowAlertSuccess("Hours replacement notice removed.");
+                }
+                else
+                {
+                    ShowAlertDanger("No hours replacement notice segment attached to this location.");
+                }
+
+                return RedirectToAction(nameof(Details), new { slug = location.Stub });
+            }
+            else
+            {
+                ShowAlertDanger("Location not found.");
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         [HttpPost("[action]/{slug}")]
         public async Task<IActionResult> RemoveInteriorImage(int interiorImageId, string slug)
         {
-            if (string.IsNullOrEmpty(slug)) { return BadRequest(); }
+            if (string.IsNullOrEmpty(slug))
+            {
+                return BadRequest();
+            }
 
-            var hasPermission = await HasAppPermissionAsync(_permissionGroupService,
+            var hasPermission = await HasAppPermissionAsync(permissionGroupService,
                 ApplicationPermission.LocationManagement);
-            if (!hasPermission) { return RedirectToUnauthorized(); }
+            if (!hasPermission)
+            {
+                return RedirectToUnauthorized();
+            }
 
-            await _locationService.DeleteInteriorImageAsync(interiorImageId);
+            await locationService.DeleteInteriorImageAsync(interiorImageId);
 
             ShowAlertSuccess("Image deleted successfully");
             return RedirectToAction(nameof(UpdateInteriorImages), new { slug });
@@ -821,21 +1022,50 @@ namespace Ocuda.Ops.Controllers
         [HttpPost("[action]")]
         public async Task<IActionResult> RemoveLocationNotice(int id)
         {
-            var location = await _locationService.GetLocationByIdAsync(id);
+            var location = await locationService.GetLocationByIdAsync(id);
             if (location != null)
             {
                 if (location.PreFeatureSegmentId.HasValue)
                 {
                     var segmentId = location.PreFeatureSegmentId.Value;
                     location.PreFeatureSegmentId = null;
-                    await _locationService.EditAsync(location);
-                    await _segmentService.DeleteAsync(segmentId);
+                    await locationService.EditAsync(location);
+                    await segmentService.DeleteAsync(segmentId);
                     ShowAlertSuccess("Location notice removed.");
                 }
                 else
                 {
                     ShowAlertDanger("No location notice segment attached to this location.");
                 }
+
+                return RedirectToAction(nameof(Details), new { slug = location.Stub });
+            }
+            else
+            {
+                ShowAlertDanger("Location not found.");
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        [HttpPost("[action]")]
+        public async Task<IActionResult> RemovePostHoursNotice(int id)
+        {
+            var location = await locationService.GetLocationByIdAsync(id);
+            if (location != null)
+            {
+                if (location.PostFeatureSegmentId.HasValue)
+                {
+                    var segmentId = location.PostFeatureSegmentId.Value;
+                    location.PostFeatureSegmentId = null;
+                    await locationService.EditAsync(location);
+                    await segmentService.DeleteAsync(segmentId);
+                    ShowAlertSuccess("Below-hours notice removed.");
+                }
+                else
+                {
+                    ShowAlertDanger("No below-hours notice segment attached to this location.");
+                }
+
                 return RedirectToAction(nameof(Details), new { slug = location.Stub });
             }
             else
@@ -854,7 +1084,7 @@ namespace Ocuda.Ops.Controllers
 
             try
             {
-                await _locationService.UpdateAltTextAsync(newAltText.LocationId,
+                await locationService.UpdateAltTextAsync(newAltText.LocationId,
                     newAltText.LanguageId,
                     newAltText.Field,
                     newAltText.Text?.Trim());
@@ -873,35 +1103,50 @@ namespace Ocuda.Ops.Controllers
         [HttpGet("[action]/{slug}")]
         public async Task<IActionResult> UpdateExteriorImage(string slug)
         {
-            var hasPermission = await HasAppPermissionAsync(_permissionGroupService,
+            var hasPermission = await HasAppPermissionAsync(permissionGroupService,
                 ApplicationPermission.LocationManagement);
-            if (!hasPermission) { return RedirectToUnauthorized(); }
-
-            if (string.IsNullOrEmpty(slug)) { return NotFound(); }
-
-            var location = await _locationService.GetLocationByStubAsync(slug);
-            if (location == null) { return NotFound(); }
-
-            return View("ExteriorImage", new ExteriorImageViewModel
+            if (!hasPermission)
             {
-                CropHeight = _locationService.ExteriorImageHeight,
-                CropWidth = _locationService.ExteriorImageWidth,
-                LocationName = location.Name,
-                Slug = location.Stub
-            });
+                return RedirectToUnauthorized();
+            }
+
+            if (string.IsNullOrEmpty(slug))
+            {
+                return NotFound();
+            }
+
+            var location = await locationService.GetLocationByStubAsync(slug);
+            return location == null
+                ? NotFound()
+                : View("ExteriorImage", new ExteriorImageViewModel
+                {
+                    CropHeight = locationService.ExteriorImageHeight,
+                    CropWidth = locationService.ExteriorImageWidth,
+                    LocationName = location.Name,
+                    Slug = location.Stub,
+                });
         }
 
         [HttpPost("[action]/{slug}")]
         public async Task<IActionResult> UpdateExteriorImage(ExteriorImageViewModel viewModel,
             string slug)
         {
-            if (viewModel == null) { return BadRequest(); }
+            if (viewModel == null)
+            {
+                return BadRequest();
+            }
 
-            if (string.IsNullOrEmpty(slug)) { return NotFound(); }
+            if (string.IsNullOrEmpty(slug))
+            {
+                return NotFound();
+            }
 
-            var hasPermission = await HasAppPermissionAsync(_permissionGroupService,
+            var hasPermission = await HasAppPermissionAsync(permissionGroupService,
                 ApplicationPermission.LocationManagement);
-            if (!hasPermission) { return RedirectToUnauthorized(); }
+            if (!hasPermission)
+            {
+                return RedirectToUnauthorized();
+            }
 
             if (viewModel.Image == null)
             {
@@ -909,11 +1154,11 @@ namespace Ocuda.Ops.Controllers
                 return RedirectToAction(nameof(ExteriorImage), new { slug });
             }
 
-            var location = await _locationService.GetLocationByStubAsync(slug);
+            var location = await locationService.GetLocationByStubAsync(slug);
 
             try
             {
-                await _locationService
+                await locationService
                     .UpdateExteriorImageAsync(viewModel.Image, viewModel.Filename, slug);
             }
             catch (OcudaException oex)
@@ -931,13 +1176,22 @@ namespace Ocuda.Ops.Controllers
         public async Task<IActionResult> UpdateInteriorImage(InteriorImageViewModel viewModel,
             string slug)
         {
-            if (viewModel == null) { return BadRequest(); }
+            if (viewModel == null)
+            {
+                return BadRequest();
+            }
 
-            var hasPermission = await HasAppPermissionAsync(_permissionGroupService,
+            var hasPermission = await HasAppPermissionAsync(permissionGroupService,
                 ApplicationPermission.LocationManagement);
-            if (!hasPermission) { return RedirectToUnauthorized(); }
+            if (!hasPermission)
+            {
+                return RedirectToUnauthorized();
+            }
 
-            if (!viewModel.ImageId.HasValue) { return NotFound(); }
+            if (!viewModel.ImageId.HasValue)
+            {
+                return NotFound();
+            }
 
             if (viewModel.Image == null)
             {
@@ -945,16 +1199,22 @@ namespace Ocuda.Ops.Controllers
                 return RedirectToAction(nameof(UpdateInteriorImage), new { slug });
             }
 
-            var interiorImage = await _locationService
+            var interiorImage = await locationService
                 .GetInteriorImageByIdAsync(viewModel.ImageId.Value);
-            if (interiorImage == null) { return NotFound(); }
+            if (interiorImage == null)
+            {
+                return NotFound();
+            }
 
-            var location = await _locationService.GetLocationByStubAsync(slug);
-            if (location == null) { return NotFound(); }
+            var location = await locationService.GetLocationByStubAsync(slug);
+            if (location == null)
+            {
+                return NotFound();
+            }
 
             try
             {
-                await _locationService.UpdateInteriorImageAsync(interiorImage,
+                await locationService.UpdateInteriorImageAsync(interiorImage,
                     viewModel.Image.FileName,
                     viewModel.Image);
             }
@@ -975,29 +1235,38 @@ namespace Ocuda.Ops.Controllers
         [RestoreModelState]
         public async Task<IActionResult> UpdateInteriorImage(int interiorImageId, string slug)
         {
-            var hasPermission = await HasAppPermissionAsync(_permissionGroupService,
+            var hasPermission = await HasAppPermissionAsync(permissionGroupService,
                 ApplicationPermission.LocationManagement);
-            if (!hasPermission) { return RedirectToUnauthorized(); }
+            if (!hasPermission)
+            {
+                return RedirectToUnauthorized();
+            }
 
-            var location = await _locationService.GetLocationByStubAsync(slug);
-            if (location == null) { return NotFound(); }
+            var location = await locationService.GetLocationByStubAsync(slug);
+            if (location == null)
+            {
+                return NotFound();
+            }
 
-            var interiorImage = await _locationService.GetInteriorImageByIdAsync(interiorImageId);
-            if (interiorImage == null) { return NotFound(); }
+            var interiorImage = await locationService.GetInteriorImageByIdAsync(interiorImageId);
+            if (interiorImage == null)
+            {
+                return NotFound();
+            }
 
             var viewModel = new InteriorImageViewModel
             {
-                CropHeight = _locationService.InteriorImageHeight,
-                CropWidth = _locationService.InteriorImageWidth,
+                CropHeight = locationService.InteriorImageHeight,
+                CropWidth = locationService.InteriorImageWidth,
                 ImageId = interiorImage.Id,
                 LocationName = location.Name,
-                Slug = location.Stub
+                Slug = location.Stub,
             };
 
-            var altTexts = await _locationService
+            var altTexts = await locationService
                 .GetAllLanguageImageAltTextsAsync(interiorImage.Id);
 
-            foreach (var languageItem in await _languageService.GetActiveAsync())
+            foreach (var languageItem in await languageService.GetActiveAsync())
             {
                 var altText = altTexts.SingleOrDefault(_ => _.LanguageId == languageItem.Id);
                 viewModel.Languages.Add(languageItem.Id, languageItem.Description);
@@ -1012,20 +1281,32 @@ namespace Ocuda.Ops.Controllers
         public async Task<IActionResult> UpdateInteriorImageData(InteriorImageViewModel viewModel,
             string slug)
         {
-            if (viewModel == null) { return BadRequest(); }
+            if (viewModel == null)
+            {
+                return BadRequest();
+            }
 
-            var hasPermission = await HasAppPermissionAsync(_permissionGroupService,
+            var hasPermission = await HasAppPermissionAsync(permissionGroupService,
                 ApplicationPermission.LocationManagement);
-            if (!hasPermission) { return RedirectToUnauthorized(); }
+            if (!hasPermission)
+            {
+                return RedirectToUnauthorized();
+            }
 
-            var location = await _locationService.GetLocationByStubAsync(slug);
-            if (location == null) { return NotFound(); }
+            var location = await locationService.GetLocationByStubAsync(slug);
+            if (location == null)
+            {
+                return NotFound();
+            }
 
-            var interiorImage = await _locationService
+            var interiorImage = await locationService
                 .GetInteriorImageByIdAsync(viewModel.ImageId.Value);
-            if (interiorImage == null) { return NotFound(); }
+            if (interiorImage == null)
+            {
+                return NotFound();
+            }
 
-            var allAltTexts = await _locationService
+            var allAltTexts = await locationService
                 .GetAllLanguageImageAltTextsAsync(viewModel.ImageId.Value);
 
             int updates = 0;
@@ -1037,23 +1318,24 @@ namespace Ocuda.Ops.Controllers
                     ShowAlertDanger("Unable to save empty Alt Texts.");
                     continue;
                 }
+
                 var inDatabase = allAltTexts.SingleOrDefault(_ => _.LanguageId == altText.Key);
 
                 if (inDatabase == null)
                 {
                     // add
-                    await _locationService.AddImageAltTextAsync(new LocationInteriorImageAltText
+                    await locationService.AddImageAltTextAsync(new LocationInteriorImageAltText
                     {
                         AltText = altText.Value?.Trim(),
                         LanguageId = altText.Key,
-                        LocationInteriorImageId = viewModel.ImageId.Value
+                        LocationInteriorImageId = viewModel.ImageId.Value,
                     });
                     updates++;
                 }
                 else if (inDatabase.AltText?.Trim() != altText.Value?.Trim())
                 {
                     // changed
-                    await _locationService.UpdateImageAltTextAsync(viewModel.ImageId.Value,
+                    await locationService.UpdateImageAltTextAsync(viewModel.ImageId.Value,
                         altText.Key,
                         altText.Value?.Trim());
                     updates++;
@@ -1076,19 +1358,28 @@ namespace Ocuda.Ops.Controllers
         [HttpGet("[action]/{slug}")]
         public async Task<IActionResult> UpdateInteriorImages(string slug)
         {
-            var hasPermission = await HasAppPermissionAsync(_permissionGroupService,
+            var hasPermission = await HasAppPermissionAsync(permissionGroupService,
                 ApplicationPermission.LocationManagement);
-            if (!hasPermission) { return RedirectToUnauthorized(); }
+            if (!hasPermission)
+            {
+                return RedirectToUnauthorized();
+            }
 
-            if (string.IsNullOrEmpty(slug)) { return BadRequest(); }
+            if (string.IsNullOrEmpty(slug))
+            {
+                return BadRequest();
+            }
 
-            var location = await _locationService.GetLocationByStubAsync(slug);
-            if (location == null) { return NotFound(); }
+            var location = await locationService.GetLocationByStubAsync(slug);
+            if (location == null)
+            {
+                return NotFound();
+            }
 
-            var interiorImages = await _locationService.GetLocationInteriorImagesAsync(location.Id);
+            var interiorImages = await locationService.GetLocationInteriorImagesAsync(location.Id);
             foreach (var interiorImage in interiorImages)
             {
-                interiorImage.AllAltTexts = await _locationService
+                interiorImage.AllAltTexts = await locationService
                     .GetAllLanguageImageAltTextsAsync(interiorImage.Id);
             }
 
@@ -1096,18 +1387,24 @@ namespace Ocuda.Ops.Controllers
             {
                 InteriorImages = interiorImages,
                 LocationName = location.Name,
-                Slug = location.Stub
+                Slug = location.Stub,
             });
         }
 
         [HttpPost("[action]/{slug}/{featureId}")]
         public async Task<IActionResult> UpdateLink(LinkViewModel viewModel)
         {
-            if (viewModel == null) { return BadRequest(); }
+            if (viewModel == null)
+            {
+                return BadRequest();
+            }
 
-            var hasPermission = await HasAppPermissionAsync(_permissionGroupService,
+            var hasPermission = await HasAppPermissionAsync(permissionGroupService,
                 ApplicationPermission.LocationManagement);
-            if (!hasPermission) { return RedirectToUnauthorized(); }
+            if (!hasPermission)
+            {
+                return RedirectToUnauthorized();
+            }
 
             Location location;
             Feature feature;
@@ -1121,28 +1418,34 @@ namespace Ocuda.Ops.Controllers
                 return NotFound();
             }
 
-            var locationFeature = await _locationFeatureService
+            var locationFeature = await locationFeatureService
                 .GetByFeatureIdLocationIdAsync(feature.Id, location.Id);
-            if (locationFeature == null) { return NotFound(); }
+            if (locationFeature == null)
+            {
+                return NotFound();
+            }
 
             locationFeature.RedirectUrl = viewModel.Link?.Trim();
             locationFeature.NewTab = viewModel.NewTab;
 
-            await _locationFeatureService.EditAsync(locationFeature);
+            await locationFeatureService.EditAsync(locationFeature);
 
             return RedirectToAction(nameof(LocationFeature), new
             {
                 slug = location.Stub,
-                featureId = feature.Id
+                featureId = feature.Id,
             });
         }
 
         [HttpGet("[action]/{slug}/{featureId}")]
         public async Task<IActionResult> UpdateLink(string slug, int featureId)
         {
-            var hasPermission = await HasAppPermissionAsync(_permissionGroupService,
+            var hasPermission = await HasAppPermissionAsync(permissionGroupService,
                 ApplicationPermission.LocationManagement);
-            if (!hasPermission) { return RedirectToUnauthorized(); }
+            if (!hasPermission)
+            {
+                return RedirectToUnauthorized();
+            }
 
             Location location;
             Feature feature;
@@ -1158,10 +1461,10 @@ namespace Ocuda.Ops.Controllers
             var viewModel = new LinkViewModel
             {
                 Location = location,
-                Feature = feature
+                Feature = feature,
             };
 
-            var locationFeature = await _locationFeatureService
+            var locationFeature = await locationFeatureService
                 .GetByFeatureIdLocationIdAsync(featureId, location.Id);
 
             if (locationFeature != null)
@@ -1176,51 +1479,62 @@ namespace Ocuda.Ops.Controllers
         [HttpGet("[action]/{slug}")]
         public async Task<IActionResult> UpdateMapImage(string slug)
         {
-            var hasPermission = await HasAppPermissionAsync(_permissionGroupService,
+            var hasPermission = await HasAppPermissionAsync(permissionGroupService,
                 ApplicationPermission.LocationManagement);
-            if (!hasPermission) { return RedirectToUnauthorized(); }
+            if (!hasPermission)
+            {
+                return RedirectToUnauthorized();
+            }
 
             var viewModel = new UpdateMapImageViewModel
             {
-                Location = await _locationService.GetLocationByStubAsync(slug),
-                MapApiKey = _configuration[Configuration.OcudaGoogleAPI]
+                Location = await locationService.GetLocationByStubAsync(slug),
+                MapApiKey = configuration[Configuration.OcudaGoogleAPI],
             };
             return View(viewModel);
         }
 
         [HttpPost("[action]/{slug}")]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization",
-            "CA1308:Normalize strings to uppercase",
-            Justification = "Normalizing filename to lowercase")]
         public async Task<IActionResult> UpdateMapImage([FromBody] string imageBase64, string slug)
         {
-            if (string.IsNullOrEmpty(slug)) { return NotFound(); }
+            if (string.IsNullOrEmpty(slug))
+            {
+                return NotFound();
+            }
 
-            var hasPermission = await HasAppPermissionAsync(_permissionGroupService,
+            var hasPermission = await HasAppPermissionAsync(permissionGroupService,
                 ApplicationPermission.LocationManagement);
-            if (!hasPermission) { return RedirectToUnauthorized(); }
+            if (!hasPermission)
+            {
+                return RedirectToUnauthorized();
+            }
 
-            var location = await _locationService.GetLocationByStubAsync(slug);
-            if (location == null) { return NotFound(); }
+            var location = await locationService.GetLocationByStubAsync(slug);
+            if (location == null)
+            {
+                return NotFound();
+            }
 
             try
             {
-                var (extension, imageBytes) = _imageService.ConvertFromBase64(imageBase64);
+                var (extension, imageBytes) = imageService.ConvertFromBase64(imageBase64);
+
                 // TODO: fix this using slugify the way the other image processes work?
                 var fixedBase = location.Name
                     .ToLowerInvariant()
                     .Replace(" ", "-", StringComparison.InvariantCultureIgnoreCase)
-                    .Replace(".", "", StringComparison.InvariantCultureIgnoreCase);
+                    .Replace(".", string.Empty, StringComparison.InvariantCultureIgnoreCase);
                 var filename = $"{fixedBase}-map{extension}";
 
                 try
                 {
-                    await _locationService.UpdateMapImageAsync(imageBytes, filename, slug);
+                    await locationService.UpdateMapImageAsync(imageBytes, filename, slug);
                 }
                 catch (OcudaException oex)
                 {
                     return StatusCode(StatusCodes.Status500InternalServerError, oex.Message);
                 }
+
                 return new JsonResult("Image updated successfully!");
             }
             catch (ParameterException pex)
@@ -1229,16 +1543,16 @@ namespace Ocuda.Ops.Controllers
             }
         }
 
-        private async Task<(Feature, Location)> GetFeatureLocation(int featureId, string stub)
+        private async Task<FeatureLocation> GetFeatureLocation(int featureId, string stub)
         {
-            var location = await _locationService.GetLocationByStubAsync(stub);
+            var location = await locationService.GetLocationByStubAsync(stub);
             if (location == null)
             {
                 _logger.LogError("Unable to find location with stub: {Stub}", stub);
                 throw new OcudaException($"Unable to find location with stub: {stub}");
             }
 
-            var feature = await _featureService.GetFeatureByIdAsync(featureId);
+            var feature = await featureService.GetFeatureByIdAsync(featureId);
             if (feature == null)
             {
                 _logger.LogError("Unable to find feature with id: {FeatureId}", featureId);
@@ -1246,6 +1560,22 @@ namespace Ocuda.Ops.Controllers
             }
 
             return (feature, location);
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.OrderingRules",
+        "SA1201:Elements should appear in the correct order",
+        Justification = "Internal struct is only used in this file")]
+    internal record struct FeatureLocation(Feature Feature, Location Location)
+    {
+        public static implicit operator (Feature Feature, Location Location)(FeatureLocation value)
+        {
+            return (value.Feature, value.Location);
+        }
+
+        public static implicit operator FeatureLocation((Feature Feature, Location Location) value)
+        {
+            return new FeatureLocation(value.Feature, value.Location);
         }
     }
 }
