@@ -1,0 +1,29 @@
+@model GeneralPrViewModel
+@{
+    ViewData["Title"] = "General PR";
+}
+<h1>General PR Request</h1>
+<p>Use this form for general signage and Public Relations requests.</p>
+<form asp-action="GeneralPr" method="post" enctype="multipart/form-data">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="mb-3">
+        <label asp-for="LocationId" class="form-label"></label>
+        <select asp-for="LocationId" asp-items="Model.Locations" class="form-select"><option value="">Select a branch</option></select>
+        <span asp-validation-for="LocationId" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Deadline" class="form-label"></label>
+        <input asp-for="Deadline" type="date" class="form-control" />
+        <span asp-validation-for="Deadline" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Description" class="form-label"></label>
+        <textarea asp-for="Description" rows="6" class="form-control"></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="File" class="form-label">Optional attachment</label>
+        <input asp-for="File" class="form-control" />
+    </div>
+    <button class="btn btn-primary" type="submit">Submit General PR request</button>
+</form>

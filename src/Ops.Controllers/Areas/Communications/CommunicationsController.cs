@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -168,6 +168,56 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
         }
 
         [HttpGet]
+        [Route("general-pr")]
+        public async Task<IActionResult> GeneralPr()
+        {
+            var model = new GeneralPrViewModel
+            {
+                Deadline = _dateTimeProvider.Now.Date
+            };
+            await PopulateGeneralPrAsync(model);
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Route("general-pr")]
+        public async Task<IActionResult> GeneralPr(GeneralPrViewModel model)
+        {
+            if (model.Deadline.Date < _dateTimeProvider.Now.Date)
+            {
+                ModelState.AddModelError(nameof(model.Deadline),
+                    "The deadline cannot be in the past.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                await PopulateGeneralPrAsync(model);
+                return View(model);
+            }
+
+            try
+            {
+                var user = await GetCurrentUserAsync();
+                var ticketId = await _communicationsService.SubmitSignageAsync(model.LocationId,
+                    model.Deadline,
+                    model.Description,
+                    model.File,
+                    user);
+                ShowAlertSuccess(
+                    $"Your General PR request has been submitted as HappyFox ticket {ticketId}.");
+                return RedirectToAction(nameof(GeneralPr));
+            }
+            catch (OcudaException ex)
+            {
+                _logger.LogError(ex, "Unable to submit General PR request: {Message}", ex.Message);
+                ShowAlertDanger($"Unable to submit the General PR request: {ex.Message}");
+                await PopulateGeneralPrAsync(model);
+                return View(model);
+            }
+        }
+
+        [HttpGet]
         [Route("idml/{id:int}")]
         public async Task<IActionResult> Idml(int id)
         {
@@ -219,6 +269,15 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
 
             var value = studio.Trim();
             return value.StartsWith('©') ? value : $"© {value}";
+        }
+
+        private async Task PopulateGeneralPrAsync(GeneralPrViewModel model)
+        {
+            var locations = await _communicationsService.GetPrLocationsAsync();
+            var selected = model.LocationId > 0
+                ? model.LocationId
+                : (await _userService.GetByIdAsync(CurrentUserId))?.AssociatedLocation;
+            model.Locations = BuildLocations(locations, selected);
         }
 
         private async Task PopulateProgramPrAsync(ProgramPrViewModel model)

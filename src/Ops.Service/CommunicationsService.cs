@@ -280,6 +280,88 @@ namespace Ocuda.Ops.Service
                 ?? _dateTimeProvider.Now.Date);
         }
 
+        public async Task<int> SubmitSignageAsync(int locationId,
+            DateTime deadline,
+            string description,
+            IFormFile attachment,
+            User requester)
+        {
+            ArgumentNullException.ThrowIfNull(requester);
+            if (string.IsNullOrWhiteSpace(description))
+            {
+                throw new OcudaException("A description is required for a General PR request.");
+            }
+
+            var locationIds = await GetConfiguredLocationIdsAsync(
+                Ocuda.Ops.Models.Keys.SiteSetting.Communications.PrLocationIds);
+            if (!locationIds.Contains(locationId))
+            {
+                throw new OcudaException("The selected location is not configured for PR requests.");
+            }
+
+            var location = await _locationService.GetLocationByIdAsync(locationId)
+                ?? throw new OcudaException("The selected location could not be found.");
+            var locationName = await GetPrLocationNameAsync(location);
+            var happyFoxBranchId = await GetHappyFoxBranchIdAsync(locationId);
+            var categoryId = await RequirePositiveSettingAsync(
+                Ocuda.Ops.Models.Keys.SiteSetting.Communications.HappyFoxCategoryId);
+            var priorityId = await RequirePositiveSettingAsync(
+                Ocuda.Ops.Models.Keys.SiteSetting.Communications.HappyFoxPriorityId);
+            var branchFieldId = await RequirePositiveSettingAsync(
+                Ocuda.Ops.Models.Keys.SiteSetting.Communications.HappyFoxBranchFieldId);
+            var prTypeFieldId = await RequirePositiveSettingAsync(
+                Ocuda.Ops.Models.Keys.SiteSetting.Communications.HappyFoxPrTypeFieldId);
+            var signageTypeValue = await RequirePositiveSettingAsync(
+                Ocuda.Ops.Models.Keys.SiteSetting.Communications.HappyFoxSignageTypeValue);
+            var signageRoute = await GetHappyFoxRouteAsync(locationId,
+                Ocuda.Ops.Models.Keys.SiteSetting.Communications.HappyFoxSignageAssigneeId,
+                Ocuda.Ops.Models.Keys.SiteSetting.Communications.HappyFoxSignageDaysDueBeforeEvent,
+                Ocuda.Ops.Models.Keys.SiteSetting.Communications.HappyFoxSignageRouteOverrides);
+
+            var safeDescription = description.Trim();
+            var bodyText = $"Branch: {locationName}{Environment.NewLine}"
+                + $"In-hand Deadline: {deadline:d}{Environment.NewLine}"
+                + $"Description: {safeDescription}";
+            var bodyHtml = "<strong>Branch:</strong> "
+                + WebUtility.HtmlEncode(locationName)
+                + "<br /><strong>In-hand Deadline:</strong> "
+                + WebUtility.HtmlEncode(deadline.ToShortDateString())
+                + "<br /><strong>Description:</strong> "
+                + HtmlWithBreaks(safeDescription);
+
+            var ticketRequest = new CreateTicketRequest
+            {
+                AssigneeId = signageRoute.AssigneeId,
+                CategoryId = categoryId,
+                Cc = await GetAddressesAsync(
+                    Ocuda.Ops.Models.Keys.SiteSetting.Communications.SignageNotificationAddresses),
+                ContactEmail = requester.Email,
+                ContactName = requester.Name?.Replace('"', '\''),
+                DueDate = GetDueDate(deadline, signageRoute.DaysDueBeforeEvent),
+                Html = bodyHtml,
+                PriorityId = priorityId,
+                Subject = $"[PR/Signage] {locationName}",
+                Text = bodyText,
+                TicketCustomFields = new Dictionary<int, object>
+                {
+                    [branchFieldId] = happyFoxBranchId,
+                    [prTypeFieldId] = signageTypeValue
+                }
+            };
+
+            if (attachment != null && attachment.Length > 0)
+            {
+                ticketRequest.Attachments = [await ReadHappyFoxAttachmentAsync(attachment)];
+            }
+
+            var ticket = await _happyFoxHelper.CreateTicketAsync(ticketRequest);
+            if (ticket?.Id <= 0)
+            {
+                throw new OcudaException("HappyFox did not return a ticket id for the General PR request.");
+            }
+            return ticket.Id;
+        }
+
         private static string BuildMediaTicketHtml(PrRequest request, Uri idmlUri)
         {
             var builder = new StringBuilder();
@@ -612,6 +694,32 @@ namespace Ocuda.Ops.Service
             return WebUtility.HtmlEncode(value ?? string.Empty)
                 .Replace("\r\n", "<br />", StringComparison.Ordinal)
                 .Replace("\n", "<br />", StringComparison.Ordinal);
+        }
+
+        private async Task<TicketAttachmentUpload> ReadHappyFoxAttachmentAsync(IFormFile file)
+        {
+            var safeFilename = Path.GetFileName(file.FileName);
+            if (string.IsNullOrWhiteSpace(safeFilename))
+            {
+                throw new OcudaException("The uploaded file must have a filename.");
+            }
+
+            var maxUploadBytes = await _siteSettingService.GetSettingIntAsync(
+                Ocuda.Ops.Models.Keys.SiteSetting.FileManagement.MaxUploadBytes);
+            if (maxUploadBytes > 0 && file.Length > maxUploadBytes)
+            {
+                throw new OcudaException(
+                    $"The file exceeds the configured upload limit of {maxUploadBytes:N0} bytes.");
+            }
+
+            return new TicketAttachmentUpload
+            {
+                Content = await FormFileHelper.GetFileBytesAsync(file),
+                ContentType = string.IsNullOrWhiteSpace(file.ContentType)
+                    ? "application/octet-stream"
+                    : file.ContentType,
+                FileName = safeFilename
+            };
         }
 
         private async Task<int> RequirePositiveSettingAsync(string settingKey)

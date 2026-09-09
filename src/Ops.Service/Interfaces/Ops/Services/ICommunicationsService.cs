@@ -19,5 +19,11 @@ namespace Ocuda.Ops.Service.Interfaces.Ops.Services
         Task<ICollection<Location>> GetPrLocationsAsync();
 
         Task<ICollection<PrTemplate>> GetPrTemplatesAsync(DateTime? eventDate);
+
+        Task<int> SubmitSignageAsync(int locationId,
+            DateTime deadline,
+            string description,
+            IFormFile attachment,
+            User requester);
     }
 }
