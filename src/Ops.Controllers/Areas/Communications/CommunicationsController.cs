@@ -218,6 +218,81 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
         }
 
         [HttpGet]
+        [Route("outreach")]
+        public async Task<IActionResult> Outreach()
+        {
+            var model = new OutreachViewModel
+            {
+                StartDate = _dateTimeProvider.Now.Date,
+                EndDate = _dateTimeProvider.Now.Date
+            };
+            await PopulateOutreachAsync(model);
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Route("outreach")]
+        public async Task<IActionResult> Outreach(OutreachViewModel model)
+        {
+            if (model.StartDate.Date < _dateTimeProvider.Now.Date)
+            {
+                ModelState.AddModelError(nameof(model.StartDate),
+                    "Requests cannot be submitted for the past.");
+            }
+            if (model.EndDate.Date < model.StartDate.Date)
+            {
+                ModelState.AddModelError(nameof(model.EndDate),
+                    "End Date must be on or after Start Date.");
+            }
+            if (!model.BookBike && !model.Canopy && !model.PrizeWheel)
+            {
+                ModelState.AddModelError(string.Empty,
+                    "At least one Outreach item must be requested.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                await PopulateOutreachAsync(model);
+                return View(model);
+            }
+
+            try
+            {
+                var user = await GetCurrentUserAsync();
+                await _communicationsService.SubmitOutreachAsync(model.LocationId,
+                    model.StartDate,
+                    model.EndDate,
+                    model.BookBike,
+                    model.Canopy,
+                    model.PrizeWheel,
+                    user);
+
+                var shortNotice = (model.BookBike
+                        && model.StartDate.Date < _dateTimeProvider.Now.Date.AddDays(14))
+                    || ((model.Canopy || model.PrizeWheel)
+                        && model.StartDate.Date < _dateTimeProvider.Now.Date.AddDays(7));
+                if (shortNotice)
+                {
+                    ShowAlertWarning(
+                        "Your Outreach request was submitted, but the short notice may prevent it from being fulfilled.");
+                }
+                else
+                {
+                    ShowAlertSuccess("Your Outreach request has been submitted.");
+                }
+                return RedirectToAction(nameof(Outreach));
+            }
+            catch (OcudaException ex)
+            {
+                _logger.LogError(ex, "Unable to submit Outreach request: {Message}", ex.Message);
+                ShowAlertDanger($"Unable to submit the Outreach request: {ex.Message}");
+                await PopulateOutreachAsync(model);
+                return View(model);
+            }
+        }
+
+        [HttpGet]
         [Route("idml/{id:int}")]
         public async Task<IActionResult> Idml(int id)
         {
@@ -274,6 +349,15 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
         private async Task PopulateGeneralPrAsync(GeneralPrViewModel model)
         {
             var locations = await _communicationsService.GetPrLocationsAsync();
+            var selected = model.LocationId > 0
+                ? model.LocationId
+                : (await _userService.GetByIdAsync(CurrentUserId))?.AssociatedLocation;
+            model.Locations = BuildLocations(locations, selected);
+        }
+
+        private async Task PopulateOutreachAsync(OutreachViewModel model)
+        {
+            var locations = await _communicationsService.GetOutreachLocationsAsync();
             var selected = model.LocationId > 0
                 ? model.LocationId
                 : (await _userService.GetByIdAsync(CurrentUserId))?.AssociatedLocation;

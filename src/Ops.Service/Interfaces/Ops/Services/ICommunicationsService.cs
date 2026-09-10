@@ -16,6 +16,8 @@ namespace Ocuda.Ops.Service.Interfaces.Ops.Services
 
         Task<FileDownload> GeneratePrIdmlAsync(int requestId);
 
+        Task<ICollection<Location>> GetOutreachLocationsAsync();
+
         Task<ICollection<Location>> GetPrLocationsAsync();
 
         Task<ICollection<PrTemplate>> GetPrTemplatesAsync(DateTime? eventDate);
@@ -24,6 +26,14 @@ namespace Ocuda.Ops.Service.Interfaces.Ops.Services
             DateTime deadline,
             string description,
             IFormFile attachment,
+            User requester);
+
+        Task SubmitOutreachAsync(int locationId,
+            DateTime startDate,
+            DateTime endDate,
+            bool bookBike,
+            bool canopy,
+            bool prizeWheel,
             User requester);
     }
 }

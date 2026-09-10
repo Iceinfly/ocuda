@@ -45,6 +45,7 @@ namespace Ocuda.Ops.Service
 
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly IDigitalDisplayService _digitalDisplayService;
+        private readonly IEmailService _emailService;
         private readonly IHappyFoxHelper _happyFoxHelper;
         private readonly IImageService _imageService;
         private readonly ILocationService _locationService;
@@ -57,6 +58,7 @@ namespace Ocuda.Ops.Service
             IHttpContextAccessor httpContextAccessor,
             IDateTimeProvider dateTimeProvider,
             IDigitalDisplayService digitalDisplayService,
+            IEmailService emailService,
             IHappyFoxHelper happyFoxHelper,
             IImageService imageService,
             ILocationService locationService,
@@ -70,6 +72,8 @@ namespace Ocuda.Ops.Service
                 ?? throw new ArgumentNullException(nameof(dateTimeProvider));
             _digitalDisplayService = digitalDisplayService
                 ?? throw new ArgumentNullException(nameof(digitalDisplayService));
+            _emailService = emailService
+                ?? throw new ArgumentNullException(nameof(emailService));
             _happyFoxHelper = happyFoxHelper
                 ?? throw new ArgumentNullException(nameof(happyFoxHelper));
             _imageService = imageService
@@ -263,6 +267,17 @@ namespace Ocuda.Ops.Service
             };
         }
 
+        public async Task<ICollection<Location>> GetOutreachLocationsAsync()
+        {
+            var configuredLocationIds = await GetConfiguredLocationIdsAsync(
+                Ocuda.Ops.Models.Keys.SiteSetting.Communications.OutreachLocationIds);
+            var locations = await _locationService.GetAllLocationsAsync();
+            return locations
+                .Where(_ => !_.IsDeleted && configuredLocationIds.Contains(_.Id))
+                .OrderBy(_ => _.Name)
+                .ToList();
+        }
+
         public async Task<ICollection<Location>> GetPrLocationsAsync()
         {
             var configuredLocationIds = await GetConfiguredLocationIdsAsync(
@@ -360,6 +375,62 @@ namespace Ocuda.Ops.Service
                 throw new OcudaException("HappyFox did not return a ticket id for the General PR request.");
             }
             return ticket.Id;
+        }
+
+        public async Task SubmitOutreachAsync(int locationId,
+            DateTime startDate,
+            DateTime endDate,
+            bool bookBike,
+            bool canopy,
+            bool prizeWheel,
+            User requester)
+        {
+            ArgumentNullException.ThrowIfNull(requester);
+            if (!bookBike && !canopy && !prizeWheel)
+            {
+                throw new OcudaException("At least one Outreach item must be requested.");
+            }
+
+            var locationIds = await GetConfiguredLocationIdsAsync(
+                Ocuda.Ops.Models.Keys.SiteSetting.Communications.OutreachLocationIds);
+            if (!locationIds.Contains(locationId))
+            {
+                throw new OcudaException("The selected location is not configured for Outreach requests.");
+            }
+
+            var location = await _locationService.GetLocationByIdAsync(locationId)
+                ?? throw new OcudaException("The selected location could not be found.");
+            var locationName = await GetPrLocationNameAsync(location);
+
+            if (bookBike)
+            {
+                var shortNotice = startDate.Date < _dateTimeProvider.Now.Date.AddDays(14);
+                await SendCommunicationsEmailAsync(
+                    Ocuda.Ops.Models.Keys.SiteSetting.Communications.BookBikeEmailAddresses,
+                    "Book Bike Request",
+                    BuildOutreachText(requester, locationName, startDate, endDate, "Book Bike", shortNotice),
+                    BuildOutreachHtml(requester, locationName, startDate, endDate, "Book Bike", shortNotice));
+            }
+
+            if (canopy || prizeWheel)
+            {
+                var items = new List<string>();
+                if (canopy)
+                {
+                    items.Add("Canopy");
+                }
+                if (prizeWheel)
+                {
+                    items.Add("Prize Wheel");
+                }
+                var itemText = string.Join(" and ", items);
+                var shortNotice = startDate.Date < _dateTimeProvider.Now.Date.AddDays(7);
+                await SendCommunicationsEmailAsync(
+                    Ocuda.Ops.Models.Keys.SiteSetting.Communications.OutreachEmailAddresses,
+                    $"{itemText} Request",
+                    BuildOutreachText(requester, locationName, startDate, endDate, itemText, shortNotice),
+                    BuildOutreachHtml(requester, locationName, startDate, endDate, itemText, shortNotice));
+            }
         }
 
         private static string BuildMediaTicketHtml(PrRequest request, Uri idmlUri)
@@ -526,6 +597,92 @@ namespace Ocuda.Ops.Service
             if (request.FullSheetImage) builder.AppendLine("Full Sheet PDF");
         }
 
+        private static string BuildOutreachHtml(User requester,
+            string locationName,
+            DateTime startDate,
+            DateTime endDate,
+            string items,
+            bool shortNotice)
+        {
+            var builder = new StringBuilder();
+            if (shortNotice)
+            {
+                builder.Append("<strong style=\"color:red; font-size:18px;\">SHORT NOTICE REQUEST</strong><br /><br />");
+            }
+            builder.Append(WebUtility.HtmlEncode(requester.Name))
+                .Append(" (")
+                .Append(WebUtility.HtmlEncode(requester.Email))
+                .Append(") has made a new request for the ")
+                .Append(WebUtility.HtmlEncode(items))
+                .Append("<br /><strong>Branch:</strong> ")
+                .Append(WebUtility.HtmlEncode(locationName))
+                .Append("<br /><strong>Start Date:</strong> ")
+                .Append(WebUtility.HtmlEncode(startDate.ToShortDateString()))
+                .Append("<br /><strong>End Date:</strong> ")
+                .Append(WebUtility.HtmlEncode(endDate.ToShortDateString()));
+            return builder.ToString();
+        }
+
+        private static string BuildOutreachText(User requester,
+            string locationName,
+            DateTime startDate,
+            DateTime endDate,
+            string items,
+            bool shortNotice)
+        {
+            var builder = new StringBuilder();
+            if (shortNotice)
+            {
+                builder.AppendLine("SHORT NOTICE REQUEST").AppendLine();
+            }
+            builder.AppendLine($"{requester.Name} ({requester.Email}) has made a new request for the {items}")
+                .AppendLine($"Branch: {locationName}")
+                .AppendLine($"Start Date: {startDate:d}")
+                .AppendLine($"End Date: {endDate:d}");
+            return builder.ToString();
+        }
+
+        private async Task SendCommunicationsEmailAsync(string recipientSettingKey,
+            string subject,
+            string bodyText,
+            string bodyHtml,
+            string ccAddress = null)
+        {
+            var emailSetupId = await RequirePositiveSettingAsync(
+                Ocuda.Ops.Models.Keys.SiteSetting.Communications.EmailSetupId);
+            var addresses = await GetAddressesAsync(recipientSettingKey);
+            if (addresses.Count == 0)
+            {
+                throw new OcudaConfigurationException(
+                    $"Site setting {recipientSettingKey} must contain at least one email address.");
+            }
+
+            var details = await _emailService.GetDetailsAsync(emailSetupId,
+                i18n.Culture.DefaultName,
+                new Dictionary<string, string>());
+            details.Subject = subject;
+            details.BodyText = bodyText;
+            details.BodyHtml = bodyHtml;
+            details.ToEmailAddress = addresses.First();
+            details.ToName = addresses.First();
+
+            foreach (var address in addresses.Skip(1))
+            {
+                details.Cc[address] = address;
+            }
+            if (!string.IsNullOrWhiteSpace(ccAddress)
+                && !addresses.Contains(ccAddress, StringComparer.OrdinalIgnoreCase))
+            {
+                details.Cc[ccAddress] = ccAddress;
+            }
+
+            var record = await _emailService.SendAsync(details);
+            if (record == null)
+            {
+                throw new OcudaException($"Unable to send Communications email '{subject}'.");
+            }
+        }
+
         private async Task<IReadOnlyCollection<string>> GetAddressesAsync(string settingKey)
         {
             var value = await _siteSettingService.GetSettingStringAsync(settingKey);
@@ -663,7 +820,7 @@ namespace Ocuda.Ops.Service
             var path = _pathResolverService.GetPrivateContentFilePath(request.ImageName,
                 "communications",
                 "pr");
-            if (!System.IO.File.Exists(path))
+            if (!File.Exists(path))
             {
                 _logger.LogWarning("PR request {RequestId} references missing image {ImageName}.",
                     request.Id,
@@ -673,7 +830,7 @@ namespace Ocuda.Ops.Service
 
             return new TicketAttachmentUpload
             {
-                Content = await System.IO.File.ReadAllBytesAsync(path),
+                Content = await File.ReadAllBytesAsync(path),
                 ContentType = GetImageContentType(request.ImageName),
                 FileName = request.ImageName
             };
