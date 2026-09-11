@@ -293,6 +293,59 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
         }
 
         [HttpGet]
+        [Route("swag")]
+        public async Task<IActionResult> Swag()
+        {
+            var model = new SwagViewModel();
+            model.Request.EventDate = _dateTimeProvider.Now.Date;
+            await PopulateSwagAsync(model);
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Route("swag")]
+        public async Task<IActionResult> Swag(SwagViewModel model)
+        {
+            model ??= new SwagViewModel();
+            model.Request ??= new SwagRequest();
+            model.Show = await _communicationsService.GetSwagAvailabilityAsync();
+            ClearHiddenSwagItems(model);
+
+            if (!model.Request.HasItems())
+            {
+                ModelState.AddModelError(string.Empty,
+                    "At least one available Swag item must be requested.");
+            }
+            if (model.Request.EventDate.Date < _dateTimeProvider.Now.Date)
+            {
+                ModelState.AddModelError("Request.EventDate",
+                    "The event date cannot be in the past.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                await PopulateSwagAsync(model);
+                return View(model);
+            }
+
+            try
+            {
+                var user = await GetCurrentUserAsync();
+                await _communicationsService.SubmitSwagAsync(model.Request, user);
+                ShowAlertSuccess("Your Swag request has been submitted.");
+                return RedirectToAction(nameof(Swag));
+            }
+            catch (OcudaException ex)
+            {
+                _logger.LogError(ex, "Unable to submit Swag request: {Message}", ex.Message);
+                ShowAlertDanger($"Unable to submit the Swag request: {ex.Message}");
+                await PopulateSwagAsync(model);
+                return View(model);
+            }
+        }
+
+        [HttpGet]
         [Route("idml/{id:int}")]
         public async Task<IActionResult> Idml(int id)
         {
@@ -314,6 +367,18 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
         {
             var templates = await _communicationsService.GetPrTemplatesAsync(date);
             return Json(templates.Select(_ => new { _.Id, _.Name, _.IsDefault }));
+        }
+
+        private static void ClearHiddenSwagItems(SwagViewModel model)
+        {
+            if (!model.IsShown(nameof(SwagRequest.Pencils))) model.Request.Pencils = 0;
+            if (!model.IsShown(nameof(SwagRequest.ILMLStickers))) model.Request.ILMLStickers = 0;
+            if (!model.IsShown(nameof(SwagRequest.YAMBStickers))) model.Request.YAMBStickers = 0;
+            if (!model.IsShown(nameof(SwagRequest.ColorChangingPencils))) model.Request.ColorChangingPencils = 0;
+            if (!model.IsShown(nameof(SwagRequest.ILMLFans))) model.Request.ILMLFans = 0;
+            if (!model.IsShown(nameof(SwagRequest.ILMLTotes))) model.Request.ILMLTotes = 0;
+            if (!model.IsShown(nameof(SwagRequest.ILMLCups))) model.Request.ILMLCups = 0;
+            if (!model.IsShown(nameof(SwagRequest.ILMLLanyards))) model.Request.ILMLLanyards = 0;
         }
 
         private async Task<User> GetCurrentUserAsync()
@@ -362,6 +427,16 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
                 ? model.LocationId
                 : (await _userService.GetByIdAsync(CurrentUserId))?.AssociatedLocation;
             model.Locations = BuildLocations(locations, selected);
+        }
+
+        private async Task PopulateSwagAsync(SwagViewModel model)
+        {
+            var locations = await _communicationsService.GetOutreachLocationsAsync();
+            var selected = model.Request?.LocationId > 0
+                ? model.Request.LocationId
+                : (await _userService.GetByIdAsync(CurrentUserId))?.AssociatedLocation;
+            model.Locations = BuildLocations(locations, selected);
+            model.Show = await _communicationsService.GetSwagAvailabilityAsync();
         }
 
         private async Task PopulateProgramPrAsync(ProgramPrViewModel model)

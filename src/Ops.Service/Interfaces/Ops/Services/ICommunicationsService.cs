@@ -22,6 +22,8 @@ namespace Ocuda.Ops.Service.Interfaces.Ops.Services
 
         Task<ICollection<PrTemplate>> GetPrTemplatesAsync(DateTime? eventDate);
 
+        Task<IDictionary<string, bool>> GetSwagAvailabilityAsync();
+
         Task<int> SubmitSignageAsync(int locationId,
             DateTime deadline,
             string description,
@@ -35,5 +37,7 @@ namespace Ocuda.Ops.Service.Interfaces.Ops.Services
             bool canopy,
             bool prizeWheel,
             User requester);
+
+        Task<SwagRequest> SubmitSwagAsync(SwagRequest request, User requester);
     }
 }

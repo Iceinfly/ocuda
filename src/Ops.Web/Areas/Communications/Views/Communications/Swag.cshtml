@@ -1,0 +1,29 @@
+@model SwagViewModel
+@{
+    ViewData["Title"] = "Swag Request";
+}
+<h1>Request Swag</h1>
+<form asp-action="Swag" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label asp-for="Request.LocationId" class="form-label"></label>
+            <select asp-for="Request.LocationId" asp-items="Model.Locations" class="form-select"><option value="">Select a branch</option></select>
+            <span asp-validation-for="Request.LocationId" class="text-danger"></span>
+        </div>
+        <div class="col-md-3"><label asp-for="Request.EventDate" class="form-label"></label><input asp-for="Request.EventDate" type="date" class="form-control" /><span asp-validation-for="Request.EventDate" class="text-danger"></span></div>
+        <div class="col-md-6"><label asp-for="Request.EventName" class="form-label"></label><input asp-for="Request.EventName" class="form-control" /><span asp-validation-for="Request.EventName" class="text-danger"></span></div>
+    </div>
+    <h2 class="h4 mt-4">Items</h2>
+    <div class="row g-3">
+        @if (Model.IsShown(nameof(SwagRequest.Pencils))) { <div class="col-md-6"><label asp-for="Request.Pencils" class="form-label"></label><input asp-for="Request.Pencils" min="0" class="form-control" /></div> }
+        @if (Model.IsShown(nameof(SwagRequest.ILMLStickers))) { <div class="col-md-6"><label asp-for="Request.ILMLStickers" class="form-label"></label><input asp-for="Request.ILMLStickers" min="0" class="form-control" /></div> }
+        @if (Model.IsShown(nameof(SwagRequest.YAMBStickers))) { <div class="col-md-6"><label asp-for="Request.YAMBStickers" class="form-label"></label><input asp-for="Request.YAMBStickers" min="0" class="form-control" /></div> }
+        @if (Model.IsShown(nameof(SwagRequest.ColorChangingPencils))) { <div class="col-md-6"><label asp-for="Request.ColorChangingPencils" class="form-label"></label><input asp-for="Request.ColorChangingPencils" min="0" max="100" class="form-control" /></div> }
+        @if (Model.IsShown(nameof(SwagRequest.ILMLFans))) { <div class="col-md-6"><label asp-for="Request.ILMLFans" class="form-label"></label><input asp-for="Request.ILMLFans" min="0" max="20" class="form-control" /></div> }
+        @if (Model.IsShown(nameof(SwagRequest.ILMLTotes))) { <div class="col-md-6"><label asp-for="Request.ILMLTotes" class="form-label"></label><input asp-for="Request.ILMLTotes" min="0" max="20" class="form-control" /></div> }
+        @if (Model.IsShown(nameof(SwagRequest.ILMLCups))) { <div class="col-md-6"><label asp-for="Request.ILMLCups" class="form-label"></label><input asp-for="Request.ILMLCups" min="0" max="20" class="form-control" /></div> }
+        @if (Model.IsShown(nameof(SwagRequest.ILMLLanyards))) { <div class="col-md-6"><label asp-for="Request.ILMLLanyards" class="form-label"></label><input asp-for="Request.ILMLLanyards" min="0" max="20" class="form-control" /></div> }
+    </div>
+    <button class="btn btn-primary mt-4" type="submit">Submit Swag request</button>
+</form>
