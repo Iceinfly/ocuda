@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -64,7 +64,7 @@ namespace Ocuda.HappyFoxHelper
 
         public bool IsConfigured { get; }
 
-        public Task<Ticket> AddContactReplyAsync(int ticketNumber,
+        public Task AddContactReplyAsync(int ticketNumber,
             ContactReplyRequest request,
             CancellationToken cancellationToken = default)
         {
@@ -85,7 +85,7 @@ namespace Ocuda.HappyFoxHelper
             AddJoinedIfAny(payload, "cc", request.Cc);
             AddJoinedIfAny(payload, "bcc", request.Bcc);
 
-            return PostAsync<Ticket>(
+            return PostForSuccessAsync(
                 $"{ApiPrefix}ticket/{ticketNumber}/user_reply/",
                 payload,
                 request.Attachments,
@@ -234,17 +234,45 @@ namespace Ocuda.HappyFoxHelper
                 "file");
         }
 
-        public Task<Ticket> CreateTicketAsync(CreateTicketRequest request,
+        public async Task<Ticket> CreateTicketAsync(CreateTicketRequest request,
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);
             ValidateCreateTicketRequest(request);
 
-            return PostAsync<Ticket>(
+            JsonElement response = await PostAsync<JsonElement>(
                 $"{ApiPrefix}tickets/",
                 BuildCreateTicketPayload(request),
                 request.Attachments,
                 cancellationToken);
+
+            if (!TryGetJsonInt(response, "id", out int ticketId) || ticketId <= 0)
+            {
+                throw new HappyFoxException(
+                    "HappyFox created a ticket but did not return a valid ticket id.");
+            }
+
+            Ticket ticket = new()
+            {
+                Id = ticketId,
+                DisplayId = GetJsonString(response, "display_id"),
+                Subject = GetJsonString(response, "subject")
+            };
+
+            if (response.TryGetProperty("user", out JsonElement user)
+                && user.ValueKind == JsonValueKind.Object
+                && TryGetJsonInt(user, "id", out int contactId)
+                && contactId > 0)
+            {
+                ticket.User = new Contact
+                {
+                    Id = contactId,
+                    Email = GetJsonString(user, "email"),
+                    Name = GetJsonString(user, "name")
+                };
+            }
+
+            return ticket;
         }
 
         public Task<IReadOnlyCollection<BatchTicketResult>> CreateTicketsAsync(
@@ -1032,6 +1060,68 @@ namespace Ocuda.HappyFoxHelper
             return results;
         }
 
+        private async Task PostForSuccessAsync(string relativeUri,
+            object payload,
+            IReadOnlyCollection<TicketAttachmentUpload> attachments,
+            CancellationToken cancellationToken,
+            string attachmentFieldName = "attachments")
+        {
+            EnsureConfigured();
+            ValidateAttachments(attachments);
+
+            using HttpRequestMessage request = new(HttpMethod.Post, relativeUri)
+            {
+                Content = BuildHttpContent(payload, attachments, attachmentFieldName)
+            };
+
+            try
+            {
+                using HttpResponseMessage response = await _httpClient.SendAsync(
+                    request,
+                    HttpCompletionOption.ResponseHeadersRead,
+                    cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    string responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                    IReadOnlyCollection<ValidationError> errors
+                        = ParseValidationErrors(responseBody);
+
+                    string message = response.StatusCode == (HttpStatusCode)429
+                        ? "HappyFox API rate limit exceeded."
+                        : $"HappyFox returned HTTP {(int)response.StatusCode} ({response.ReasonPhrase}).";
+
+                    _logger.LogWarning(
+                        "HappyFox request {Method} {RequestUri} returned HTTP {StatusCode}.",
+                        request.Method,
+                        request.RequestUri,
+                        (int)response.StatusCode);
+
+                    throw new HappyFoxException(message)
+                    {
+                        Errors = errors,
+                        StatusCode = response.StatusCode
+                    };
+                }
+            }
+            catch (HappyFoxException)
+            {
+                throw;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogWarning(ex,
+                    "HappyFox request {Method} {RequestUri} failed.",
+                    request.Method,
+                    request.RequestUri);
+                throw new HappyFoxException("Error communicating with HappyFox.", ex);
+            }
+        }
+
         private async Task<T> PostAsync<T>(string relativeUri,
             object payload,
             IReadOnlyCollection<TicketAttachmentUpload> attachments,
@@ -1149,6 +1239,39 @@ namespace Ocuda.HappyFoxHelper
                     request.RequestUri);
                 throw new HappyFoxException("Error communicating with HappyFox.", ex);
             }
+        }
+
+        private static string GetJsonString(JsonElement element, string propertyName)
+        {
+            if (!element.TryGetProperty(propertyName, out JsonElement property)
+                || property.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+            {
+                return null;
+            }
+
+            return property.ValueKind == JsonValueKind.String
+                ? property.GetString()
+                : property.ToString();
+        }
+
+        private static bool TryGetJsonInt(JsonElement element,
+            string propertyName,
+            out int value)
+        {
+            value = 0;
+            if (!element.TryGetProperty(propertyName, out JsonElement property))
+            {
+                return false;
+            }
+
+            if (property.ValueKind == JsonValueKind.Number)
+            {
+                return property.TryGetInt32(out value);
+            }
+
+            return property.ValueKind == JsonValueKind.String
+                && int.TryParse(property.GetString(), NumberStyles.Integer,
+                    CultureInfo.InvariantCulture, out value);
         }
 
         private static void ValidateAttachments(IReadOnlyCollection<TicketAttachmentUpload> attachments)

@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -17,6 +19,19 @@ namespace Ocuda.Ops.Data.Ops
             return await DbSet.AsNoTracking()
                 .Include(_ => _.PrTemplate)
                 .SingleOrDefaultAsync(_ => _.Id == id);
+        }
+
+        public async Task<int> SetMediaTicketIdAsync(int id,
+            int mediaTicketId,
+            DateTime updatedAt,
+            int updatedBy)
+        {
+            return await DbSet
+                .Where(_ => _.Id == id)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(_ => _.MediaTicketId, mediaTicketId)
+                    .SetProperty(_ => _.UpdatedAt, updatedAt)
+                    .SetProperty(_ => _.UpdatedBy, updatedBy));
         }
     }
 }

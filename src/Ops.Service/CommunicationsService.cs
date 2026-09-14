@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -211,19 +211,36 @@ namespace Ocuda.Ops.Service
                 throw new OcudaException("HappyFox did not return a ticket id for the PR request.");
             }
 
+            var updatedAt = _dateTimeProvider.Now;
             request.MediaTicketId = ticket.Id;
-            request.UpdatedAt = _dateTimeProvider.Now;
+            request.UpdatedAt = updatedAt;
             request.UpdatedBy = request.CreatedBy;
-            _prRequestRepository.Update(request);
-            await _prRequestRepository.SaveAsync();
+            var updatedRows = await _prRequestRepository.SetMediaTicketIdAsync(request.Id,
+                ticket.Id,
+                updatedAt,
+                request.CreatedBy);
+            if (updatedRows != 1)
+            {
+                throw new OcudaException(
+                    $"Unable to save HappyFox ticket {ticket.Id} on PR request {request.Id}.");
+            }
 
             if (!string.IsNullOrWhiteSpace(request.SpecialRequests) && ticket.User?.Id > 0)
             {
-                await _happyFoxHelper.AddContactReplyAsync(ticket.Id, new ContactReplyRequest
+                try
                 {
-                    ContactId = ticket.User.Id,
-                    Text = $"Special Requests: {request.SpecialRequests.Trim()}"
-                });
+                    await _happyFoxHelper.AddContactReplyAsync(ticket.Id, new ContactReplyRequest
+                    {
+                        ContactId = ticket.User.Id,
+                        Text = $"Special Requests: {request.SpecialRequests.Trim()}"
+                    });
+                }
+                catch (HappyFoxException ex)
+                {
+                    _logger.LogWarning(ex,
+                        "HappyFox ticket {TicketId} was created, but its special-request contact reply failed.",
+                        ticket.Id);
+                }
             }
 
             return ticket.Id;

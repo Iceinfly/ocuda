@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Ocuda.HappyFoxHelper.Models;
@@ -9,7 +9,7 @@ namespace Ocuda.HappyFoxHelper
     {
         bool IsConfigured { get; }
 
-        Task<Ticket> AddContactReplyAsync(int ticketNumber,
+        Task AddContactReplyAsync(int ticketNumber,
             ContactReplyRequest request,
             CancellationToken cancellationToken = default);
 

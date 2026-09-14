@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Ocuda.Ops.Models.Entities;
 
@@ -7,5 +8,9 @@ namespace Ocuda.Ops.Service.Interfaces.Ops.Repositories
     {
         Task<PrRequest> FindAsync(int id);
         Task<PrRequest> GetWithTemplateAsync(int id);
+        Task<int> SetMediaTicketIdAsync(int id,
+            int mediaTicketId,
+            DateTime updatedAt,
+            int updatedBy);
     }
 }
