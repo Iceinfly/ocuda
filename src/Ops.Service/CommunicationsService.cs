@@ -139,7 +139,7 @@ namespace Ocuda.Ops.Service
                     "communications",
                     "pr");
 
-                await File.WriteAllBytesAsync(imagePath, imageBytes);
+                await System.IO.File.WriteAllBytesAsync(imagePath, imageBytes);
 
                 request.UpdatedAt = _dateTimeProvider.Now;
                 request.UpdatedBy = request.CreatedBy;
@@ -979,7 +979,7 @@ namespace Ocuda.Ops.Service
             var path = _pathResolverService.GetPrivateContentFilePath(request.ImageName,
                 "communications",
                 "pr");
-            if (!File.Exists(path))
+            if (!System.IO.File.Exists(path))
             {
                 _logger.LogWarning("PR request {RequestId} references missing image {ImageName}.",
                     request.Id,
@@ -989,7 +989,7 @@ namespace Ocuda.Ops.Service
 
             return new TicketAttachmentUpload
             {
-                Content = await File.ReadAllBytesAsync(path),
+                Content = await System.IO.File.ReadAllBytesAsync(path),
                 ContentType = GetImageContentType(request.ImageName),
                 FileName = request.ImageName
             };
