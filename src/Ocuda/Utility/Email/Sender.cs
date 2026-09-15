@@ -1,5 +1,8 @@
-﻿using System;
+using System;
 using System.Diagnostics;
+using System.IO;
+using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Threading.Tasks;
 using MailKit.Net.Smtp;
 using Microsoft.Extensions.Logging;
@@ -176,22 +179,22 @@ namespace Ocuda.Utility.Email
 
             var sendTimer = Stopwatch.StartNew();
 
-            _logger.LogTrace("Connecting to server {MailServer} on port {MailServerPort}",
-                details.Server,
-                details.Port ?? 25);
-
-            await client.ConnectAsync(details.Server,
-                details.Port ?? 25,
-                MailKit.Security.SecureSocketOptions.None);
-
-            if (!string.IsNullOrWhiteSpace(details.Username)
-                && !string.IsNullOrWhiteSpace(details.Password))
-            {
-                await client.AuthenticateAsync(details.Username, details.Password);
-            }
-
             try
             {
+                _logger.LogTrace("Connecting to server {MailServer} on port {MailServerPort}",
+                    details.Server,
+                    details.Port ?? 25);
+
+                await client.ConnectAsync(details.Server,
+                    details.Port ?? 25,
+                    MailKit.Security.SecureSocketOptions.None);
+
+                if (!string.IsNullOrWhiteSpace(details.Username)
+                    && !string.IsNullOrWhiteSpace(details.Password))
+                {
+                    await client.AuthenticateAsync(details.Username, details.Password);
+                }
+
                 _logger.LogTrace("Calling SMTP client send at {TimeStamp} ms",
                     sendTimer.ElapsedMilliseconds);
 
@@ -223,13 +226,22 @@ namespace Ocuda.Utility.Email
 
                 return details;
             }
-            catch (System.Net.Mail.SmtpException ex)
+            catch (Exception ex) when (ex is SocketException
+                or IOException
+                or AuthenticationException
+                or MailKit.Net.Smtp.SmtpCommandException
+                or MailKit.Net.Smtp.SmtpProtocolException
+                or MailKit.ServiceNotConnectedException
+                or MailKit.ServiceNotAuthenticatedException)
             {
-                _logger.LogError("Error sending email to: {EmailAddress} - status {StatusCode}, {ErrorMessage}",
+                sendTimer.Stop();
+                _logger.LogError(ex,
+                    "Unable to send email to {EmailAddress} using SMTP server {MailServer}:{MailServerPort}: {ErrorMessage}",
                     string.IsNullOrWhiteSpace(details.OverrideEmailToAddress)
-                            ? details.ToEmailAddress
-                            : details.OverrideEmailToAddress,
-                    ex.StatusCode,
+                        ? details.ToEmailAddress
+                        : details.OverrideEmailToAddress,
+                    details.Server,
+                    details.Port ?? 25,
                     ex.Message);
                 return null;
             }
@@ -237,7 +249,20 @@ namespace Ocuda.Utility.Email
             {
                 if (client.IsConnected)
                 {
-                    await client.DisconnectAsync(true);
+                    try
+                    {
+                        await client.DisconnectAsync(true);
+                    }
+                    catch (Exception ex) when (ex is SocketException
+                        or IOException
+                        or MailKit.Net.Smtp.SmtpProtocolException)
+                    {
+                        _logger.LogWarning(ex,
+                            "Error disconnecting from SMTP server {MailServer}:{MailServerPort}: {ErrorMessage}",
+                            details.Server,
+                            details.Port ?? 25,
+                            ex.Message);
+                    }
                 }
             }
         }
