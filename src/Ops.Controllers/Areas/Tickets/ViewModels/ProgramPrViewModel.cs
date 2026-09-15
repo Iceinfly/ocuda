@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
-namespace Ocuda.Ops.Controllers.Areas.Communications.ViewModels
+namespace Ocuda.Ops.Controllers.Areas.Tickets.ViewModels
 {
     public class ProgramPrViewModel
     {

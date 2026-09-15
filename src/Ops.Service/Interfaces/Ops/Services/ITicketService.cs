@@ -8,7 +8,7 @@ using Ocuda.Promenade.Models.Entities;
 
 namespace Ocuda.Ops.Service.Interfaces.Ops.Services
 {
-    public interface ICommunicationsService
+    public interface ITicketService
     {
         Task<PrRequest> CreatePrRequestAsync(PrRequest request, IFormFile image);
 

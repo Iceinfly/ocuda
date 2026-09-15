@@ -1,9 +1,7 @@
 using System.Xml.Serialization;
 
-namespace Ocuda.Ops.Models.Communications
+namespace Ocuda.Ops.Models.Tickets
 {
-    // Property order intentionally matches the legacy Intranet PRIdmlModel because the
-    // downstream InDesign workflow consumes the serialized PR.xml document.
     public class PrIdmlModel
     {
         public string Link { get; set; }

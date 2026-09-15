@@ -1,4 +1,4 @@
-﻿@{
+@{
     var navigationRows = Context.Items[ItemKey.NavColumn] as List<NavigationRow>;
     var locations = Context.Items[ItemKey.Locations] as IDictionary<string, string>;
     var features = Context.Items[ItemKey.Features] as OpsFeaturesOptions;
@@ -182,6 +182,13 @@
                                    asp-action="@(nameof(Ocuda.Ops.Controllers.Areas.Incident.HomeController.Mine))">
                                     <span class="fa-solid fa-user-injured fa-fw"></span>
                                     Incident Reports
+                                </a>
+                                <a class="dropdown-item"
+                                   asp-controller="@Ocuda.Ops.Controllers.Areas.Tickets.TicketsController.Name"
+                                   asp-area="@(nameof(Ocuda.Ops.Controllers.Areas.Tickets))"
+                                   asp-action="@(nameof(Ocuda.Ops.Controllers.Areas.Tickets.TicketsController.Index))">
+                                    <span class="fa-solid fa-ticket fa-fw"></span>
+                                    Tickets
                                 </a>
                                 <a class="dropdown-item"
                                    asp-controller="@Ocuda.Ops.Controllers.Areas.VolunteerSubmissions.HomeController.Name"

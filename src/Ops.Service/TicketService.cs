@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging;
 using Ocuda.HappyFoxHelper;
 using Ocuda.HappyFoxHelper.Models;
 using Ocuda.Ops.Models;
-using Ocuda.Ops.Models.Communications;
+using Ocuda.Ops.Models.Tickets;
 using Ocuda.Ops.Models.Entities;
 using Ocuda.Ops.Service.Abstract;
 using Ocuda.Ops.Service.Interfaces.Ops.Repositories;
@@ -28,7 +28,7 @@ using Ocuda.Utility.Services.Interfaces;
 
 namespace Ocuda.Ops.Service
 {
-    public class CommunicationsService : BaseService<CommunicationsService>, ICommunicationsService
+    public class TicketService : BaseService<TicketService>, ITicketService
     {
         private static readonly HashSet<string> PrImageExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -55,7 +55,7 @@ namespace Ocuda.Ops.Service
         private readonly ISiteSettingService _siteSettingService;
         private readonly ISwagRequestRepository _swagRequestRepository;
 
-        public CommunicationsService(ILogger<CommunicationsService> logger,
+        public TicketService(ILogger<TicketService> logger,
             IHttpContextAccessor httpContextAccessor,
             IDateTimeProvider dateTimeProvider,
             IDigitalDisplayService digitalDisplayService,
@@ -99,7 +99,7 @@ namespace Ocuda.Ops.Service
             ArgumentNullException.ThrowIfNull(request);
 
             var configuredLocationIds = await GetConfiguredLocationIdsAsync(
-                Ops.Models.Keys.SiteSetting.Communications.PrLocationIds);
+                Ops.Models.Keys.SiteSetting.Tickets.PrLocationIds);
             if (!configuredLocationIds.Contains(request.LocationId))
             {
                 throw new OcudaException("The selected location is not configured for PR requests.");
@@ -136,7 +136,7 @@ namespace Ocuda.Ops.Service
                 var safeFilename = Path.GetFileName(image.FileName);
                 request.ImageName = $"{request.Id}_{safeFilename}";
                 var imagePath = _pathResolverService.GetPrivateContentFilePath(request.ImageName,
-                    "communications",
+                    "tickets",
                     "pr");
 
                 await System.IO.File.WriteAllBytesAsync(imagePath, imageBytes);
@@ -159,30 +159,30 @@ namespace Ocuda.Ops.Service
                 ?? throw new OcudaException($"PR request {requestId} was not found.");
             var happyFoxBranchId = await GetHappyFoxBranchIdAsync(request.LocationId);
             var categoryId = await RequirePositiveSettingAsync(
-                Ops.Models.Keys.SiteSetting.Communications.HappyFoxCategoryId);
+                Ops.Models.Keys.SiteSetting.Tickets.HappyFoxCategoryId);
             var priorityId = await RequirePositiveSettingAsync(
-                Ops.Models.Keys.SiteSetting.Communications.HappyFoxPriorityId);
+                Ops.Models.Keys.SiteSetting.Tickets.HappyFoxPriorityId);
             var branchFieldId = await RequirePositiveSettingAsync(
-                Ops.Models.Keys.SiteSetting.Communications.HappyFoxBranchFieldId);
+                Ops.Models.Keys.SiteSetting.Tickets.HappyFoxBranchFieldId);
             var prTypeFieldId = await RequirePositiveSettingAsync(
-                Ops.Models.Keys.SiteSetting.Communications.HappyFoxPrTypeFieldId);
+                Ops.Models.Keys.SiteSetting.Tickets.HappyFoxPrTypeFieldId);
             var eventTitleFieldId = await RequirePositiveSettingAsync(
-                Ops.Models.Keys.SiteSetting.Communications.HappyFoxEventTitleFieldId);
+                Ops.Models.Keys.SiteSetting.Tickets.HappyFoxEventTitleFieldId);
             var eventDateFieldId = await RequirePositiveSettingAsync(
-                Ops.Models.Keys.SiteSetting.Communications.HappyFoxEventDateFieldId);
+                Ops.Models.Keys.SiteSetting.Tickets.HappyFoxEventDateFieldId);
             var mediaTypeValue = await RequirePositiveSettingAsync(
-                Ops.Models.Keys.SiteSetting.Communications.HappyFoxMediaTypeValue);
+                Ops.Models.Keys.SiteSetting.Tickets.HappyFoxMediaTypeValue);
             var mediaRoute = await GetHappyFoxRouteAsync(request.LocationId,
-                Ops.Models.Keys.SiteSetting.Communications.HappyFoxMediaAssigneeId,
-                Ops.Models.Keys.SiteSetting.Communications.HappyFoxMediaDaysDueBeforeEvent,
-                Ops.Models.Keys.SiteSetting.Communications.HappyFoxMediaRouteOverrides);
+                Ops.Models.Keys.SiteSetting.Tickets.HappyFoxMediaAssigneeId,
+                Ops.Models.Keys.SiteSetting.Tickets.HappyFoxMediaDaysDueBeforeEvent,
+                Ops.Models.Keys.SiteSetting.Tickets.HappyFoxMediaRouteOverrides);
 
             var ticketRequest = new CreateTicketRequest
             {
                 AssigneeId = mediaRoute.AssigneeId,
                 CategoryId = categoryId,
                 Cc = await GetAddressesAsync(
-                    Ops.Models.Keys.SiteSetting.Communications.MediaNotificationAddresses),
+                    Ops.Models.Keys.SiteSetting.Tickets.MediaNotificationAddresses),
                 ContactEmail = request.RequesterEmail,
                 ContactName = request.RequesterName?.Replace('\"', '\''),
                 DueDate = GetDueDate(request.StartTime, mediaRoute.DaysDueBeforeEvent),
@@ -291,7 +291,7 @@ namespace Ocuda.Ops.Service
         public async Task<ICollection<Location>> GetOutreachLocationsAsync()
         {
             var configuredLocationIds = await GetConfiguredLocationIdsAsync(
-                Ops.Models.Keys.SiteSetting.Communications.OutreachLocationIds);
+                Ops.Models.Keys.SiteSetting.Tickets.OutreachLocationIds);
             var locations = await _locationService.GetAllLocationsAsync();
             return locations
                 .Where(_ => !_.IsDeleted && configuredLocationIds.Contains(_.Id))
@@ -302,7 +302,7 @@ namespace Ocuda.Ops.Service
         public async Task<ICollection<Location>> GetPrLocationsAsync()
         {
             var configuredLocationIds = await GetConfiguredLocationIdsAsync(
-                Ops.Models.Keys.SiteSetting.Communications.PrLocationIds);
+                Ops.Models.Keys.SiteSetting.Tickets.PrLocationIds);
             var locations = await _locationService.GetAllLocationsAsync();
             return locations
                 .Where(_ => !_.IsDeleted && configuredLocationIds.Contains(_.Id))
@@ -321,21 +321,21 @@ namespace Ocuda.Ops.Service
             return new Dictionary<string, bool>
             {
                 [nameof(SwagRequest.Pencils)] = await _siteSettingService.GetSettingBoolAsync(
-                    Ops.Models.Keys.SiteSetting.Communications.ShowSwagPencils),
+                    Ops.Models.Keys.SiteSetting.Tickets.ShowSwagPencils),
                 [nameof(SwagRequest.ILMLStickers)] = await _siteSettingService.GetSettingBoolAsync(
-                    Ops.Models.Keys.SiteSetting.Communications.ShowSwagStickers),
+                    Ops.Models.Keys.SiteSetting.Tickets.ShowSwagStickers),
                 [nameof(SwagRequest.YAMBStickers)] = await _siteSettingService.GetSettingBoolAsync(
-                    Ops.Models.Keys.SiteSetting.Communications.ShowSwagYambStickers),
+                    Ops.Models.Keys.SiteSetting.Tickets.ShowSwagYambStickers),
                 [nameof(SwagRequest.ColorChangingPencils)] = await _siteSettingService.GetSettingBoolAsync(
-                    Ops.Models.Keys.SiteSetting.Communications.ShowSwagColorChangingPencils),
+                    Ops.Models.Keys.SiteSetting.Tickets.ShowSwagColorChangingPencils),
                 [nameof(SwagRequest.ILMLFans)] = await _siteSettingService.GetSettingBoolAsync(
-                    Ops.Models.Keys.SiteSetting.Communications.ShowSwagFans),
+                    Ops.Models.Keys.SiteSetting.Tickets.ShowSwagFans),
                 [nameof(SwagRequest.ILMLTotes)] = await _siteSettingService.GetSettingBoolAsync(
-                    Ops.Models.Keys.SiteSetting.Communications.ShowSwagTotes),
+                    Ops.Models.Keys.SiteSetting.Tickets.ShowSwagTotes),
                 [nameof(SwagRequest.ILMLCups)] = await _siteSettingService.GetSettingBoolAsync(
-                    Ops.Models.Keys.SiteSetting.Communications.ShowSwagCups),
+                    Ops.Models.Keys.SiteSetting.Tickets.ShowSwagCups),
                 [nameof(SwagRequest.ILMLLanyards)] = await _siteSettingService.GetSettingBoolAsync(
-                    Ops.Models.Keys.SiteSetting.Communications.ShowSwagStickyPads)
+                    Ops.Models.Keys.SiteSetting.Tickets.ShowSwagStickyPads)
             };
         }
 
@@ -352,7 +352,7 @@ namespace Ocuda.Ops.Service
             }
 
             var locationIds = await GetConfiguredLocationIdsAsync(
-                Ops.Models.Keys.SiteSetting.Communications.PrLocationIds);
+                Ops.Models.Keys.SiteSetting.Tickets.PrLocationIds);
             if (!locationIds.Contains(locationId))
             {
                 throw new OcudaException("The selected location is not configured for PR requests.");
@@ -363,19 +363,19 @@ namespace Ocuda.Ops.Service
             var locationName = await GetPrLocationNameAsync(location);
             var happyFoxBranchId = await GetHappyFoxBranchIdAsync(locationId);
             var categoryId = await RequirePositiveSettingAsync(
-                Ops.Models.Keys.SiteSetting.Communications.HappyFoxCategoryId);
+                Ops.Models.Keys.SiteSetting.Tickets.HappyFoxCategoryId);
             var priorityId = await RequirePositiveSettingAsync(
-                Ops.Models.Keys.SiteSetting.Communications.HappyFoxPriorityId);
+                Ops.Models.Keys.SiteSetting.Tickets.HappyFoxPriorityId);
             var branchFieldId = await RequirePositiveSettingAsync(
-                Ops.Models.Keys.SiteSetting.Communications.HappyFoxBranchFieldId);
+                Ops.Models.Keys.SiteSetting.Tickets.HappyFoxBranchFieldId);
             var prTypeFieldId = await RequirePositiveSettingAsync(
-                Ops.Models.Keys.SiteSetting.Communications.HappyFoxPrTypeFieldId);
+                Ops.Models.Keys.SiteSetting.Tickets.HappyFoxPrTypeFieldId);
             var signageTypeValue = await RequirePositiveSettingAsync(
-                Ops.Models.Keys.SiteSetting.Communications.HappyFoxSignageTypeValue);
+                Ops.Models.Keys.SiteSetting.Tickets.HappyFoxSignageTypeValue);
             var signageRoute = await GetHappyFoxRouteAsync(locationId,
-                Ops.Models.Keys.SiteSetting.Communications.HappyFoxSignageAssigneeId,
-                Ops.Models.Keys.SiteSetting.Communications.HappyFoxSignageDaysDueBeforeEvent,
-                Ops.Models.Keys.SiteSetting.Communications.HappyFoxSignageRouteOverrides);
+                Ops.Models.Keys.SiteSetting.Tickets.HappyFoxSignageAssigneeId,
+                Ops.Models.Keys.SiteSetting.Tickets.HappyFoxSignageDaysDueBeforeEvent,
+                Ops.Models.Keys.SiteSetting.Tickets.HappyFoxSignageRouteOverrides);
 
             var safeDescription = description.Trim();
             var bodyText = $"Branch: {locationName}{Environment.NewLine}"
@@ -393,7 +393,7 @@ namespace Ocuda.Ops.Service
                 AssigneeId = signageRoute.AssigneeId,
                 CategoryId = categoryId,
                 Cc = await GetAddressesAsync(
-                    Ops.Models.Keys.SiteSetting.Communications.SignageNotificationAddresses),
+                    Ops.Models.Keys.SiteSetting.Tickets.SignageNotificationAddresses),
                 ContactEmail = requester.Email,
                 ContactName = requester.Name?.Replace('"', '\''),
                 DueDate = GetDueDate(deadline, signageRoute.DaysDueBeforeEvent),
@@ -436,7 +436,7 @@ namespace Ocuda.Ops.Service
             }
 
             var locationIds = await GetConfiguredLocationIdsAsync(
-                Ops.Models.Keys.SiteSetting.Communications.OutreachLocationIds);
+                Ops.Models.Keys.SiteSetting.Tickets.OutreachLocationIds);
             if (!locationIds.Contains(locationId))
             {
                 throw new OcudaException("The selected location is not configured for Outreach requests.");
@@ -449,8 +449,8 @@ namespace Ocuda.Ops.Service
             if (bookBike)
             {
                 var shortNotice = startDate.Date < _dateTimeProvider.Now.Date.AddDays(14);
-                await SendCommunicationsEmailAsync(
-                    Ops.Models.Keys.SiteSetting.Communications.BookBikeEmailAddresses,
+                await SendTicketEmailAsync(
+                    Ops.Models.Keys.SiteSetting.Tickets.BookBikeEmailAddresses,
                     "Book Bike Request",
                     BuildOutreachText(requester, locationName, startDate, endDate, "Book Bike", shortNotice),
                     BuildOutreachHtml(requester, locationName, startDate, endDate, "Book Bike", shortNotice));
@@ -469,8 +469,8 @@ namespace Ocuda.Ops.Service
                 }
                 var itemText = string.Join(" and ", items);
                 var shortNotice = startDate.Date < _dateTimeProvider.Now.Date.AddDays(7);
-                await SendCommunicationsEmailAsync(
-                    Ops.Models.Keys.SiteSetting.Communications.OutreachEmailAddresses,
+                await SendTicketEmailAsync(
+                    Ops.Models.Keys.SiteSetting.Tickets.OutreachEmailAddresses,
                     $"{itemText} Request",
                     BuildOutreachText(requester, locationName, startDate, endDate, itemText, shortNotice),
                     BuildOutreachHtml(requester, locationName, startDate, endDate, itemText, shortNotice));
@@ -483,7 +483,7 @@ namespace Ocuda.Ops.Service
             ArgumentNullException.ThrowIfNull(requester);
 
             var locationIds = await GetConfiguredLocationIdsAsync(
-                Ops.Models.Keys.SiteSetting.Communications.OutreachLocationIds);
+                Ops.Models.Keys.SiteSetting.Tickets.OutreachLocationIds);
             if (!locationIds.Contains(request.LocationId))
             {
                 throw new OcudaException("The selected location is not configured for Swag requests.");
@@ -507,8 +507,8 @@ namespace Ocuda.Ops.Service
             await _swagRequestRepository.AddAsync(request);
             await _swagRequestRepository.SaveAsync();
 
-            await SendCommunicationsEmailAsync(
-                Ops.Models.Keys.SiteSetting.Communications.SwagEmailAddresses,
+            await SendTicketEmailAsync(
+                Ops.Models.Keys.SiteSetting.Tickets.SwagEmailAddresses,
                 "Swag Request",
                 BuildSwagText(request, availability),
                 BuildSwagHtml(request, availability),
@@ -818,14 +818,14 @@ namespace Ocuda.Ops.Service
             return builder.ToString();
         }
 
-        private async Task SendCommunicationsEmailAsync(string recipientSettingKey,
+        private async Task SendTicketEmailAsync(string recipientSettingKey,
             string subject,
             string bodyText,
             string bodyHtml,
             string ccAddress = null)
         {
             var emailSetupId = await RequirePositiveSettingAsync(
-                Ops.Models.Keys.SiteSetting.Communications.EmailSetupId);
+                Ops.Models.Keys.SiteSetting.Tickets.EmailSetupId);
             var addresses = await GetAddressesAsync(recipientSettingKey);
             if (addresses.Count == 0)
             {
@@ -855,7 +855,7 @@ namespace Ocuda.Ops.Service
             var record = await _emailService.SendAsync(details);
             if (record == null)
             {
-                throw new OcudaException($"Unable to send Communications email '{subject}'.");
+                throw new OcudaException($"Unable to send email '{subject}'.");
             }
         }
 
@@ -937,11 +937,11 @@ namespace Ocuda.Ops.Service
         private async Task<int> GetHappyFoxBranchIdAsync(int locationId)
         {
             var json = await _siteSettingService.GetSettingStringAsync(
-                Ops.Models.Keys.SiteSetting.Communications.HappyFoxBranchMappings);
+                Ops.Models.Keys.SiteSetting.Tickets.HappyFoxBranchMappings);
             if (string.IsNullOrWhiteSpace(json))
             {
                 throw new OcudaConfigurationException(
-                    "Communications HappyFox branch mappings are not configured.");
+                    "HappyFox branch mappings are not configured.");
             }
 
             try
@@ -956,7 +956,7 @@ namespace Ocuda.Ops.Service
             catch (JsonException ex)
             {
                 throw new OcudaConfigurationException(
-                    "Communications HappyFox branch mappings are not valid JSON.", ex);
+                    "HappyFox branch mappings are not valid JSON.", ex);
             }
 
             throw new OcudaConfigurationException(
@@ -994,7 +994,7 @@ namespace Ocuda.Ops.Service
             }
 
             var path = _pathResolverService.GetPrivateContentFilePath(request.ImageName,
-                "communications",
+                "tickets",
                 "pr");
             if (!System.IO.File.Exists(path))
             {
@@ -1095,7 +1095,7 @@ namespace Ocuda.Ops.Service
             }
 
             var showInfoBoxLocations = await GetConfiguredLocationIdsAsync(
-                Ops.Models.Keys.SiteSetting.Communications.ShowInfoBoxLocationIds);
+                Ops.Models.Keys.SiteSetting.Tickets.ShowInfoBoxLocationIds);
 
             return new PrIdmlModel
             {
@@ -1168,7 +1168,7 @@ namespace Ocuda.Ops.Service
         private async Task<string> GetPrLocationNameAsync(Location location)
         {
             var overridesJson = await _siteSettingService.GetSettingStringAsync(
-                Ops.Models.Keys.SiteSetting.Communications.PrNameOverrides);
+                Ops.Models.Keys.SiteSetting.Tickets.PrNameOverrides);
             if (!string.IsNullOrWhiteSpace(overridesJson))
             {
                 try
@@ -1184,7 +1184,7 @@ namespace Ocuda.Ops.Service
                 catch (JsonException ex)
                 {
                     _logger.LogError(ex,
-                        "Unable to parse Communications PR name overrides: {ErrorMessage}",
+                        "Unable to parse Tickets PR name overrides: {ErrorMessage}",
                         ex.Message);
                 }
             }

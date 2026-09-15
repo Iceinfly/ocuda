@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -6,36 +6,36 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Logging;
 using Ocuda.Ops.Controllers.Abstract;
-using Ocuda.Ops.Controllers.Areas.Communications.ViewModels;
+using Ocuda.Ops.Controllers.Areas.Tickets.ViewModels;
 using Ocuda.Ops.Models.Entities;
 using Ocuda.Ops.Models.Keys;
 using Ocuda.Ops.Service.Interfaces.Ops.Services;
 using Ocuda.Utility.Abstract;
 using Ocuda.Utility.Exceptions;
 
-namespace Ocuda.Ops.Controllers.Areas.Communications
+namespace Ocuda.Ops.Controllers.Areas.Tickets
 {
-    [Area(nameof(Communications))]
+    [Area(nameof(Tickets))]
     [Route("[area]")]
-    public class CommunicationsController : BaseController<CommunicationsController>
+    public class TicketsController : BaseController<TicketsController>
     {
-        private readonly ICommunicationsService _communicationsService;
+        private readonly ITicketService _ticketService;
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly ILocationService _locationService;
         private readonly IPermissionGroupService _permissionGroupService;
         private readonly IUserService _userService;
 
-        public CommunicationsController(
-            ServiceFacades.Controller<CommunicationsController> context,
-            ICommunicationsService communicationsService,
+        public TicketsController(
+            ServiceFacades.Controller<TicketsController> context,
+            ITicketService ticketService,
             IDateTimeProvider dateTimeProvider,
             ILocationService locationService,
             IPermissionGroupService permissionGroupService,
             IUserService userService)
             : base(context)
         {
-            _communicationsService = communicationsService
-                ?? throw new ArgumentNullException(nameof(communicationsService));
+            _ticketService = ticketService
+                ?? throw new ArgumentNullException(nameof(ticketService));
             _dateTimeProvider = dateTimeProvider
                 ?? throw new ArgumentNullException(nameof(dateTimeProvider));
             _locationService = locationService
@@ -44,11 +44,11 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
                 ?? throw new ArgumentNullException(nameof(permissionGroupService));
             _userService = userService
                 ?? throw new ArgumentNullException(nameof(userService));
-            SetPageTitle("Communications Requests");
+            SetPageTitle("Tickets");
         }
 
-        public static string Area => nameof(Communications);
-        public static string Name => "Communications";
+        public static string Area => nameof(Tickets);
+        public static string Name => "Tickets";
 
         [Route("")]
         public IActionResult Index() => View();
@@ -77,7 +77,7 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
             try
             {
                 var user = await GetCurrentUserAsync();
-                var locations = await _communicationsService.GetPrLocationsAsync();
+                var locations = await _ticketService.GetPrLocationsAsync();
                 var location = locations.SingleOrDefault(_ => _.Id == model.LocationId.Value);
                 if (location == null)
                 {
@@ -87,7 +87,7 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
                     return View(model);
                 }
 
-                var templates = await _communicationsService.GetPrTemplatesAsync(model.EventDate);
+                var templates = await _ticketService.GetPrTemplatesAsync(model.EventDate);
                 var template = templates.SingleOrDefault(_ => _.Id == model.TemplateId);
                 if (template == null)
                 {
@@ -142,7 +142,7 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
                     Title = model.Title.Trim()
                 };
 
-                request = await _communicationsService.CreatePrRequestAsync(request, model.Image);
+                request = await _ticketService.CreatePrRequestAsync(request, model.Image);
                 var idmlUrlValue = Url.Action(nameof(Idml),
                     Name,
                     new { id = request.Id },
@@ -153,7 +153,7 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
                         "Unable to generate the IDML download link for the PR request.");
                 }
 
-                var ticketId = await _communicationsService.CreateMediaTicketAsync(request.Id,
+                var ticketId = await _ticketService.CreateMediaTicketAsync(request.Id,
                     idmlUrl);
                 ShowAlertSuccess(
                     $"Your Program PR request has been submitted as HappyFox ticket {ticketId}.");
@@ -200,7 +200,7 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
             try
             {
                 var user = await GetCurrentUserAsync();
-                var ticketId = await _communicationsService.SubmitSignageAsync(model.LocationId,
+                var ticketId = await _ticketService.SubmitSignageAsync(model.LocationId,
                     model.Deadline,
                     model.Description,
                     model.File,
@@ -261,7 +261,7 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
             try
             {
                 var user = await GetCurrentUserAsync();
-                await _communicationsService.SubmitOutreachAsync(model.LocationId,
+                await _ticketService.SubmitOutreachAsync(model.LocationId,
                     model.StartDate,
                     model.EndDate,
                     model.BookBike,
@@ -310,7 +310,7 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
         {
             model ??= new SwagViewModel();
             model.Request ??= new SwagRequest();
-            model.Show = await _communicationsService.GetSwagAvailabilityAsync();
+            model.Show = await _ticketService.GetSwagAvailabilityAsync();
             ClearHiddenSwagItems(model);
 
             if (!model.Request.HasItems())
@@ -333,7 +333,7 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
             try
             {
                 var user = await GetCurrentUserAsync();
-                await _communicationsService.SubmitSwagAsync(model.Request, user);
+                await _ticketService.SubmitSwagAsync(model.Request, user);
                 ShowAlertSuccess("Your Swag request has been submitted.");
                 return RedirectToAction(nameof(Swag));
             }
@@ -346,8 +346,8 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
             }
         }
 
-        [HttpGet]
-        [Route("idml/{id:int}")]
+        [HttpGet("idml/{id:int}")]
+        [HttpGet("/Tickets/idml/{id:int}")]
         public async Task<IActionResult> Idml(int id)
         {
             if (!await HasAppPermissionAsync(_permissionGroupService,
@@ -356,7 +356,7 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
                 return Forbid();
             }
 
-            var generated = await _communicationsService.GeneratePrIdmlAsync(id);
+            var generated = await _ticketService.GeneratePrIdmlAsync(id);
             return generated == null
                 ? NotFound()
                 : File(generated.FileData, generated.FileType, generated.Filename);
@@ -366,7 +366,7 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
         [Route("templates")]
         public async Task<IActionResult> Templates(DateTime date)
         {
-            var templates = await _communicationsService.GetPrTemplatesAsync(date);
+            var templates = await _ticketService.GetPrTemplatesAsync(date);
             return Json(templates.Select(_ => new { _.Id, _.Name, _.IsDefault }));
         }
 
@@ -414,7 +414,7 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
 
         private async Task PopulateGeneralPrAsync(GeneralPrViewModel model)
         {
-            var locations = await _communicationsService.GetPrLocationsAsync();
+            var locations = await _ticketService.GetPrLocationsAsync();
             var selected = model.LocationId > 0
                 ? model.LocationId
                 : (await _userService.GetByIdAsync(CurrentUserId))?.AssociatedLocation;
@@ -423,7 +423,7 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
 
         private async Task PopulateOutreachAsync(OutreachViewModel model)
         {
-            var locations = await _communicationsService.GetOutreachLocationsAsync();
+            var locations = await _ticketService.GetOutreachLocationsAsync();
             var selected = model.LocationId > 0
                 ? model.LocationId
                 : (await _userService.GetByIdAsync(CurrentUserId))?.AssociatedLocation;
@@ -432,22 +432,22 @@ namespace Ocuda.Ops.Controllers.Areas.Communications
 
         private async Task PopulateSwagAsync(SwagViewModel model)
         {
-            var locations = await _communicationsService.GetOutreachLocationsAsync();
+            var locations = await _ticketService.GetOutreachLocationsAsync();
             var selected = model.Request?.LocationId > 0
                 ? model.Request.LocationId
                 : (await _userService.GetByIdAsync(CurrentUserId))?.AssociatedLocation;
             model.Locations = BuildLocations(locations, selected);
-            model.Show = await _communicationsService.GetSwagAvailabilityAsync();
+            model.Show = await _ticketService.GetSwagAvailabilityAsync();
         }
 
         private async Task PopulateProgramPrAsync(ProgramPrViewModel model)
         {
-            var locations = await _communicationsService.GetPrLocationsAsync();
+            var locations = await _ticketService.GetPrLocationsAsync();
             var selected = model.LocationId
                 ?? (await _userService.GetByIdAsync(CurrentUserId))?.AssociatedLocation;
             model.Locations = BuildLocations(locations, selected);
 
-            var templates = await _communicationsService.GetPrTemplatesAsync(model.EventDate);
+            var templates = await _ticketService.GetPrTemplatesAsync(model.EventDate);
             var selectedTemplate = model.TemplateId > 0
                 ? model.TemplateId
                 : templates.FirstOrDefault(_ => _.IsDefault)?.Id

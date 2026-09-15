@@ -167,7 +167,7 @@
 
     const updateTemplates = async () => {
         if (!eventDate?.value || !template) return;
-        const url = new URL('@Url.Action("Templates", "Communications", new { area = "Communications" })', window.location.origin);
+        const url = new URL('@Url.Action("Templates", "Tickets", new { area = "Tickets" })', window.location.origin);
         url.searchParams.set('date', eventDate.value);
         const response = await fetch(url, { credentials: 'same-origin' });
         if (!response.ok) return;
