@@ -8,8 +8,9 @@
             <small class="text-muted">@Model.SecondaryHeading</small>
         }
     </h1>
-    <form asp-action="@nameof(Ocuda.Ops.Controllers.HomeController.Index)"
-          asp-controller="@Ocuda.Ops.Controllers.HomeController.Name"
+    <form asp-action="@nameof(HomeController.Index)"
+          asp-area="@HomeController.Area"
+          asp-controller="@HomeController.Name"
           role="form">
         <div class="input-group">
 

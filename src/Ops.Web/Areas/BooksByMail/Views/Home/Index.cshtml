@@ -10,9 +10,7 @@
             <div class="alert alert-info alert-dismissible">
                 Search for '<strong>@Model.Search</strong>' found @Model.SearchCount
                 @(Model.SearchCount == 1 ? "match." : "matches.")
-                <button type="button" class="btn-close" id="clearSearch" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" id="clearSearch" aria-label="Close"></button>
             </div>
         </div>
     </div>
@@ -66,19 +64,20 @@
                                 </a>
                             </th>
                             <th>Barcode</th>
-                            <th>Customer Lookup ID</th>
+                            <th>Patron ID</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var customerLookup in Model.CustomerLookup)
                         {
-                            <tr class="row-link"
-                                data-url="@Url.Action(nameof(HomeController.BooksByMailCustomer), new
-                                {
-                                    id = customerLookup.CustomerLookupID,
-                                    barcode = customerLookup.Barcode
-                                })">
-                                <td>@customerLookup.NameFirst</td>
+                            <tr>
+                                <td>
+                                    <a asp-action="@nameof(HomeController.Details)"
+                                       asp-route-id="@customerLookup.CustomerLookupID"
+                                       asp-route-barcode="@customerLookup.Barcode">
+                                        @customerLookup.NameFirst
+                                    </a>
+                                </td>
                                 <td>@customerLookup.NameLast</td>
                                 <td class="@customerLookup.LastActivityClass">
                                     @customerLookup.LastActivityDate
@@ -96,20 +95,13 @@
                     </tbody>
                 </table>
             </div>
+            <nav paginate="@Model"></nav>
         }
     </div>
 </div>
 
 @section scripts {
     <script>
-        $(".row-link").on("click", function () {
-            var url = $(this).attr("data-url");
-            if (url) {
-                window.location.href = url;
-            } else {
-                console.error("Customer URL is undefined!");
-            }
-        });
         $("#clearSearch").click(function () {
             window.location.href = "@Url.Action(nameof(HomeController.Index))";
         });

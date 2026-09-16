@@ -53,6 +53,8 @@ namespace Ocuda.Ops.Service
             comment.CreatedBy = GetCurrentUserId();
 
             await _booksByMailCommentRepository.AddAsync(comment);
+            await _booksByMailCommentRepository.SaveAsync();
+
             return comment;
         }
 

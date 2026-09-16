@@ -2,10 +2,10 @@
 @model BooksByMailCustomerViewModel
 
 <nav class="navbar navbar-expand-sm navbar-dark bg-dark oc-navbar">
-    <a class="navbar-brand" asp-area=""
-       asp-route-section=""
-       asp-controller="Home"
-       asp-action="@(nameof(HomeController.Index))">
+    <a class="navbar-brand"
+       asp-area="@HomeController.Area"
+       asp-controller="@HomeController.Name"
+       asp-action="@nameof(HomeController.Index)">
         <span class="fas fa-mail-bulk"></span>
         <span class="fw-light oc-navbrand">Books By Mail</span>
     </a>
@@ -19,64 +19,22 @@
     </button>
     <div class="collapse navbar-collapse" id="navbarCollapsableContent">
         <span class="me-auto"></span>
-        <form asp-controller="Home" asp-action="Index" method="get" role="form" class="d-flex">
+        <form asp-area="@HomeController.Area"
+              asp-controller="@HomeController.Name"
+              asp-action="@nameof(HomeController.Index)"
+              method="get"
+              role="form"
+              class="d-flex">
             <input type="search"
                    id="search"
                    name="search"
                    class="form-control me-2 mb-1 mb-sm-0"
                    placeholder="Name/Barcode"
-                   value="@Model.Search" ]" />
+                   value="@Model.Search" />
             <input type="submit" value="Search" class="btn btn-info" />
         </form>
     </div>
 </nav>
-
-@* <div class="container-fluid">
-    @if (TempData[Ocuda.Ops.Controllers.Areas.BooksByMail.Keys.TempData.AlertDanger] != null)
-    {
-        <div class="row">
-            <div class="col-12 col-md-6 offset-md-3">
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    @Html.Raw(TempData[Ocuda.Ops.Controllers.Areas.BooksByMail.Keys.TempData.AlertDanger])
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            </div>
-        </div>
-    }
-    @if (TempData[Ocuda.Ops.Controllers.Areas.BooksByMail.Keys.TempData.AlertWarning] != null)
-    {
-        <div class="row">
-            <div class="col-12 col-md-6 offset-md-3">
-                <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                    @Html.Raw(TempData[Ocuda.Ops.Controllers.Areas.BooksByMail.Keys.TempData.AlertWarning])
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            </div>
-        </div>
-    }
-    @if (TempData[Ocuda.Ops.Controllers.Areas.BooksByMail.Keys.TempData.AlertSuccess] != null)
-    {
-        <div class="row">
-            <div class="col-12 col-md-6 offset-md-3">
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    @Html.Raw(TempData[Ocuda.Ops.Controllers.Areas.BooksByMail.Keys.TempData.AlertSuccess])
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            </div>
-        </div>
-    }
-    @if (TempData[Ocuda.Ops.Controllers.Areas.BooksByMail.Keys.TempData.AlertInfo] != null)
-    {
-        <div class="row">
-            <div class="col-12 col-md-6 offset-md-3">
-                <div class="alert alert-info alert-dismissible fade show" role="alert">
-                    @Html.Raw(TempData[Ocuda.Ops.Controllers.Areas.BooksByMail.Keys.TempData.AlertInfo])
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            </div>
-        </div>
-    }
-</div> *@
 
 <div class="modal fade"
      id="historyModal"
@@ -289,7 +247,7 @@
                               title="Barcode copied to clipboard"></span>
                     </div>
                     <div class="col-12 col-md-4">
-                        <strong>Customer Lookup ID:</strong>
+                        <strong>Patron ID:</strong>
                         @Model.CustomerLookup.CustomerLookupID
                     </div>
                 </div>
@@ -419,7 +377,6 @@
     </div>
 </div>
 
-@* Comments Section *@
 <div class="row">
     <div class="col-12">
         <div class="card">
@@ -454,7 +411,7 @@
                     }
                     else
                     {
-                        <em>No comments.</em>
+                        <em id="noCommentsMessage">No comments.</em>
                     }
                 </div>
             </div>
@@ -551,12 +508,45 @@
             GetHistoryList();
         });
 
-        $("#copyBarcode").on("click", function () {
-            copyToClipboard($("#customerLookupBarcode"));
+        function ShowBarcodeCopied() {
             $("#copyBarcode").tooltip('show');
             setTimeout(function () {
                 $("#copyBarcode").tooltip('hide');
             }, 500);
+        }
+
+        function CopyBarcodeFallback(barcode) {
+            var copyInput = document.createElement("input");
+            copyInput.value = barcode;
+            copyInput.setAttribute("readonly", "");
+            copyInput.style.position = "absolute";
+            copyInput.style.left = "-9999px";
+            document.body.appendChild(copyInput);
+            copyInput.select();
+
+            var copied = document.execCommand("copy");
+            document.body.removeChild(copyInput);
+
+            if (copied) {
+                ShowBarcodeCopied();
+            } else {
+                ShowAlert(false, "Unable to copy the barcode.");
+                HideAlert();
+            }
+        }
+
+        $("#copyBarcode").on("click", function () {
+            var barcode = $("#customerLookupBarcode").text().trim();
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(barcode)
+                    .then(ShowBarcodeCopied)
+                    .catch(function () {
+                        CopyBarcodeFallback(barcode);
+                    });
+            } else {
+                CopyBarcodeFallback(barcode);
+            }
         });
 
         var closeTimeout;
@@ -624,6 +614,7 @@
                     commentCard.removeAttr("id").removeClass("d-none");
                     commentCard.find(".card-body").text(response.text);
                     commentCard.find(".footer-createdAt").text(response.createdAt);
+                    $("#noCommentsMessage").remove();
                     commentCard.prependTo("#commentSection");
                     modal.find(".modal-alert").addClass("d-none");
                 } else {

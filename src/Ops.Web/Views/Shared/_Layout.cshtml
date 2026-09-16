@@ -163,6 +163,13 @@
                                     Book a Librarian
                                 </a>
                                 <a class="dropdown-item"
+                                   asp-area="@Ocuda.Ops.Controllers.Areas.BooksByMail.HomeController.Area"
+                                   asp-action="@nameof(Ocuda.Ops.Controllers.Areas.BooksByMail.HomeController.Index)"
+                                   asp-controller="@Ocuda.Ops.Controllers.Areas.BooksByMail.HomeController.Name">
+                                    <span class="fa-solid fa-envelopes-bulk fa-fw"></span>
+                                    Books By Mail
+                                </a>
+                                <a class="dropdown-item"
                                    asp-controller="@Ocuda.Ops.Controllers.Areas.Services.RenewCardController.Name"
                                    asp-area="@(nameof(Ocuda.Ops.Controllers.Areas.Services))"
                                    asp-action="@(nameof(Ocuda.Ops.Controllers.Areas.Services.RenewCardController.Index))">
@@ -175,13 +182,6 @@
                                    asp-action="@(nameof(Ocuda.Ops.Controllers.Areas.Services.EmployeeSignupController.Index))">
                                     <span class="fa-solid fa-clipboard-user fa-fw"></span>
                                     Employee Signup
-                                </a>
-                                <a class="dropdown-item"
-                                   asp-area="@Ocuda.Ops.Controllers.Areas.BooksByMail.HomeController.Area"
-                                   asp-action="@nameof(Ocuda.Ops.Controllers.Areas.BooksByMail.HomeController.Index)"
-                                   asp-controller="@Ocuda.Ops.Controllers.Areas.BooksByMail.HomeController.Name">
-                                    <span class="fa-solid fa-envelopes-bulk fa-fw"></span>
-                                    Books By Mail
                                 </a>
                                 <a class="dropdown-item"
                                    asp-controller="@Ocuda.Ops.Controllers.Areas.Incident.HomeController.Name"

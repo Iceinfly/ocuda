@@ -15,7 +15,7 @@ using Ocuda.Utility.Exceptions;
 namespace Ocuda.Ops.Controllers.Areas.BooksByMail
 {
     [Area(nameof(BooksByMail))]
-    [Route("[area]/[controller]")]
+    [Route("[area]")]
     public class HomeController : BaseController<HomeController>
     {
         private const int DefaultDays = -21;
@@ -64,7 +64,11 @@ namespace Ocuda.Ops.Controllers.Areas.BooksByMail
             if (customer == null)
             {
                 _logger.LogError("Could not find customer {CustomerId} for adding comment", id);
-                message = $"Unable to find customer id {id}.";
+                return Json(new
+                {
+                    success = false,
+                    message = $"Unable to find customer id {id}."
+                });
             }
 
             var comment = new BooksByMailComment
@@ -98,7 +102,7 @@ namespace Ocuda.Ops.Controllers.Areas.BooksByMail
         }
 
         [HttpGet("[action]")]
-        public async Task<IActionResult> BooksByMailCustomer(int id, string barcode, string search)
+        public async Task<IActionResult> Details(int id, string barcode, string search)
         {
             search = search?.Trim();
             if (string.IsNullOrWhiteSpace(barcode))
@@ -193,6 +197,7 @@ namespace Ocuda.Ops.Controllers.Areas.BooksByMail
             return PartialView("_HistoryPartial", viewModel);
         }
 
+        [HttpGet("")]
         [HttpGet("[action]")]
         public async Task<IActionResult> Index(string search,
             int orderBy,
