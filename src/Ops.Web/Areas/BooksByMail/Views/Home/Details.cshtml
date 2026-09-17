@@ -73,10 +73,8 @@
                             <span id="historySearchCount"></span>
                             <button type="button"
                                     class="btn-close"
-                                    data-bs-dismiss="alert"
-                                    aria-label="Close"
+                                    aria-label="Clear search"
                                     id="historyClearSearch"></button>
-                            <a href="~/areas/booksbymail/views/_viewstart.cshtml">~/areas/booksbymail/views/_viewstart.cshtml</a>
                         </div>
                     </div>
                 </div>
@@ -450,10 +448,10 @@
                 if (updateSearchText) {
                     if (search !== "") {
                         $("#historySearchMessage").removeClass("d-none");
-                        $("#historySearchTerm").html(search);
+                        $("#historySearchTerm").text(search);
                         var searchCountText = " " + historySearchCount;
                         searchCountText += historySearchCount == 1 ? " match." : " matches.";
-                        $("#historySearchCount").html(searchCountText);
+                        $("#historySearchCount").text(searchCountText);
                     } else {
                         $("#historySearchMessage").addClass("d-none");
                     }
@@ -488,24 +486,19 @@
             GetHistoryList(true);
         });
 
-        $(document).on("click", ".sortable-column", function () {
+        $(document).on("click", ".sortable-column", function (e) {
+            e.preventDefault();
             orderBy = $(this).data("orderby");
             orderDesc = $(this).data("orderdesc");
             page = 1;
             GetHistoryList();
         });
 
-        $(document).on("click", ".page-link:not(.page-input)", function () {
+        $(document).on("click", ".page-button", function () {
             if (!$(this).hasClass("disabled")) {
                 page = $(this).data("page");
                 GetHistoryList();
             }
-        });
-
-        $(document).on("submit", ".page-form", function (e) {
-            e.preventDefault();
-            page = $(".page-input").val();
-            GetHistoryList();
         });
 
         function ShowBarcodeCopied() {
