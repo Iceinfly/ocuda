@@ -21,6 +21,8 @@ namespace Ocuda.Ops.Data.Ops
         public async Task<ICollection<BooksByMailComment>> GetAllAsync(int booksByMailCustomerId)
         {
             return await DbSet
+                .AsNoTracking()
+                .Include(_ => _.CreatedByUser)
                 .Where(_ => _.BooksByMailCustomerId == booksByMailCustomerId)
                 .OrderByDescending(_ => _.CreatedAt)
                 .ToListAsync();

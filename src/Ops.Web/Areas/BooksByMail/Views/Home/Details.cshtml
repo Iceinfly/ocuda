@@ -1,40 +1,7 @@
 ﻿@using Ocuda.Ops.Controllers.Areas.BooksByMail.ViewModels
 @model BooksByMailCustomerViewModel
 
-<nav class="navbar navbar-expand-sm navbar-dark bg-dark oc-navbar">
-    <a class="navbar-brand"
-       asp-area="@HomeController.Area"
-       asp-controller="@HomeController.Name"
-       asp-action="@nameof(HomeController.Index)">
-        <span class="fas fa-mail-bulk"></span>
-        <span class="fw-light oc-navbrand">Books By Mail</span>
-    </a>
-    <button class="navbar-toggler" type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#navbarCollapsableContent"
-            aria-controls="navbarCollapsableContent"
-            aria-expanded="false"
-            aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarCollapsableContent">
-        <span class="me-auto"></span>
-        <form asp-area="@HomeController.Area"
-              asp-controller="@HomeController.Name"
-              asp-action="@nameof(HomeController.Index)"
-              method="get"
-              role="form"
-              class="d-flex">
-            <input type="search"
-                   id="search"
-                   name="search"
-                   class="form-control me-2 mb-1 mb-sm-0"
-                   placeholder="Name/Barcode"
-                   value="@Model.Search" />
-            <input type="submit" value="Search" class="btn btn-info" />
-        </form>
-    </div>
-</nav>
+<partial name="_BooksByMailPartial" model="Model" />
 
 <div class="modal fade"
      id="historyModal"
@@ -241,8 +208,7 @@
                         <span id="copyBarcode"
                               class="far fa-copy text-primary"
                               style="cursor: pointer;"
-                              data-bs-toggle="tooltip"
-                              title="Barcode copied to clipboard"></span>
+                              aria-label="Copy barcode"></span>
                     </div>
                     <div class="col-12 col-md-4">
                         <strong>Patron ID:</strong>
@@ -399,6 +365,20 @@
                                         </div>
                                         <div class="card-footer text-muted py-1 px-2">
                                             <small>
+                                                @if (comment.CreatedByUser != null)
+                                                {
+                                                    if (comment.CreatedByUser.IsDeleted)
+                                                    {
+                                                        <span>@comment.CreatedByUser.Name</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <a asp-area=""
+                                                           asp-controller="@Ocuda.Ops.Controllers.ProfileController.Name"
+                                                           asp-action="@nameof(Ocuda.Ops.Controllers.ProfileController.Index)"
+                                                           asp-route-id="@comment.CreatedByUser.Username">@comment.CreatedByUser.Name</a>
+                                                    }
+                                                }
                                                 <span class="footer-createdAt float-end">@comment.CreatedAt.ToShortDateString()</span>
                                             </small>
                                         </div>
@@ -423,6 +403,8 @@
             <div class="card-body p-2"></div>
             <div class="card-footer text-muted py-1 px-2">
                 <small>
+                    <a class="footer-createdBy d-none"></a>
+                    <span class="footer-createdByName d-none"></span>
                     <span class="footer-createdAt float-end"></span>
                 </small>
             </div>
@@ -501,10 +483,15 @@
             }
         });
 
+        var copyBarcodeTooltip = new bootstrap.Tooltip(document.getElementById("copyBarcode"), {
+            title: "Barcode copied to clipboard",
+            trigger: "manual"
+        });
+
         function ShowBarcodeCopied() {
-            $("#copyBarcode").tooltip('show');
+            copyBarcodeTooltip.show();
             setTimeout(function () {
-                $("#copyBarcode").tooltip('hide');
+                copyBarcodeTooltip.hide();
             }, 500);
         }
 
@@ -607,6 +594,18 @@
                     commentCard.removeAttr("id").removeClass("d-none");
                     commentCard.find(".card-body").text(response.text);
                     commentCard.find(".footer-createdAt").text(response.createdAt);
+                    if (response.createdByName) {
+                        if (response.createdByProfileUrl) {
+                            commentCard.find(".footer-createdBy")
+                                .attr("href", response.createdByProfileUrl)
+                                .text(response.createdByName)
+                                .removeClass("d-none");
+                        } else {
+                            commentCard.find(".footer-createdByName")
+                                .text(response.createdByName)
+                                .removeClass("d-none");
+                        }
+                    }
                     $("#noCommentsMessage").remove();
                     commentCard.prependTo("#commentSection");
                     modal.find(".modal-alert").addClass("d-none");

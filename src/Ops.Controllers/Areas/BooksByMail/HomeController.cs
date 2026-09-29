@@ -24,20 +24,24 @@ namespace Ocuda.Ops.Controllers.Areas.BooksByMail
         private readonly IBooksByMailService _booksByMailService;
         private readonly IConfiguration _config;
         private readonly ICustomerLookupService _customerLookupService;
+        private readonly IUserService _userService;
 
         public HomeController(Controller<HomeController> context,
 
             IConfiguration config,
             IBooksByMailService booksByMailService,
-            ICustomerLookupService customerLookupService) : base(context)
+            ICustomerLookupService customerLookupService,
+            IUserService userService) : base(context)
         {
             ArgumentNullException.ThrowIfNull(booksByMailService);
             ArgumentNullException.ThrowIfNull(customerLookupService);
             ArgumentNullException.ThrowIfNull(config);
+            ArgumentNullException.ThrowIfNull(userService);
 
             _config = config;
             _booksByMailService = booksByMailService;
             _customerLookupService = customerLookupService;
+            _userService = userService;
 
             SetPageTitle(PageTitle);
         }
@@ -92,12 +96,22 @@ namespace Ocuda.Ops.Controllers.Areas.BooksByMail
                 message = "An error occured adding your comment.";
             }
 
+            var createdByUser = success
+                ? await _userService.GetNameUsernameAsync(comment.CreatedBy)
+                : null;
+
             return Json(new
             {
                 success,
                 message,
                 text = comment.Text,
-                createdAt = comment.CreatedAt.ToShortDateString()
+                createdAt = comment.CreatedAt.ToShortDateString(),
+                createdByName = createdByUser?.Name,
+                createdByProfileUrl = createdByUser == null || createdByUser.IsDeleted
+                    ? null
+                    : Url.Action(nameof(ProfileController.Index),
+                        ProfileController.Name,
+                        new { area = string.Empty, id = createdByUser.Username })
             });
         }
 
@@ -132,6 +146,7 @@ namespace Ocuda.Ops.Controllers.Areas.BooksByMail
 
             var viewModel = new BooksByMailCustomerViewModel
             {
+                BackToIndex = true,
                 BooksByMailCustomer = booksByMailCustomer,
                 CustomerLookup = customerLookup,
                 CustomerLookupCheckouts = await _customerLookupService

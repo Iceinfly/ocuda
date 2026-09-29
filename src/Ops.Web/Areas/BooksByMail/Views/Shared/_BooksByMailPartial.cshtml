@@ -11,6 +11,7 @@
     <form asp-action="@nameof(HomeController.Index)"
           asp-area="@HomeController.Area"
           asp-controller="@HomeController.Name"
+          method="get"
           role="form">
         <div class="input-group">
 
@@ -24,9 +25,19 @@
         </div>
     </form>
     <div class="ms-2">
-        <a asp-action="@nameof(Ocuda.Ops.Controllers.HomeController.Index)"
-           asp-area=""
-           asp-controller="@Ocuda.Ops.Controllers.HomeController.Name"
-           class="btn btn-outline-dark">Back</a>
+        @if (Model.BackToIndex)
+        {
+            <a asp-action="@nameof(HomeController.Index)"
+               asp-area="@HomeController.Area"
+               asp-controller="@HomeController.Name"
+               class="btn btn-outline-dark">Back</a>
+        }
+        else
+        {
+            <a asp-action="@nameof(Ocuda.Ops.Controllers.HomeController.Index)"
+               asp-area=""
+               asp-controller="@Ocuda.Ops.Controllers.HomeController.Name"
+               class="btn btn-outline-dark">Back</a>
+        }
     </div>
 </div>

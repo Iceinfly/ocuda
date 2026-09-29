@@ -9,6 +9,7 @@ namespace Ocuda.Ops.Controllers.Areas.BooksByMail.ViewModels
             Heading = "Books by Mail";
         }
 
+        public bool BackToIndex { get; set; }
         public string Heading { get; set; }
         public string Search { get; set; }
         public string SecondaryHeading { get; set; }
