@@ -413,6 +413,8 @@ namespace Ocuda.Ops.Web
                 Data.Ops.EmployeeCardStatsRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IExternalResourceRepository,
                 Data.Ops.ExternalResourceRepository>();
+            services.AddScoped<Service.Interfaces.Ops.Repositories.IFileCategoryRepository,
+                Data.Ops.FileCategoryRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IFileLibraryRepository,
                 Data.Ops.FileLibraryRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IFileRepository,
@@ -501,6 +503,8 @@ namespace Ocuda.Ops.Web
                 Data.Ops.ScheduleLogCallDispositionRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.IScheduleLogRepository,
                 Data.Ops.ScheduleLogRepository>();
+            services.AddScoped<Service.Interfaces.Ops.Repositories.ISectionCategoryRepository,
+                Data.Ops.SectionCategoryRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.ISectionRepository,
                 Data.Ops.SectionRepository>();
             services.AddScoped<Service.Interfaces.Ops.Repositories.ISiteSettingRepository,
@@ -659,6 +663,7 @@ namespace Ocuda.Ops.Web
             services.AddScoped<IAuthorizationService, AuthorizationService>();
             services.AddScoped<ICarouselService, CarouselService>();
             services.AddScoped<ICategoryService, CategoryService>();
+            services.AddScoped<IContentCategoryService, ContentCategoryService>();
             services.AddScoped<ITicketService, TicketService>();
             services.AddScoped<ICoverIssueService, CoverIssueService>();
             services.AddScoped<IDeckService, DeckService>();
