@@ -372,6 +372,9 @@ namespace Ocuda.Ops.Web
                 });
             services.AddScoped<IPolarisHelper, PolarisHelper.PolarisHelper>();
 
+            // tools
+            services.AddScoped<IImageTools, ImageToolsNetVips.ImageTools>();
+
             // repositories
             services.AddScoped<Service.Interfaces.Ops.Repositories.IApiKeyRepository,
                 Data.Ops.ApiKeyRepository>();
